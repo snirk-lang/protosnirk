@@ -1,0 +1,12 @@
+[package]
+name = "protosnirk"
+description = "An in-progress simple programming language implemented in Rust"
+version = "0.0.1"
+repository = ""
+keywords = ["protosnirk", "programming", "scripting", "language"]
+readme = "README.md"
+authors = ["Snirk Immington <snirk.immington@gmail.com>"]
+license = "MIT"
+
+[dependencies]
+nom = "1.2"
