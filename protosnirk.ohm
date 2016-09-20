@@ -1,0 +1,82 @@
+Protosnirk {
+Program (a program)
+	= Statement* ReturnStatement
+
+Statement (a statement)
+	= LetExp
+    | AssignExp
+
+ReturnStatement (a return statement)
+	= return ValueExp  -- explicit
+    | ValueExp		   -- implicit
+
+ValueExp (a value)
+	= QuaternaryExp
+    | ident
+    | literal
+
+QuaternaryExp (fourth level ops)
+	= TertiaryExp (ModExp)+ -- mods
+    | TertiaryExp 			-- fallthrough
+
+TertiaryExp (third level ops)
+    = SecondaryExp (SubExp|AddExp)+  -- addOrSub
+    | SecondaryExp			-- fallthrough
+
+ModExp = "%" TertiaryExp
+
+AddExp = "+" SecondaryExp
+SubExp = "-" SecondaryExp
+
+SecondaryExp (second order ops)
+    = PrimaryExp (MulExp|DivExp)+	-- mulOrDiv
+    | PrimaryExp			-- fallthrough
+
+MulExp = "*" PrimaryExp
+DivExp = "/" PrimaryExp
+
+PrimaryExp (highest order ops)
+	= ParenExp
+    | ident
+    | literal
+    | "-" PrimaryExp -- negation
+
+UnaryExp (a unary operator)
+	= NegateExp
+
+NegateExp = "-" ~"-" PrimaryExp
+
+ParenExp = "(" ValueExp ")"
+
+LetExp = let mut? ident "=" ValueExp
+AssignExp = ident "=" ValueExp
+
+ident (an identifier)
+	= ~reservedKeyword ("_"|letter) ("_"|letter|digit)*
+
+literal (a literal)
+	= number
+
+number (a number)
+	= digit+			-- whole
+    | digit* "." digit+ -- fract
+    | "0x" ("a".."f"|digit)+ -- hex
+
+reservedKeyword = keyword | futureKeyword
+
+keyword = let | mut | return
+
+futureKeyword (future reserved keyword)
+	= "case"  | "match" | "switch"
+	| "for"   | "while" | "loop" | "if"
+	| "break" | "continue" | "do"
+    | "let" | "mut" | "static" | "const"
+	| "type" | "class" | "struct" | "enum" | "trait"
+	| "extends" | "implements" | "derive" | "where" | "of"
+	| "public" | "module" | "package" | "use"
+	| "async" | "await" | "fixed" | "send" | "sync"
+
+let = ~space "let"
+mut = ~space "mut"
+return = ~space "return"
+}
