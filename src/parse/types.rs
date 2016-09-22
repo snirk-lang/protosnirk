@@ -13,6 +13,5 @@ pub enum Literal {
 pub enum Expression {
     Literal(Box<Literal>),
     Func { name: Ident, params: Vec<Expression> },
-    Let()
 }
 

@@ -1,7 +1,7 @@
 //! Contains the lexer which reads constable syntax.
 
 /// All the keywords in the language.
-pub const KEYWORDS: [&'static str] = [
+pub const KEYWORDS: &'static[&'static str] = &[
     "and", "or", "not", "bitand", "bitor", "bitnot",
     "none", "true", "false",
     "case", "match", "switch",
