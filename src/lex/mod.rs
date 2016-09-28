@@ -1,5 +1,7 @@
 //! Contains the lexer which reads constable syntax.
 
+mod identifier;
+
 /// All the keywords in the language.
 pub const KEYWORDS: &'static[&'static str] = &[
     "and", "or", "not", "bitand", "bitor", "bitnot",
