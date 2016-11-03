@@ -1,10 +1,10 @@
 //! Contains the lexer which reads constable syntax.
 
 mod ident;
-
 mod token;
-
 mod lexer;
+mod literal;
+mod pratt;
 
 /// All the keywords in the language.
 pub const KEYWORDS: &'static[&'static str] = &[

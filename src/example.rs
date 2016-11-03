@@ -6,21 +6,6 @@ use std::str;
 use std::borrow::ToOwned;
 use nom::{self, IResult};
 
-pub struct ISODate {
-    year: i16,
-    month: u8,
-    day: u8,
-    hour: u8,
-    minute: u8,
-    second: u8
-}
-
-named!(pub sign <&[u8], bool>,
-       alt!(
-           tag!("+") => { |_| true } |
-           tag!("-") => { |_| false }
-       ));
-
 // A variable binding
 #[derive(PartialEq, Eq, Debug)]
 pub struct Binding {
@@ -30,7 +15,7 @@ pub struct Binding {
 }
 
 // Example
-// Parse `let x = 0` into Let { name: 'x', val: 0 }
+// Parse `let x = 0` into Binding { name: 'x', mutable: false, val: 0 }
 
 macro_rules! keyword {
     ($kw:ident) => {
@@ -55,12 +40,12 @@ keyword!(pub keyword_mut = "mut");
 named!(pub get_digits <&[u8], &[u8]>,
        take_while1!(
            nom::is_digit
-       ));
+        ));
 
 named!(pub spacing <&[u8], &[u8]>,
        take_while1!(
            nom::is_space
-       ));
+        ));
 
 named!(pub ident <&[u8], &[u8]>,
        take_while!(
@@ -72,6 +57,27 @@ named!(pub declaration <&[u8], bool>,
            keyword_let => { |_| false } |
            keyword_mut => { |_| true }
        ));
+
+fn ident_start(input: u8) -> bool {
+    input == b'_' || nom::is_alphanumeric(input)
+}
+
+/*
+fn identifier(input: &[u8]) -> IResult<&[u8], &[u8]> {
+    if input.len() == 0 {
+        return IResult::Incomplete
+    }
+    if !ident_start(input[0]) {
+        return IResult::Error(&b"err"[..])
+    }
+    for ch in input[1..] {
+        if !nom::is_alphanumeric(ch) {
+            return IResult::Error(2)
+        }
+    }
+    IResult::Done(&[], input)
+}
+ */
 
 named!(pub binding <&[u8], Binding>,
        chain!(
@@ -95,6 +101,17 @@ fn get_string(input: &[u8]) -> String {
     str::from_utf8(input).unwrap().to_string()
 }
 
+fn not_keyword(input: &[u8]) -> bool {
+    const KEYWORDS: &'static[&'static[u8]] = &[b"let", b"mut"];
+
+    for word in KEYWORDS {
+        if input == *word {
+            return true
+        }
+    }
+    return false
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -108,13 +125,6 @@ mod tests {
         ($parser:ident <- $input:expr, $value:expr) => {
             assert_eq!($parser(&$input[..]), ::nom::IResult::Done(EMPTY, $value));
         };
-    }
-
-    #[test]
-    fn sign_works() {
-        assert_eq!(sign(&b"+"[..]), Done(EMPTY, true));
-        assert_eq!(sign(&b"-"[..]), Done(EMPTY, false));
-        assert_parse!(sign <- b"+", true);
     }
 
     #[test]
