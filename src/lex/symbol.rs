@@ -3,7 +3,8 @@
 //! Pratt parsing in protosnirk is implemented as a collection of symbols
 //! whose role it is to offer the `parse` method which creates syntax nodes.
 
-use super::precedence::Precedence;
+use lex::precedence::Precedence;
+use lex::token::{Token, TokenType};
 
 pub type SymbolResult<'a> = Result<SyntaxNode, ParseError<'a>>;
 
@@ -38,6 +39,10 @@ pub trait InfixSymbol {
     fn get_precedence(&self) -> Precedence;
 }
 
+pub trait StatementSymbol {
+    fn parse<'a>(&self, )
+}
+
 /// A parser which parses symbols used for binary operators.
 ///
 /// Instances of this parser return `BinaryExpression`s.
@@ -46,7 +51,7 @@ pub struct BinOpSymbol {
 }
 impl InfixSymbol for BinOpSymbol {
     /// Parses a binary operator expression.
-    fn parse<'a>(&self, parser: &'a mut Parser, left: SyntaxNode, token: Token<'a>) -> SymbolResult {
+    fn parse<'a>(&self, parser: &'a mut Parser, left: SyntaxNode, token: Token<'a>) -> SymbolResult<'a> {
         let right = try!(parser.parse_expression(self.precedence));
         Ok(SyntaxNode::Prefix(left, token.get_type(), right))
     }

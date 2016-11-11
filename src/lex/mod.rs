@@ -2,10 +2,8 @@
 
 mod precedence;
 mod symbol;
-mod ident;
 mod token;
 mod lexer;
-mod literal;
 mod pratt;
 
 /// All the keywords in the language.
