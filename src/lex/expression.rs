@@ -51,7 +51,7 @@ impl Identifier {
 /// Maths style binary operations (may be split up later)
 #[derive(Debug, PartialEq, Clone)]
 pub struct BinaryOperation {
-    operator: BinaryOperator,
+    operator: TokenType,
     left: Box<Expression>,
     right: Box<Expression>
 }
@@ -59,21 +59,10 @@ impl BinaryOperation {
     pub fn new(operator: BinaryOperator, left: Expression, right: Expression) {
         BinaryOperation { operator: operator, left: left, right: right }
     }
-    pub fn get_operator(&self) -> BinaryOperator {
+    pub fn get_operator(&self) -> TokenType {
 
     }
 }
-
-/// Binary operators
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
-pub enum BinaryOperator {
-    Add,
-    Subtract,
-    Divide,
-    Multiply,
-    Modulus
-}
-
 impl Display for BinaryOperator {
     fn fmt(&self, formatter: &mut Formatter) -> FmtResult {
         write!(formatter, "{}",
@@ -87,22 +76,10 @@ impl Display for BinaryOperator {
     }
 }
 
-/// Unary operators (negate)
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
-pub enum UnaryOperator {
-    Negate
-}
-
-impl Display for UnaryOperator {
-    fn fmt(&self, formatter: &mut Formatter) -> FmtResult {
-        write!(formatter, "-")
-    }
-}
-
 /// Unary operation
 #[derive(Debug, PartialEq, Clone)]
 pub struct UnaryOperation {
-    operator: UnaryOperator,
+    operator: TokenType,
     expression: Box<Expression>
 }
 
@@ -120,10 +97,10 @@ impl Assignment {
 }
 
 pub struct Return {
-    value: Expression
+    value: Box<Expression>
 }
 impl Return {
-    
+
 }
 
 /// Expression
@@ -144,16 +121,6 @@ pub enum Expression {
 pub enum Statement {
     Declaration(Declaration),
     Assignment(Assignment),
-    Return(Return)
-}
-
-/// A compiled program
-pub struct Program {
-    statements: Vec<Statement>
-}
-
-/// All parsers must return a SyntaxNode.
-pub enum SyntaxNode {
-    Expression(Expression),
-    Statement(Statement)
+    Return(Return),
+    Expression(Expression)
 }

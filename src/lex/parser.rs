@@ -15,21 +15,23 @@ pub struct Parser<'a> {
 }
 
 impl Parser {
-    pub fn peek(&mut self) -> Token<'a> {
-        
-    }
-
+    /// Parses any expression with the given precedence.
     pub fn parse_expression(precedence: Precedence) -> SymbolResult {
-        
+
     }
 
+    /// Parses any statement with the given precedence.
     pub fn parse_statement(precedence: Precedence) -> SymbolResult {
-        
+
     }
 
+    /// Parses an entire program.
     pub fn parse_program() -> SymbolResult {
         let mut expressions = Vec::new();
-        while let Ok(expr) = self.parse_expression()
+        while let Ok(expr) = self.parse_expression(Precedence::Max) {
+            expressions.push(other);
+        }
+        Ok(Expression::Program(exressions));
     }
 
     pub fn parse_expr_of(&mut self, expr_type: TokenType, precedence: Precedence) -> SymbolResult<'a> {
