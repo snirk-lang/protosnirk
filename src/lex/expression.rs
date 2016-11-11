@@ -5,9 +5,8 @@
 pub struct Declaration {
     name: String,
     mutable: bool,
-    value: Option<Expression>
+    value: Box<Expression>
 }
-
 impl Declaration {
     pub fn new(name: String, value: Expression) -> Self {
         Declaration { name: name, value: value }
@@ -26,7 +25,6 @@ impl Declaration {
 /// Literal value
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub struct Literal(f64);
-
 impl Literal {
     pub fn new(value: f64) -> Self {
         Literal(value)
@@ -121,29 +119,41 @@ impl Assignment {
 
 }
 
+pub struct Return {
+    value: Expression
+}
+impl Return {
+    
+}
+
 /// Expression
-enum Expression {
+pub enum Expression {
+    /// Literal value in source code
     Literal(Literal),
+    /// Value of an identifier is being used
     VariableRef(Identifier),
+    /// Binary operation
     BinaryOp(BinaryOperation),
+    /// Unary operation
     UnaryOp(UnaryOperation),
+    /// Block of statements with a return
     Block(Vec<Statement>, Expression)
 }
 
 /// Statement within a program
-enum Statement {
+pub enum Statement {
     Declaration(Declaration),
     Assignment(Assignment),
+    Return(Return)
 }
 
 /// A compiled program
-struct Program {
+pub struct Program {
     statements: Vec<Statement>
 }
-/// Expression type
-pub enum Expression {
-    BinaryOp(BinOp),
-    Parens(Box<Expression>),
-    Negate(Box<Expression>),
-    Literal(Literal)
+
+/// All parsers must return a SyntaxNode.
+pub enum SyntaxNode {
+    Expression(Expression),
+    Statement(Statement)
 }

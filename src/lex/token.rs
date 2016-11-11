@@ -17,7 +17,7 @@ pub struct Token<'a> {
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub enum TokenType {
     /// A literal number.
-    Literal(i32),
+    Literal,
     /// An identifier.
     /// See `.get_text()` for the value within.
     Identifier,
@@ -37,13 +37,13 @@ pub enum TokenType {
 
 /// A type of
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-enum DeclareType {
+pub enum DeclareType {
     Let,
     Mut
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-enum InfixType {
+pub enum InfixType {
     Add,
     Sub,
     Mul,
@@ -52,12 +52,12 @@ enum InfixType {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-enum PrefixType {
+pub enum PrefixType {
     Negate
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-enum BracketType {
+pub enum BracketType {
     Paren,
     Square,
     Angle,

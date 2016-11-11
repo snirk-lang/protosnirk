@@ -1,5 +1,7 @@
 //! Contains the lexer which reads constable syntax.
 
+mod precedence;
+mod symbol;
 mod ident;
 mod token;
 mod lexer;
