@@ -3,11 +3,21 @@
 mod precedence;
 mod symbol;
 mod token;
-mod lexer;
-mod pratt;
+mod expression;
+mod errors;
+mod error_codes;
+mod tokenizer;
+mod grapheme_tokenizer;
+mod parser;
+
+pub use self::expression::{Expression, ExpressionType};
+pub use self::errors::{ParseResult, ParseError, TokenResult};
+pub use self::token::{Token, TokenType};
+pub use self::tokenizer::Tokenizer;
+pub use self::parser::{Parser};
 
 /// All the keywords in the language.
-pub const KEYWORDS: &'static[&'static str] = &[
+pub const KEYWORDS: &'static [&'static str] = &[
     "and", "or", "not", "bitand", "bitor", "bitnot",
     "none", "true", "false",
     "case", "match", "switch",
