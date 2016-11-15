@@ -5,95 +5,144 @@ use std::ops::Range;
 
 /// The token struct.
 #[derive(Debug, PartialEq, Clone)]
-pub struct Token<'a> {
+pub struct Token {
     range: Range<usize>,
-    text: &'a str,
+    text: String,
     type_: TokenType
 }
 
-/// What kind of token this is.
-///
-/// Similar token types are grouped together (i.e. brackets) into sub-enums.
+/// Enum representing which type of token this is.
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub enum TokenType {
-    /// A literal number.
-    Literal,
-    /// An identifier.
-    /// See `.get_text()` for the value within.
+    /// An identifier
     Identifier,
-    /// Assignment operator `=`
+    /// A numeric literal
+    NumberLiteral,
+
+    /// +
+    Plus,
+    /// -
+    Minus,
+    /// *
+    Star,
+    /// /
+    Slash,
+    /// =
     Assign,
-    /// Declaration, `let` or `mut`
-    Declare(DeclareType),
-    /// An infix operator, such as `and`, `or`, `+`, `%`
-    InfixOperator(InfixType),
-    /// A prefix operator, such as `-` or `not`
-    PrefixOperator(PrefixType),
-    /// A bracket, one of `{[(<>)]}`
-    Bracket(BracketType, bool),
-    /// Special token used to indicate the end of the file.
-    EOF
-}
+    /// %
+    Percent,
 
-/// A type of
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-pub enum DeclareType {
+    /// let
     Let,
-    Mut
+    /// mut
+    Mut,
+    /// return
+    Return,
+
+    /// (
+    LeftParen,
+    /// )
+    RightParen,
+    /// [
+    LeftBrace,
+    /// ]
+    RightBrace,
+    /// {
+    LeftSquiggle,
+    /// }
+    RightSquiggle,
+    /// <
+    LeftAngle,
+    /// >
+    RightAngle,
+
+    /// Abstract token used to indicate an increase in indentation
+    IncreaseIndent,
+    /// Abstract token used to indiciate a decrease in indentation
+    EndBlock,
+    /// Token used to indicate EOF.
+    End
 }
 
+/// Which category of token the given `TokenType` is.
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-pub enum InfixType {
-    Add,
-    Sub,
-    Mul,
-    Div,
-    Mod
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-pub enum PrefixType {
-    Negate
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-pub enum BracketType {
+pub enum TokenCategory {
+    /// Token is used to declare a variable
+    Declare,
+    /// Token is used what why
+    Statement,
+    /// It's a name duh
+    Name,
+    /// Token is used literally
+    Literal,
+    /// Token is used to operate
+    Operator,
+    /// Token is parenthetical
     Paren,
-    Square,
-    Angle,
-    Squiggle
+    /// Token is used to indicate indentation
+    Control
 }
 
-impl<'a> Token<'a> {
-    pub fn new(start: usize, end: usize, text: &'a str, type_: TokenType)
-                   -> Token<'a> {
+impl Token {
+    pub fn new<S: Into<String>>(start: usize, end: usize, text: S, type_: TokenType)
+                   -> Token {
+        let into_text: String = text.into();
         debug_assert!(start <= end,
                       "range: start {} <= end {}", start, end);
-        debug_assert!(text.len() > 0,
-                      "text: empty string {}", text);
-        debug_assert!(text.len() == end - start,
-                      "text: {} does not match range {:?}", text, start .. end);
+        debug_assert!(into_text.len() > 0,
+                      "text: empty string {}", into_text);
+        debug_assert!(into_text.len() == end - start,
+                      "text: {} does not match range {:?}", into_text, start .. end);
 
         Token {
             range: start .. end,
-            text: text,
+            text: into_text,
             type_: type_
+        }
+    }
+
+    pub fn end(index: usize) -> Token {
+        Token {
+            range: index .. index,
+            text: "".into(),
+            type_: TokenType::End
         }
     }
 
     pub fn get_type(&self) -> TokenType {
         self.type_
     }
-    pub fn get_text(&self) -> &str {
-        self.text
+    pub fn get_text(&self) -> &String {
+        &self.text
     }
     pub fn range(&self) -> &Range<usize> {
         &self.range
     }
-    pub fn start(&self) -> usize {
-        self.range.start
+}
+impl Into<String> for Token {
+    fn into(self) -> String {
+        self.text
     }
-    pub fn end(&self) -> usize {
-        self.range.end
+}
+
+impl TokenType {
+    pub fn get_category(&self) -> TokenCategory {
+        use self::TokenType::*;
+        match *self {
+            Plus | Minus | Star | Slash | Percent =>
+                TokenCategory::Operator,
+
+            Let | Mut | Assign =>
+                TokenCategory::Declare,
+
+            LeftParen | LeftBrace | LeftSquiggle | LeftAngle |
+            RightParen | RightBrace | RightSquiggle | RightAngle =>
+                TokenCategory::Paren,
+
+            Identifier => TokenCategory::Name,
+            NumberLiteral => TokenCategory::Literal,
+            Return => TokenCategory::Statement,
+            IncreaseIndent | EndBlock | End => TokenCategory::Control
+        }
     }
 }
