@@ -12,12 +12,3 @@ impl ErrorType {
         self.desc
     }
 }
-
-macro_rules! error_codes {
-    ( $($num:expr : $desc:expr),+ ) => {
-        $(
-            pub const conat!(ERR_, stringify!($num)): ErrorType
-                = ErrorType { num: $num, desc: $desc };
-         )*
-    }
-}
