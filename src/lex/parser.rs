@@ -3,99 +3,119 @@
 //! The parser is a configurable object which parses a stream of tokens into a
 //! source tree.
 
-pub struct Parser<'a> {
+use std::collections::HashMap;
+use std::rc::Rc;
+
+use lex::{Token, TokenType, TokenResult, Expression, ExpressionType, ParseResult, ParseError};
+use lex::precedence::Precedence;
+use lex::tokenizer::Tokenizer;
+use lex::symbol::{PrefixSymbol, InfixSymbol};
+
+/// Parser object which parses things
+pub struct Parser {
     /// Tokenizer which supplies tokens
-    tokenizer: Tokenizer<'a>,
+    tokenizer: Box<Tokenizer>,
     /// Lookahead stack for peeking
-    lookahead: Vec<Token<'a>>,
+    lookahead: Vec<Token>,
     /// Parsers used for infix symbols
-    infix_parsers: HashMap<TokenType, Box<InfixSymol>>,
+    infix_parsers: HashMap<TokenType, Rc<InfixSymbol + 'static>>,
     /// Parsers used for prefix symbols
-    prefix_parsers: HashMap<TokenType, Box<PrefixSymbol>>
+    prefix_parsers: HashMap<TokenType, Rc<PrefixSymbol + 'static>>,
 }
 
 impl Parser {
-    /// Parses any expression with the given precedence.
-    pub fn parse_expression(precedence: Precedence) -> SymbolResult {
-
+    pub fn consume(&mut self) -> Token {
+        self.look_ahead(0usize);
+        self.lookahead.pop()
+            .expect("Unable to queue token via lookahead for consume")
     }
 
-    /// Parses any statement with the given precedence.
-    pub fn parse_statement(precedence: Precedence) -> SymbolResult {
-
-    }
-
-    /// Parses an entire program.
-    pub fn parse_program() -> SymbolResult {
-        let mut expressions = Vec::new();
-        while let Ok(expr) = self.parse_expression(Precedence::Max) {
-            expressions.push(other);
+    pub fn try_consume(&mut self, expected_type: TokenType) -> TokenResult {
+        let token = self.consume();
+        if token.get_type() != expected_type {
+            Err(ParseError::ExpectedToken {
+                expected: expected_type,
+                got: token.into()
+            })
+        } else {
+            Ok(token)
         }
-        Ok(Expression::Program(exressions));
     }
 
-    pub fn parse_expr_of(&mut self, expr_type: TokenType, precedence: Precedence) -> SymbolResult<'a> {
-        let mut token = self.consume_token();
-        let maybe_prefix = self.prefix_parsers.get(token.get_type());
-        if let Some(prefix) = maybe_prefix {
+    /// Peek at the next token without consuming it.
+    pub fn next_type(&mut self) -> TokenType {
+        self.look_ahead(0usize);
+        self.lookahead.last()
+            .expect("Unable to queue token via lookahead for peek")
+            .get_type()
+    }
+
+    /// Parses any expression with the given precedence.
+    pub fn expression(&mut self, precedence: Precedence) -> ParseResult {
+        let mut token = self.consume();
+        if let Some(prefix) = self.prefix_parsers.get(&token.get_type()).map(Rc::clone) {
             let mut left = try!(prefix.parse(self, token));
-
             while precedence < self.current_precedence() {
-                token = self.consume_token();
-
-                if let Some(infix) = infix_parsers.get(token.get_type()) {
+                token = self.consume();
+                if let Some(infix) = self.infix_parsers.get(&token.get_type()).map(Rc::clone) {
                     left = try!(infix.parse(self, left, token));
                 }
             }
             Ok(left)
         } else {
-            Err(ParserError::Generic("Unexpected tokens n stuff".into()))
+            Err(ParseError::LazyString(format!("Unexpected token of type {:?}", token.get_type())))
         }
     }
 
-    pub fn parse_expr_of_any(&mut self, expr_types: &'static[TokenType], precedence: Precedence) -> SymbolResult<'a> {
-        
-    }
+    pub fn new(tokenizer: Box<Tokenizer>) -> Parser {
+        use lex::symbol::*;
+        let infix_map: HashMap<TokenType, Rc<InfixSymbol>> = hashmap![
+            TokenType::Assign => Rc::new(AssignmentParser { }) as Rc<InfixSymbol>,
 
-    pub fn with_protosnirk_parsers() -> Parser {
-        let mut infix_map = hashmap![
-            TokenType::Assign => Box::new(AssignParser),
+            TokenType::Plus => BinOpSymbol::with_precedence(Precedence::AddSub),
+            TokenType::Minus => BinOpSymbol::with_precedence(Precedence::AddSub),
+            TokenType::Star => BinOpSymbol::with_precedence(Precedence::MulDiv),
+            TokenType::Slash => BinOpSymbol::with_precedence(Precedence::MulDiv),
 
-            TokenType::Add => BinOpSymbol::with_precedence(Precedence::AddSub),
-            TokenType::Sub => BinOpSymbol::with_precedence(Precedence::AddSub),
-            TokenType::Mul => BinOpSymbol::with_precedence(Precedence::MulDiv),
-            TokenType::Div => BinOpSymbol::with_precedence(Precedence::MulDiv),
-
-            TokenType::Mod => BinOpSymbol::with_precedence(Precedence::Modulo),
+            TokenType::Percent => BinOpSymbol::with_precedence(Precedence::Modulo),
         ];
-        let mut prefix_map = hashmap![
-            TokenType::Let => Box::new(DeclarationParser),
-            TokenType::Mut => Box::new(DeclarationParser),
+        let prefix_map: HashMap<TokenType, Rc<PrefixSymbol>> = hashmap![
+            TokenType::Let => Rc::new(DeclarationParser { }) as Rc<PrefixSymbol>,
+            TokenType::Mut => Rc::new(DeclarationParser { }) as Rc<PrefixSymbol>,
 
-            TokenType::Negate => UnaryOpSymbol::with_precedence(Precedence::UnaryOp),
-            TokenType::LeftParen => Box::new(ParensParser),
+            TokenType::Minus => UnaryOpSymbol::with_precedence(Precedence::NumericPrefix),
+            TokenType::LeftParen => Rc::new(ParensParser { }) as Rc<PrefixSymbol>,
 
-            TokenType::Return => Box::new(ReturnParser),
+            TokenType::Return => Rc::new(ReturnParser { }) as Rc<PrefixSymbol>,
 
-            TokenType::Name => Box::new(IdentifierParser)
+            TokenType::Identifier => Rc::new(IdentifierParser { }) as Rc<PrefixSymbol>
         ];
-    }
-}
 
-pub type SymbolResult<'a> = Result<Token<'a>, ParseError>;
-
-/// Error types when parsing
-pub enum ParseError {
-    Expected {
-        expected: TokenType,
-        got: Token,
-        info: String
-    },
-    Generic {
-        info: String
-    },
-    EOF {
-        expected: TokenType
+        Parser {
+            tokenizer: tokenizer,
+            lookahead: Vec::with_capacity(2usize),
+            infix_parsers: infix_map,
+            prefix_parsers: prefix_map
+        }
     }
-    Other
+
+    /// Grab `count` more tokens from the lexer and return the last one.
+    ///
+    /// Usually called with `0usize` to just peek at the next one.
+    fn look_ahead(&mut self, count: usize) {
+        while count >= self.lookahead.len() {
+            self.lookahead.push(self.tokenizer.next());
+        }
+        //self.lookahead[count].clone()
+    }
+
+    /// Get the current precedence
+    fn current_precedence(&mut self) -> Precedence {
+        let next_type = self.next_type();
+        if let Some(infix_parser) = self.infix_parsers.get(&next_type) {
+            infix_parser.get_precedence()
+        } else {
+            Precedence::Min
+        }
+    }
 }
