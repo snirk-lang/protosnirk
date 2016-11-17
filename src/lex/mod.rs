@@ -7,13 +7,15 @@ mod expression;
 mod errors;
 mod error_codes;
 mod tokenizer;
-mod grapheme_tokenizer;
 mod parser;
+
+#[cfg(test)]
+mod tests;
 
 pub use self::expression::{Expression, ExpressionType};
 pub use self::errors::{ParseResult, ParseError, TokenResult};
 pub use self::token::{Token, TokenType};
-pub use self::tokenizer::Tokenizer;
+pub use self::tokenizer::{Tokenizer, StaticStrTokenizer, TokenData};
 pub use self::parser::{Parser};
 
 /// All the keywords in the language.

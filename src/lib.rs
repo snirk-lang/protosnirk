@@ -5,6 +5,9 @@ extern crate unicode_segmentation;
 #[macro_use]
 extern crate maplit;
 
+#[macro_use]
+extern crate nom;
+
 mod lex;
 mod parse;
 mod compile;
