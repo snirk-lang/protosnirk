@@ -105,6 +105,17 @@ fn lexer_kinda_does_a_thing_maybe() {
     });
 }
 
+#[test]
+fn it_ignores_line_comment() {
+    let input =
+    "//comment\nlet x";
+    let mut tokenizer = StaticStrTokenizer::new(input);
+    match_tokens!(tokenizer {
+        TokenData::Keyword(Cow::Borrowed("let")),
+        TokenData::Ident(Cow::Borrowed("x"))
+    });
+}
+
 //#[test]
 fn parser_kinda_parses_a_thing_maybe() {
     let tokenizer = VecTokenizer(to_tokens(&[

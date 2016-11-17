@@ -173,7 +173,7 @@ impl StaticStrTokenizer {
             self.parse_float_literal()
         } else if peek.is_letter() {
             self.parse_keyword_or_ident()
-        } else if peek.is_symbol() || peek == '%' {
+        } else if peek.is_symbol() || peek == '%' || peek == '/' {
             self.parse_symbol()
         } else {
             panic!("Got weird character {:?}", peek);
@@ -186,7 +186,15 @@ impl StaticStrTokenizer {
     /// it attempts to match bigger symbols
     fn parse_symbol(&mut self) -> Token {
         let mut sym = String::new();
-        self.take_while(|ch| ch == '%' || ch.is_symbol(), &mut sym);
+        self.take_while(|ch| ch == '%' || ch == '/' || ch.is_symbol(), &mut sym);
+        if sym.starts_with("///") {
+            // doc comment - will be implemented later on
+            self.take_while(|ch| ch != '\n', &mut sym);
+            return self.next()
+        } else if sym.starts_with("//") {
+            self.skip_while(|ch| ch != '\n');
+            return self.next()
+        }
         loop {
             if self.keywords.get(&Cow::Borrowed(&*sym)).is_some() {
                 return Token {
