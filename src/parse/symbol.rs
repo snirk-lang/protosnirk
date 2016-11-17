@@ -5,9 +5,9 @@
 
 use std::rc::Rc;
 
-use lex::{Parser, ParseResult, ParseError, Token, TokenType};
-use lex::precedence::Precedence;
-use lex::expression::*;
+use lex::{Token, TokenType};
+use parse::{Parser, ParseResult, ParseError, Precedence};
+use parse::expression::*;
 
 /// A parser which parses an operator that is a prefix operator.
 ///

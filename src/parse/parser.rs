@@ -6,10 +6,9 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use lex::{Token, TokenType, TokenResult, Expression, ExpressionType, ParseResult, ParseError};
-use lex::precedence::Precedence;
-use lex::tokenizer::Tokenizer;
-use lex::symbol::{PrefixSymbol, InfixSymbol};
+use lex::{Token, TokenType, Tokenizer};
+use parse::{Precedence, ParseError, ParseResult};
+use parse::symbol::*;
 
 /// Parser object which parses things
 pub struct Parser {
@@ -30,7 +29,7 @@ impl Parser {
             .expect("Unable to queue token via lookahead for consume")
     }
 
-    pub fn try_consume(&mut self, expected_type: TokenType) -> TokenResult {
+    pub fn try_consume(&mut self, expected_type: TokenType) -> Result<Token, ParseError> {
         let token = self.consume();
         if token.get_type() != expected_type {
             Err(ParseError::ExpectedToken {
@@ -68,7 +67,7 @@ impl Parser {
     }
 
     pub fn new(tokenizer: Box<Tokenizer>) -> Parser {
-        use lex::symbol::*;
+        use parse::symbol::*;
         let infix_map: HashMap<TokenType, Rc<InfixSymbol>> = hashmap![
             TokenType::Assign => Rc::new(AssignmentParser { }) as Rc<InfixSymbol>,
 
@@ -104,7 +103,7 @@ impl Parser {
     /// Usually called with `0usize` to just peek at the next one.
     fn look_ahead(&mut self, count: usize) {
         while count >= self.lookahead.len() {
-            self.lookahead.push(self.tokenizer.next());
+            //self.lookahead.push(self.tokenizer.next());
         }
         //self.lookahead[count].clone()
     }

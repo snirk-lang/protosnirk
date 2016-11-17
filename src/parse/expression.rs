@@ -1,6 +1,7 @@
 //! Expression types
 
-use lex::{Token, TokenType, ParseError};
+use lex::{Token, TokenType};
+use parse::ParseError;
 
 /// Variable declaration
 #[derive(Debug, PartialEq, Clone)]
