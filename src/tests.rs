@@ -1,7 +1,7 @@
 //! Mid-sized integration tests for protosnirk.
 //! Most testing is done in the external tests.
 
-use super::lex::{Tokenizer, StaticStrTokenizer, Parser, Expression, TokenData};
+use super::lex::{Tokenizer, StaticStrTokenizer, TokenData};
 
 macro_rules! match_tokens {
     ($tokenizer:ident { $($name:ident $value:expr),* }) => {
