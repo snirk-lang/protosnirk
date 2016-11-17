@@ -2,10 +2,7 @@
 
 mod token;
 mod error_codes;
-mod tokenizer;
-
-#[cfg(test)]
-mod tests;
+pub mod tokenizer;
 
 pub use self::token::{Token, TokenType};
-pub use self::tokenizer::{Tokenizer, StaticStrTokenizer, TokenData};
+pub use self::tokenizer::{Tokenizer, StaticStrTokenizer, TokenData, TextLocation};

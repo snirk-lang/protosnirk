@@ -135,106 +135,103 @@ pub struct Token {
 pub struct StaticStrTokenizer {
     /// Keywords registered with the tokenizer
     keywords: HashMap<Cow<'static, str>, TokenData>,
-    /// Symbols known by the tokenizer
-    //symbols: HashMap<Cow<'static, str>, TokenData>,
-    symbols: HashMap<char, Vec<(Cow<'static, str>, TokenData)>>,
     chars: Peekable<Chars<'static>>
 }
 
 impl StaticStrTokenizer {
+    /// Creates a new StaticStrTokenizer from the given string
     pub fn new(input: &'static str) -> StaticStrTokenizer {
         StaticStrTokenizer {
             keywords: get_default_tokens(),
-            symbols: get_default_symbols(),
             chars: input.chars().peekable()
         }
     }
 
+    /// Gets the next token from the tokenizer
     pub fn next(&mut self) -> Token {
-        let next_char: char;
-        {
-            let maybe_next = self.chars.next();
-            if maybe_next.is_none() {
+        let peek_attempt = self.chars.peek().cloned();
+        if !peek_attempt.is_some() {
+            return Token {
+                location: TextLocation::default(),
+                data: TokenData::EOF
+            }
+        }
+        let mut peek = peek_attempt.expect("Checked expect");
+        while peek.is_whitespace() {
+            self.chars.next();
+            let next = self.chars.peek().cloned();
+            if next.is_none() {
                 return Token {
                     location: TextLocation::default(),
                     data: TokenData::EOF
                 }
+            } else {
+                peek = next.expect("Checked expect");
             }
-            next_char = maybe_next.expect("Checked expect");
         }
-        let mut token_string = next_char.to_string();
-        // If we start with a letter, keep grabbing letters/numbers/_ for ident/kw
-        if next_char.is_letter() {
-            let mut could_be_kw = true;
-            while let Some(peek) = self.next_char() {
-                // If next ones are all letters, keep grabbing
-                if peek.is_letter() {
-                    token_string.push(peek);
-                // If we get a number or _ we can't have a keyword anymore
-                } else if peek.is_number() || peek == '_' {
-                    could_be_kw = false;
-                    token_string.push(peek);
-                // Anything else means we're done with this; see if its a ketword, else return an ident
-                } else {
-                    if could_be_kw {
-                        if let Some(_matched_data) = self.keywords.get(&*token_string) {
-                            return Token {
-                                location: TextLocation::default(),
-                                data: TokenData::Keyword(Cow::Owned(token_string))
-                            }
-                        // No token matched (also no letters/numbers)
-                        } else {
-                            return Token {
-                                location: TextLocation::default(),
-                                data: TokenData::Ident(Cow::Owned(token_string))
-                            }
-                        }
-                    } else {
-                        return Token {
-                            location: TextLocation::default(),
-                            data: TokenData::Ident(Cow::Owned(token_string))
-                        }
-                    }
-                }
-            }
-            // We're all out of chars!
-            if let Some(_matched_data) = self.keywords.get(&*token_string) {
+        if peek.is_number() {
+            self.parse_float_literal()
+        } else if peek.is_letter() {
+            self.parse_keyword_or_ident()
+        } else if peek.is_symbol() || peek == '%' {
+            self.parse_symbol()
+        } else {
+            panic!("Got weird character {:?}", peek);
+        }
+    }
+
+    /// Parse a symbol
+    ///
+    /// This logic differs from that of keyword parsing in that
+    /// it attempts to match bigger symbols
+    fn parse_symbol(&mut self) -> Token {
+        let mut sym = String::new();
+        self.take_while(|ch| ch == '%' || ch.is_symbol(), &mut sym);
+        loop {
+            if self.keywords.get(&Cow::Borrowed(&*sym)).is_some() {
                 return Token {
-                        location: TextLocation::default(),
-                        data: TokenData::Keyword(Cow::Owned(token_string))
+                    location: TextLocation::default(),
+                    data: TokenData::Symbol(Cow::Owned(sym))
                 }
             } else {
-                return Token {
-                    location: TextLocation::default(),
-                    data: TokenData::Ident(Cow::Owned(token_string))
+                if sym.is_empty() {
+                    panic!("Couldn't find a symbol");
+                } else {
+                    sym.pop();
                 }
             }
-        // Start matching a number
-        } else if next_char.is_number() {
-            self.take_while(char::is_number, &mut token_string);
-            // First part of number done. Is it a decimal?
-            if *self.chars.peek().unwrap_or(&' ') == '.' {
-                if !self.chars.peek().unwrap_or(&' ').is_number() {
-                    let parsed: f64 = token_string.parse()
-                        .expect("Couldn't parse float");
-                    return Token {
-                        location: TextLocation::default(),
-                        data: TokenData::NumberLiteral(parsed)
-                    }
-                }
-                self.take_while(char::is_number, &mut token_string);
+        }
+    }
+
+    fn parse_keyword_or_ident(&mut self) -> Token {
+        let mut token_string = String::new();
+        self.take_while(|ch|
+            ch.is_letter() || ch.is_number() || ch == '_',
+            &mut token_string);
+        if self.keywords.get(&Cow::Borrowed(&*token_string)).is_some() {
+            Token {
+                location: TextLocation::default(),
+                data: TokenData::Keyword(Cow::Owned(token_string))
             }
-            if self.chars.peek().unwrap_or(&' ').to_lowercase().collect::<String>() != "e" {
-                let parsed: f64 = token_string.parse()
-                    .expect("Couldn't parse float");
-                return Token {
-                    location: TextLocation::default(),
-                    data: TokenData::NumberLiteral(parsed)
-                }
+        } else {
+            Token {
+                location: TextLocation::default(),
+                data: TokenData::Ident(Cow::Owned(token_string))
             }
-            let _e = self.chars.next();
-            // Need numbers after the E
+        }
+    }
+
+    /// Parse a floating point literal
+    fn parse_float_literal(&mut self) -> Token {
+        let mut token_string = String::new();
+        self.take_while(char::is_number, &mut token_string);
+        // First part of number done. Is it a decimal?
+        if *self.chars.peek().unwrap_or(&' ') == '.' {
+            // Push the decmial point
+            token_string.push(self.chars.next().expect("Checked expect"));
             if !self.chars.peek().unwrap_or(&' ').is_number() {
+                // Actually, let's not
+                token_string.pop();
                 let parsed: f64 = token_string.parse()
                     .expect("Couldn't parse float");
                 return Token {
@@ -243,55 +240,31 @@ impl StaticStrTokenizer {
                 }
             }
             self.take_while(char::is_number, &mut token_string);
+        }
+        if self.chars.peek().unwrap_or(&' ').to_lowercase().collect::<String>() != "e" {
             let parsed: f64 = token_string.parse()
                 .expect("Couldn't parse float");
             return Token {
                 location: TextLocation::default(),
                 data: TokenData::NumberLiteral(parsed)
             }
-        // Get them comments!
-        // Line comments only
-        } else if next_char == '/' {
-             if *self.chars.peek().unwrap_or(&' ') == '/' {
-                 self.skip_while(|ch| ch != '\n');
-                 return self.next(); // Recursive :(
-             }
         }
-        if next_char.is_symbol() {
-            if let Some(possible_symbols) = self.symbols.get(&next_char) {
-                let mut matches = possible_symbols.clone();
-                loop {
-                    if matches.is_empty() {
-                        panic!("No symbol matched :/");
-                    } else if matches.len() == 1 {
-                        let (_match, token) = matches.remove(0);
-                        debug_assert_eq!(_match, token_string);
-                        return Token {
-                            location: TextLocation::default(),
-                            data: token
-                        }
-                    } else {
-                        for index in 0..matches.len() - 1 {
-                            let drop;
-                            {
-                                let (ref name, ref _data) = matches[index];
-                                drop = !name.starts_with(&*token_string);
-                            } if drop {
-                                matches.remove(index);
-                            }
-                        }
-                        token_string.push(self.chars.next().unwrap_or(' '));
-                    }
-                }
-            } else {
-                panic!("Unknown symbol {}", next_char);
-                // Skip over bad tokens.
+        token_string.push(self.chars.next().expect("Checked expect"));
+        // Need numbers after the E
+        if !self.chars.peek().unwrap_or(&' ').is_number() {
+            let parsed: f64 = token_string.parse()
+                .expect("Couldn't parse float");
+            return Token {
+                location: TextLocation::default(),
+                data: TokenData::NumberLiteral(parsed)
             }
-        } else if next_char.is_whitespace() {
-            self.skip_while(char::is_whitespace);
-            return self.next() // recursive :(
-        } else {
-            panic!("Unable to match {:?}", next_char);
+        }
+        self.take_while(char::is_number, &mut token_string);
+        let parsed: f64 = token_string.parse()
+            .expect("Couldn't parse float");
+        return Token {
+            location: TextLocation::default(),
+            data: TokenData::NumberLiteral(parsed)
         }
     }
 
@@ -303,7 +276,7 @@ impl StaticStrTokenizer {
                 if !func(*peeked) {
                     return
                 } else {
-                    acc.push(*peeked)
+                    acc.push(*peeked);
                 }
             } else {
                 return
@@ -327,6 +300,7 @@ impl StaticStrTokenizer {
         }
     }
 
+    /// Grab the next charcter
     fn next_char(&mut self) -> Option<char> {
         self.chars.next()
     }

@@ -87,12 +87,12 @@ impl Token {
     pub fn new<S: Into<String>>(start: usize, end: usize, text: S, type_: TokenType)
                    -> Token {
         let into_text: String = text.into();
-        debug_assert!(start <= end,
-                      "range: start {} <= end {}", start, end);
+        //debug_assert!(start <= end,
+        //              "range: start {} <= end {}", start, end);
         debug_assert!(into_text.len() > 0,
                       "text: empty string {}", into_text);
-        debug_assert!(into_text.len() == end - start,
-                      "text: {} does not match range {:?}", into_text, start .. end);
+        //debug_assert!(into_text.len() == end - start,
+        //              "text: {} does not match range {:?}", into_text, start .. end);
 
         Token {
             range: start .. end,
