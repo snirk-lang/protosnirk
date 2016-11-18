@@ -108,16 +108,16 @@ pub enum TokenData {
 /// Contains information to
 #[derive(Debug, PartialEq, Eq, Clone, Hash, Default)]
 pub struct TextLocation {
-    /// Which byte of the initial string the token starts on
-    pub start_byte: usize,
-    /// Size in bytes of this TextLocation
-    pub span_bytes: usize,
+    /// Which char position of the initial string the token starts on
+    ///
+    /// Should respect Unicode boundaries, etc.
+    pub start_char: usize,
     /// Which line of the initial string the token starts on
-    pub line: usize,
+    pub start_line: usize,
     /// Which column of the initial string the token starts on
-    pub column: usize,
-    /// Name of the file the token appears in
-    pub file_name: String
+    pub start_column: usize,
+    // /// Name of the file the token appears in
+    // pub file_name: String
 }
 impl TextLocation {
 }

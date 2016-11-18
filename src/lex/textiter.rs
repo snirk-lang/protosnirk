@@ -16,11 +16,11 @@ pub struct PeekTextIter<T> where T: Iterator<Item=char> {
     /// Iterator which does most of the work
     iter: Peekable<T>,
     /// Current line in the source
-    line: usize,
+    current_line: usize,
     /// Current column in the source
-    column: usize,
+    current_column: usize,
     /// Current byte in the source
-    byte: usize
+    current_char: usize
 }
 
 impl<T: Iterator<Item=char>> Iterator for PeekTextIter<T> {
@@ -36,14 +36,14 @@ impl<T: Iterator<Item=char>> TextIter for PeekTextIter<T> {
     }
     fn next(&mut self) -> Option<char> {
         let result = self.iter.next();
-        self.byte.saturating_add(1);
+        self.current_char.saturating_add(1);
         match result {
             Some('\n') => {
-                self.line.saturating_add(1);
-                self.column = 0;
+                self.current_line = self.current_line.saturating_add(1);
+                self.current_column = 0;
             },
             Some(_) => {
-                self.column.saturating_add(1);
+                self.current_column = self.current_column.saturating_add(1);
             },
             None => {}
         }
@@ -51,9 +51,9 @@ impl<T: Iterator<Item=char>> TextIter for PeekTextIter<T> {
     }
     fn get_location(&self) -> TextLocation {
         TextLocation {
-            start_byte: self.byte,
-            line: self.line,
-            column: self.column
+            start_char: self.current_char,
+            start_line: self.current_line,
+            start_column: self.current_column
         }
     }
 }
