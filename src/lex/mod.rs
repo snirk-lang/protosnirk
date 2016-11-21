@@ -7,4 +7,4 @@ pub mod tokenizer;
 
 pub use self::token::{Token, TokenType};
 pub use self::textiter::{TextIter, PeekTextIter};
-pub use self::tokenizer::{Tokenizer, StaticStrTokenizer, TokenData, TextLocation};
+pub use self::tokenizer::{Tokenizer, IterTokenizer, TokenData, TextLocation};

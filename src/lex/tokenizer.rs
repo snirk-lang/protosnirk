@@ -10,6 +10,8 @@ use std::str::Chars;
 
 use unicode_categories::UnicodeCategories;
 
+use lex::{TextIter, PeekTextIter};
+
 /// Trait for a tokenizer which can iterate over tokens.
 pub trait Tokenizer {
     fn next(&mut self) -> Token;
@@ -132,37 +134,37 @@ pub struct Token {
 }
 
 /// Hacky implementation of a tokenizer.
-pub struct StaticStrTokenizer {
+pub struct IterTokenizer<I> where I: Iterator<Item=char> {
     /// Keywords registered with the tokenizer
     keywords: HashMap<Cow<'static, str>, TokenData>,
-    chars: Peekable<Chars<'static>>
+    iter: PeekTextIter<I>
 }
 
-impl StaticStrTokenizer {
+impl<I: Iterator<Item=char>> IterTokenizer<I> {
     /// Creates a new StaticStrTokenizer from the given string
-    pub fn new(input: &'static str) -> StaticStrTokenizer {
-        StaticStrTokenizer {
+    pub fn new(input: I) -> IterTokenizer<I> {
+        IterTokenizer {
             keywords: get_default_tokens(),
-            chars: input.chars().peekable()
+            iter: PeekTextIter::new(input.peekable())
         }
     }
 
     /// Gets the next token from the tokenizer
     pub fn next(&mut self) -> Token {
-        let peek_attempt = self.chars.peek().cloned();
+        let peek_attempt = self.iter.peek();
         if !peek_attempt.is_some() {
             return Token {
-                location: TextLocation::default(),
+                location: self.iter.get_location(),
                 data: TokenData::EOF
             }
         }
         let mut peek = peek_attempt.expect("Checked expect");
         while peek.is_whitespace() {
-            self.chars.next();
-            let next = self.chars.peek().cloned();
+            self.iter.next();
+            let next = self.iter.peek();
             if next.is_none() {
                 return Token {
-                    location: TextLocation::default(),
+                    location: self.iter.get_location(),
                     data: TokenData::EOF
                 }
             } else {
@@ -198,7 +200,7 @@ impl StaticStrTokenizer {
         loop {
             if self.keywords.get(&Cow::Borrowed(&*sym)).is_some() {
                 return Token {
-                    location: TextLocation::default(),
+                    location: self.iter.get_location(),
                     data: TokenData::Symbol(Cow::Owned(sym))
                 }
             } else {
@@ -218,12 +220,12 @@ impl StaticStrTokenizer {
             &mut token_string);
         if self.keywords.get(&Cow::Borrowed(&*token_string)).is_some() {
             Token {
-                location: TextLocation::default(),
+                location: self.iter.get_location(),
                 data: TokenData::Keyword(Cow::Owned(token_string))
             }
         } else {
             Token {
-                location: TextLocation::default(),
+                location: self.iter.get_location(),
                 data: TokenData::Ident(Cow::Owned(token_string))
             }
         }
@@ -234,36 +236,36 @@ impl StaticStrTokenizer {
         let mut token_string = String::new();
         self.take_while(char::is_number, &mut token_string);
         // First part of number done. Is it a decimal?
-        if *self.chars.peek().unwrap_or(&' ') == '.' {
+        if self.iter.peek().unwrap_or(' ') == '.' {
             // Push the decmial point
-            token_string.push(self.chars.next().expect("Checked expect"));
-            if !self.chars.peek().unwrap_or(&' ').is_number() {
+            token_string.push(self.iter.next().expect("Checked expect"));
+            if !self.iter.peek().unwrap_or(' ').is_number() {
                 // Actually, let's not
                 token_string.pop();
                 let parsed: f64 = token_string.parse()
                     .expect("Couldn't parse float");
                 return Token {
-                    location: TextLocation::default(),
+                    location: self.iter.get_location(),
                     data: TokenData::NumberLiteral(parsed)
                 }
             }
             self.take_while(char::is_number, &mut token_string);
         }
-        if self.chars.peek().unwrap_or(&' ').to_lowercase().collect::<String>() != "e" {
+        if self.iter.peek().unwrap_or(' ').to_lowercase().collect::<String>() != "e" {
             let parsed: f64 = token_string.parse()
                 .expect("Couldn't parse float");
             return Token {
-                location: TextLocation::default(),
+                location: self.iter.get_location(),
                 data: TokenData::NumberLiteral(parsed)
             }
         }
-        token_string.push(self.chars.next().expect("Checked expect"));
+        token_string.push(self.iter.next().expect("Checked expect"));
         // Need numbers after the E
-        if !self.chars.peek().unwrap_or(&' ').is_number() {
+        if !self.iter.peek().unwrap_or(' ').is_number() {
             let parsed: f64 = token_string.parse()
                 .expect("Couldn't parse float");
             return Token {
-                location: TextLocation::default(),
+                location: self.iter.get_location(),
                 data: TokenData::NumberLiteral(parsed)
             }
         }
@@ -271,7 +273,7 @@ impl StaticStrTokenizer {
         let parsed: f64 = token_string.parse()
             .expect("Couldn't parse float");
         return Token {
-            location: TextLocation::default(),
+            location: self.iter.get_location(),
             data: TokenData::NumberLiteral(parsed)
         }
     }
@@ -280,16 +282,16 @@ impl StaticStrTokenizer {
     #[inline]
     fn take_while<F: Fn(char) -> bool>(&mut self, func: F, acc: &mut String) {
         loop {
-            if let Some(peeked) = self.chars.peek() {
-                if !func(*peeked) {
+            if let Some(peeked) = self.iter.peek() {
+                if !func(peeked) {
                     return
                 } else {
-                    acc.push(*peeked);
+                    acc.push(peeked);
                 }
             } else {
                 return
             }
-            self.chars.next();
+            self.iter.next();
         }
     }
 
@@ -297,19 +299,19 @@ impl StaticStrTokenizer {
     #[inline]
     fn skip_while<F: Fn(char) -> bool>(&mut self, func: F) {
         loop {
-            if let Some(peeked) = self.chars.peek() {
-                if !func(*peeked) {
+            if let Some(peeked) = self.iter.peek() {
+                if !func(peeked) {
                     return
                 }
             } else {
                 return
             }
-            self.chars.next();
+            self.iter.next();
         }
     }
 
     /// Grab the next charcter
     fn next_char(&mut self) -> Option<char> {
-        self.chars.next()
+        self.iter.next()
     }
 }
