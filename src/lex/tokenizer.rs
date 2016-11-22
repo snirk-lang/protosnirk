@@ -17,7 +17,6 @@ pub trait Tokenizer {
     fn next(&mut self) -> Token;
 }
 
-
 macro_rules! declare_tokens {
     ($( $(#[$attr:meta])* pub const $name:ident : $typ:tt = $value:expr;)*) => {
         $(
@@ -63,28 +62,8 @@ declare_tokens! {
     pub const GitDiffSymbol: Symbol = "<<<<<<<";
 }
 
-pub fn get_default_symbols() -> HashMap<char, Vec<(Cow<'static, str>, TokenData)>> {
-    hashmap! {
-        '=' => vec![ (Cow::Borrowed("="), Assign) ],
-
-        '+' => vec![ (Cow::Borrowed("+"), Plus), (Cow::Borrowed("+="), PlusAssign) ],
-        '-' => vec![ (Cow::Borrowed("-"), Minus), (Cow::Borrowed("-="), MinusAssign) ],
-        '*' => vec![ (Cow::Borrowed("*"), Star), (Cow::Borrowed("*="), StarAssign) ],
-        '%' => vec![ (Cow::Borrowed("%"), Percent), (Cow::Borrowed("%="), PercentAssign) ],
-
-        '(' => vec![ (Cow::Borrowed("("), LeftParen) ],
-        ')' => vec![ (Cow::Borrowed(")"), RightParen) ],
-        '[' => vec![ (Cow::Borrowed("["), LeftBrace) ],
-        ']' => vec![ (Cow::Borrowed("]"), RightBrace) ],
-        '{' => vec![ (Cow::Borrowed("{"), LeftSquiggle) ],
-        '}' => vec![ (Cow::Borrowed("}"), RightSquiggle) ],
-        '<' => vec![ (Cow::Borrowed("<"), LeftAngle) ],
-        '>' => vec![ (Cow::Borrowed(">"), RightAngle) ]
-    }
-}
-
 /// Token enum - tokens are pretty simple, mostly dependent on string matching.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub enum TokenData {
     /// Token is a numeric literal
     NumberLiteral(f64),
@@ -97,11 +76,38 @@ pub enum TokenData {
     /// Token is some symbol
     Symbol(Cow<'static, str>),
 
-    /// Token indicates an increase in newline
-    IncreaseIndent,
-    /// Token indicates an end of block
-    EndBlock,
     /// Token is known to be an EOF
+    EOF
+}
+impl TokenData {
+    /// If this token is an identifier
+    #[inline]
+    pub fn get_type(&self) -> TokenType {
+        use self::TokenData::*;
+        match *self {
+            NumberLiteral(_) => TokenType::Literal,
+            Ident(_) => TokenType::Ident,
+            Keyword(_) => TokenType::Keyword,
+            Symbol(_) => TokenType::Symbol,
+            EOF => TokenType::EOF
+        }
+    }
+}
+
+/// Which type of token this is.
+///
+/// Can be used by the parser for defaulting to Ident parsing,
+/// or individual parsers for error handling
+pub enum TokenType {
+    /// Token is a name
+    Ident(Cow<'static, str),
+    /// Token is a literal
+    Literal,
+    /// Token is a registered keyword
+    Keyword,
+    /// Token is a registered symbol
+    Symbol,
+    /// Token is an EOF
     EOF
 }
 
@@ -120,8 +126,6 @@ pub struct TextLocation {
     pub start_column: usize,
     // /// Name of the file the token appears in
     // pub file_name: String
-}
-impl TextLocation {
 }
 
 /// A token returned by the tokenizer.
@@ -215,10 +219,8 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
 
     fn parse_keyword_or_ident(&mut self) -> Token {
         let mut token_string = String::new();
-        self.take_while(|ch|
-            ch.is_letter() || ch.is_number() || ch == '_',
-            &mut token_string);
-        if self.keywords.get(&Cow::Borrowed(&*token_string)).is_some() {
+        let is_kw = self.take_while_ident(&mut token_string);
+        if is_kw && self.keywords.get(&Cow::Borrowed(&*token_string)).is_some() {
             Token {
                 location: self.iter.get_location(),
                 data: TokenData::Keyword(Cow::Owned(token_string))
@@ -290,6 +292,25 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
                 }
             } else {
                 return
+            }
+            self.iter.next();
+        }
+    }
+
+    fn take_while_ident(&mut self, acc: &mut String) -> bool {
+        let mut parsing_kw = true;
+        loop {
+            if let Some(peeked) = self.iter.peek() {
+                if peeked.is_number() || peeked == '_' {
+                    parsing_kw = false;
+                    acc.push(peeked);
+                } else if peeked.is_letter() {
+                    acc.push(peeked);
+                } else {
+                    return parsing_kw
+                }
+            } else {
+                return parsing_kw
             }
             self.iter.next();
         }
