@@ -1,4 +1,5 @@
 language: rust
+sudo: false
 git:
   depth: 3
 rust:
@@ -14,5 +15,5 @@ matrix:
 notifications:
   email: false
 script:
-  - cargo check
+  - cargo check --verbose
   - cargo test --verbose
