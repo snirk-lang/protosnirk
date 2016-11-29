@@ -1,17 +1,17 @@
 //! Expression types
 
-use lex::{Token, TokenType};
+use lex::{CowStr, Token, TokenType};
 use parse::ParseError;
 
 /// Variable declaration
 #[derive(Debug, PartialEq, Clone)]
 pub struct Declaration {
-    name: String,
+    name: CowStr,
     mutable: bool,
     value: Box<Expression>
 }
 impl Declaration {
-    pub fn new(name: String, mutable: bool, value: Box<Expression>) -> Self {
+    pub fn new(name: CowStr, mutable: bool, value: Box<Expression>) -> Self {
         Declaration { name: name, mutable: mutable, value: value }
     }
     pub fn get_name(&self) -> &str {
@@ -40,18 +40,18 @@ impl Literal {
 /// Reference to a Variable
 /// the name of the variable...
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
-pub struct Identifier(String);
+pub struct Identifier(CowStr);
 
 impl Identifier {
-    pub fn new(name: String) -> Self {
+    pub fn new(name: CowStr) -> Self {
         Identifier(name)
     }
     pub fn get_name(&self) -> &str {
         &self.0
     }
 }
-impl Into<String> for Identifier {
-    fn into(self) -> String {
+impl Into<CowStr> for Identifier {
+    fn into(self) -> CowStr {
         self.0
     }
 }
