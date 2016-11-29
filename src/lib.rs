@@ -7,7 +7,7 @@ extern crate unicode_categories;
 extern crate unicode_segmentation;
 
 
-mod lex;
-mod parse;
-mod compile;
-mod run;
+pub mod lex;
+pub mod parse;
+pub mod compile;
+pub mod run;
