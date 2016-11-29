@@ -4,24 +4,7 @@
 use std::borrow::Cow;
 use std::str::Chars;
 
-use super::lex::{Token, TokenType, TokenData, TextLocation, Tokenizer, IterTokenizer};
-use super::parse::{Parser, Precedence};
-use super::parse::expression::*;
-
-struct VecTokenizer(Vec<Token>);
-impl Tokenizer for VecTokenizer {
-    fn next(&mut self) -> Token {
-        if self.0.is_empty() {
-            Token {
-                location: TextLocation::default(),
-                text: Cow::Borrowed(""),
-                data: TokenData::EOF
-            }
-        } else {
-            self.0.remove(0)
-        }
-    }
-}
+use lex::{Token, TokenType, TokenData, TextLocation, Tokenizer, IterTokenizer};
 
 macro_rules! match_tokens {
     ($tokenizer:ident { $($token:expr),* }) => {
@@ -31,14 +14,6 @@ macro_rules! match_tokens {
             assert!(next == expected,
                 "\nExpected: {:#?}\nActual: {:#?}", expected, next);
         )*
-    }
-}
-
-macro_rules! token_list {
-    ($($token_type:ident $value:expr),*) => {
-        vec![
-            $(Token::new(start: 0usize, end: $value.len(), text: $value.into(), type_: TokenType::$name)),*
-        ]
     }
 }
 
@@ -129,7 +104,43 @@ fn it_grabs_let_ident() {
 }
 
 #[test]
-fn lexer_kinda_does_a_thing_maybe() {
+fn it_ignores_line_comment() {
+    let input =
+    "//comment\nlet x";
+    let mut tokenizer = make_tokenizer(input);
+    match_tokens!(tokenizer {
+        Token {
+            data: TokenData::Keyword,
+            text: Cow::Borrowed("let"),
+            location: TextLocation {
+                start_char: 10,
+                start_line: 1,
+                start_column: 0
+            }
+        },
+        Token {
+            data: TokenData::Ident,
+            text: Cow::Borrowed("x"),
+            location: TextLocation {
+                start_char: 14,
+                start_line: 1,
+                start_column: 4
+            }
+        },
+        Token {
+            data: TokenData::EOF,
+            text: Cow::Borrowed(""),
+            location: TextLocation {
+                start_char: 15,
+                start_line: 1,
+                start_column: 5
+            }
+        }
+    });
+}
+
+#[test]
+fn it_lexes_complex_input() {
     let input =
     "let x = y \
      y += 55e7\t \n\
@@ -264,32 +275,3 @@ fn lexer_kinda_does_a_thing_maybe() {
         }
     });
 }
-/*
-#[test]
-fn it_ignores_line_comment() {
-    let input =
-    "//comment\nlet x";
-    let mut tokenizer = StaticStrTokenizer::new(input);
-    match_tokens!(tokenizer {
-        TokenData::Keyword(Cow::Borrowed("let")),
-        TokenData::Ident(Cow::Borrowed("x"))
-    });
-}
-
-//#[test]
-fn parser_kinda_parses_a_thing_maybe() {
-    let tokenizer = VecTokenizer(to_tokens(&[
-        TokenData::Keyword(Cow::Borrowed("return")),
-        TokenData::Ident(Cow::Borrowed("x")),
-        TokenData::Symbol(Cow::Borrowed("+")),
-        TokenData::NumberLiteral(4f64)
-    ]));
-    let mut parser = Parser::new(Box::new(tokenizer));
-    assert_eq!(parser.expression(Precedence::Min),
-        Ok(Expression::Assignment(
-            Assignment::new(Identifier::new("x".into()),
-                            Box::new(
-                                Expression::Literal(Literal::new(4f64))
-                            ))
-        )));
-}*/

@@ -6,6 +6,9 @@ mod error_codes;
 mod textiter;
 pub mod tokenizer;
 
+#[cfg(test)]
+mod tests;
+
 pub use self::token::{Token, TokenType, TokenData, TextLocation};
 pub use self::textiter::{TextIter, PeekTextIter};
 pub use self::tokenizer::{Tokenizer, IterTokenizer};
