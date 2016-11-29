@@ -80,7 +80,7 @@ impl UnaryOpSymbol {
 /// Returns an identifier
 ///
 /// # Examples
-/// ```
+/// ```text
 /// x
 /// ^:name
 /// ```
@@ -95,7 +95,7 @@ impl PrefixSymbol for IdentifierParser {
 /// Parses a declaration
 ///
 /// # Examples
-/// ```
+/// ```text
 /// mut            x          =         6 + 3
 ///  ^:mutable  ->name:name (skip) ->value:expression
 /// ```
@@ -121,7 +121,7 @@ impl PrefixSymbol for DeclarationParser {
 /// Parses an assignment expresion.
 ///
 /// # Examples
-/// ```
+/// ```text
 ///   x    =   y + 2
 /// (left) ^ ->right:expression
 /// ```
@@ -144,7 +144,7 @@ impl InfixSymbol for AssignmentParser {
 /// Parses expressions wrapped in parentheses
 ///
 /// # Examples
-/// ```
+/// ```text
 /// (        x + 1          )
 /// ^  ->right:expression (skip)
 /// ```
@@ -164,7 +164,7 @@ impl PrefixSymbol for ParensParser {
 /// Parses return statements
 ///
 /// # Examples
-/// ```
+/// ```text
 /// return x + 1 + 3 * 4
 ///   ^    ->right:expression
 /// ```
@@ -183,7 +183,7 @@ impl PrefixSymbol for ReturnParser {
 /// Parses block statements, ending with an `EndBlock` token. Not used.
 ///
 /// # Examples
-/// ```
+/// ```text
 /// Not used.
 /// ```
 #[derive(Debug)]

@@ -45,17 +45,17 @@ fn it_grabs_single_keyword() {
             }
         }
     });
-}
-
-#[test]
-fn it_grabs_single_ident() {
-    let input = "x_2";
+    let input = "mut";
     let mut tokenizer = make_tokenizer(input);
     match_tokens!(tokenizer {
         Token {
-            data: TokenData::Ident,
-            text: Cow::Borrowed("x_2"),
-            location: TextLocation::default()
+            data: TokenData::Keyword,
+            text: Cow::Borrowed("mut"),
+            location: TextLocation {
+                start_char: 0,
+                start_line: 0,
+                start_column: 0
+            }
         },
         Token {
             data: TokenData::EOF,
@@ -64,6 +64,50 @@ fn it_grabs_single_ident() {
                 start_char: 3,
                 start_line: 0,
                 start_column: 3
+            }
+        }
+    });
+    let input = "return";
+    let mut tokenizer = make_tokenizer(input);
+    match_tokens!(tokenizer {
+        Token {
+            data: TokenData::Keyword,
+            text: Cow::Borrowed("return"),
+            location: TextLocation {
+                start_char: 0,
+                start_line: 0,
+                start_column: 0
+            }
+        },
+        Token {
+            data: TokenData::EOF,
+            text: Cow::Borrowed(""),
+            location: TextLocation {
+                start_char: 6,
+                start_line: 0,
+                start_column: 6
+            }
+        }
+    });
+}
+
+#[test]
+fn it_grabs_single_ident() {
+    let input = "anIdentifier_2";
+    let mut tokenizer = make_tokenizer(input);
+    match_tokens!(tokenizer {
+        Token {
+            data: TokenData::Ident,
+            text: Cow::Borrowed("anIdentifier_2"),
+            location: TextLocation::default()
+        },
+        Token {
+            data: TokenData::EOF,
+            text: Cow::Borrowed(""),
+            location: TextLocation {
+                start_char: 14,
+                start_line: 0,
+                start_column: 14
             }
         }
     });
@@ -76,11 +120,7 @@ fn it_grabs_let_ident() {
         Token {
             data: TokenData::Keyword,
             text: Cow::Borrowed("let"),
-            location: TextLocation {
-                start_char: 0,
-                start_line: 0,
-                start_column: 0
-            }
+            location: TextLocation::default()
         },
         Token {
             data: TokenData::Ident,
@@ -98,6 +138,99 @@ fn it_grabs_let_ident() {
                 start_char: 5,
                 start_line: 0,
                 start_column: 5
+            }
+        }
+    });
+}
+
+#[test]
+fn it_grabs_float_literal() {
+    let input = "224";
+    let mut tokenizer = make_tokenizer(input);
+    match_tokens!(tokenizer {
+        Token {
+            data: TokenData::NumberLiteral(224f64),
+            text: Cow::Borrowed("224"),
+            location: TextLocation::default()
+        },
+        Token {
+            data: TokenData::EOF,
+            text: Cow::Borrowed(""),
+            location: TextLocation {
+                start_char: 3,
+                start_line: 0,
+                start_column: 3
+            }
+        }
+    });
+    let input = "2.4";
+    let mut tokenizer = make_tokenizer(input);
+    match_tokens!(tokenizer {
+        Token {
+            data: TokenData::NumberLiteral(2.4f64),
+            text: Cow::Borrowed("2.4"),
+            location: TextLocation::default()
+        },
+        Token {
+            data: TokenData::EOF,
+            text: Cow::Borrowed(""),
+            location: TextLocation {
+                start_char: 3,
+                start_line: 0,
+                start_column: 3
+            }
+        }
+    });
+    let input = "2e4";
+    let mut tokenizer = make_tokenizer(input);
+    match_tokens!(tokenizer {
+        Token {
+            data: TokenData::NumberLiteral(2e4f64),
+            text: Cow::Borrowed("2e4"),
+            location: TextLocation::default()
+        },
+        Token {
+            data: TokenData::EOF,
+            text: Cow::Borrowed(""),
+            location: TextLocation {
+                start_char: 3,
+                start_line: 0,
+                start_column: 3
+            }
+        }
+    });
+    let input = "2.4e4";
+    let mut tokenizer = make_tokenizer(input);
+    match_tokens!(tokenizer {
+        Token {
+            data: TokenData::NumberLiteral(2.4e4f64),
+            text: Cow::Borrowed("2.4e4"),
+            location: TextLocation::default()
+        },
+        Token {
+            data: TokenData::EOF,
+            text: Cow::Borrowed(""),
+            location: TextLocation {
+                start_char: 5,
+                start_line: 0,
+                start_column: 5
+            }
+        }
+    });
+}
+
+#[test]
+fn it_ignores_whitespace() {
+    let input = "\n\t\r\n";
+    let mut tokenizer = make_tokenizer(input);
+    match_tokens!(tokenizer {
+        Token {
+            data: TokenData::EOF,
+            text: Cow::Borrowed(""),
+            location: TextLocation {
+                start_char: 4,
+                start_line: 2,
+                start_column: 0
             }
         }
     });
