@@ -51,7 +51,7 @@ impl<T: Iterator<Item=char>> Iterator for PeekTextIter<T> {
 
     fn next(&mut self) -> Option<char> {
         let result = self.iter.next();
-        self.current_char.saturating_add(1);
+        self.current_char = self.current_char.saturating_add(1);
         match result {
             Some('\n') => {
                 self.current_line = self.current_line.saturating_add(1);
@@ -71,7 +71,7 @@ impl<T: Iterator<Item=char>> Iterator for PeekTextIter<T> {
 mod tests {
     #[test]
     fn it_starts_at_zero() {
-        let empty_peek = "".into_iter().peekable();
-        let empty_textiter = PeekTextIter::new(empty_peek);
+        //let empty_peek = "".into().into_iter().peekable();
+        //let empty_textiter = PeekTextIter::new(empty_peek);
     }
 }

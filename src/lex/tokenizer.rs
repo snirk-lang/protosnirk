@@ -3,144 +3,26 @@
 //! We need a dumb tokenizer in case users want to register operators.
 
 use std::borrow::Cow;
-use std::collections::HashMap;
+use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 use std::iter::Peekable;
 use std::str::Chars;
 
 use unicode_categories::UnicodeCategories;
 
-use lex::{TextIter, PeekTextIter};
+use lex::{tokens, Token, TokenData, TokenType, TextIter, PeekTextIter};
 
 /// Trait for a tokenizer which can iterate over tokens.
 pub trait Tokenizer {
     fn next(&mut self) -> Token;
 }
 
-macro_rules! declare_tokens {
-    ($( $(#[$attr:meta])* pub const $name:ident : $typ:tt = $value:expr;)*) => {
-        $(
-            $(#[$attr])*
-            #[allow(dead_code, non_upper_case_globals)]
-            pub const $name : TokenData = TokenData::$typ(Cow::Borrowed($value));
-        )*
-        pub fn get_default_tokens() -> HashMap<Cow<'static, str>, TokenData> {
-            // Yo dawg, I heard you like macros
-            hashmap! [
-                $(Cow::Borrowed($value) => $name),*
-            ]
-        }
-    }
-}
-
-declare_tokens! {
-    pub const Plus: Symbol = "+";
-    pub const Minus: Symbol = "-";
-    pub const Star: Symbol = "*";
-    pub const Slash: Symbol = "/";
-    pub const Assign: Symbol = "=";
-    pub const Percent: Symbol = "%";
-
-    pub const PlusAssign: Symbol = "+=";
-    pub const MinusAssign: Symbol = "-=";
-    pub const StarAssign: Symbol = "*=";
-    pub const PercentAssign: Symbol = "%=";
-
-    pub const Let: Keyword = "let";
-    pub const Mut: Keyword = "mut";
-    pub const Return: Keyword = "return";
-
-    pub const LeftParen: Symbol = "(";
-    pub const RightParen: Symbol = ")";
-    pub const LeftBrace: Symbol = "[";
-    pub const RightBrace: Symbol = "]";
-    pub const LeftSquiggle: Symbol = "{";
-    pub const RightSquiggle: Symbol = "}";
-    pub const LeftAngle: Symbol = "<";
-    pub const RightAngle: Symbol = ">";
-
-    pub const GitDiffSymbol: Symbol = "<<<<<<<";
-}
-
-/// Token enum - tokens are pretty simple, mostly dependent on string matching.
-#[derive(Debug, Clone, Hash)]
-pub enum TokenData {
-    /// Token is a numeric literal
-    NumberLiteral(f64),
-    // ... other literals
-
-    /// Token is some name
-    Ident(Cow<'static, str>),
-    /// Token is a keyword
-    Keyword(Cow<'static, str>),
-    /// Token is some symbol
-    Symbol(Cow<'static, str>),
-
-    /// Token is known to be an EOF
-    EOF
-}
-impl TokenData {
-    /// If this token is an identifier
-    #[inline]
-    pub fn get_type(&self) -> TokenType {
-        use self::TokenData::*;
-        match *self {
-            NumberLiteral(_) => TokenType::Literal,
-            Ident(_) => TokenType::Ident,
-            Keyword(_) => TokenType::Keyword,
-            Symbol(_) => TokenType::Symbol,
-            EOF => TokenType::EOF
-        }
-    }
-}
-
-/// Which type of token this is.
-///
-/// Can be used by the parser for defaulting to Ident parsing,
-/// or individual parsers for error handling
-pub enum TokenType {
-    /// Token is a name
-    Ident(Cow<'static, str),
-    /// Token is a literal
-    Literal,
-    /// Token is a registered keyword
-    Keyword,
-    /// Token is a registered symbol
-    Symbol,
-    /// Token is an EOF
-    EOF
-}
-
-/// Starting location of a token or expression.
-///
-/// Contains information to
-#[derive(Debug, PartialEq, Eq, Clone, Hash, Default)]
-pub struct TextLocation {
-    /// Which char position of the initial string the token starts on
-    ///
-    /// Should respect Unicode boundaries, etc.
-    pub start_char: usize,
-    /// Which line of the initial string the token starts on
-    pub start_line: usize,
-    /// Which column of the initial string the token starts on
-    pub start_column: usize,
-    // /// Name of the file the token appears in
-    // pub file_name: String
-}
-
-/// A token returned by the tokenizer.
-///
-/// Each token has a definite
-#[derive(Debug, PartialEq, Clone)]
-pub struct Token {
-    pub location: TextLocation,
-    pub data: TokenData
-}
-
 /// Hacky implementation of a tokenizer.
 pub struct IterTokenizer<I> where I: Iterator<Item=char> {
     /// Keywords registered with the tokenizer
-    keywords: HashMap<Cow<'static, str>, TokenData>,
+    keywords: HashSet<Cow<'static, str>>,
+    /// Symbols registered with the tokenizer
+    symbols: HashSet<Cow<'static, str>>,
     iter: PeekTextIter<I>
 }
 
@@ -148,7 +30,8 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
     /// Creates a new StaticStrTokenizer from the given string
     pub fn new(input: I) -> IterTokenizer<I> {
         IterTokenizer {
-            keywords: get_default_tokens(),
+            keywords: tokens::default_keywords(),
+            symbols: tokens::default_symbols(),
             iter: PeekTextIter::new(input.peekable())
         }
     }
@@ -159,6 +42,7 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
         if !peek_attempt.is_some() {
             return Token {
                 location: self.iter.get_location(),
+                text: Cow::Borrowed(""),
                 data: TokenData::EOF
             }
         }
@@ -169,6 +53,7 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
             if next.is_none() {
                 return Token {
                     location: self.iter.get_location(),
+                    text: Cow::Borrowed(""),
                     data: TokenData::EOF
                 }
             } else {
@@ -192,6 +77,7 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
     /// it attempts to match bigger symbols
     fn parse_symbol(&mut self) -> Token {
         let mut sym = String::new();
+        let location = self.iter.get_location();
         self.take_while(|ch| ch == '%' || ch == '/' || ch.is_symbol(), &mut sym);
         if sym.starts_with("///") {
             // doc comment - will be implemented later on
@@ -202,14 +88,16 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
             return self.next()
         }
         loop {
-            if self.keywords.get(&Cow::Borrowed(&*sym)).is_some() {
+            println!("Looking for symbols with {:?}", sym);
+            if self.symbols.contains(&Cow::Borrowed(&*sym)) {
                 return Token {
-                    location: self.iter.get_location(),
-                    data: TokenData::Symbol(Cow::Owned(sym))
+                    location: location,
+                    text: Cow::Owned(sym),
+                    data: TokenData::Symbol
                 }
             } else {
                 if sym.is_empty() {
-                    panic!("Couldn't find a symbol");
+                    panic!("Couldn't find symbol for {:?}", sym);
                 } else {
                     sym.pop();
                 }
@@ -219,16 +107,19 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
 
     fn parse_keyword_or_ident(&mut self) -> Token {
         let mut token_string = String::new();
+        let location = self.iter.get_location();
         let is_kw = self.take_while_ident(&mut token_string);
         if is_kw && self.keywords.get(&Cow::Borrowed(&*token_string)).is_some() {
             Token {
-                location: self.iter.get_location(),
-                data: TokenData::Keyword(Cow::Owned(token_string))
+                location: location,
+                text: Cow::Owned(token_string),
+                data: TokenData::Keyword
             }
         } else {
             Token {
-                location: self.iter.get_location(),
-                data: TokenData::Ident(Cow::Owned(token_string))
+                location: location,
+                text: Cow::Owned(token_string),
+                data: TokenData::Ident
             }
         }
     }
@@ -236,6 +127,7 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
     /// Parse a floating point literal
     fn parse_float_literal(&mut self) -> Token {
         let mut token_string = String::new();
+        let location = self.iter.get_location();
         self.take_while(char::is_number, &mut token_string);
         // First part of number done. Is it a decimal?
         if self.iter.peek().unwrap_or(' ') == '.' {
@@ -247,7 +139,8 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
                 let parsed: f64 = token_string.parse()
                     .expect("Couldn't parse float");
                 return Token {
-                    location: self.iter.get_location(),
+                    location: location,
+                    text: Cow::Owned(token_string),
                     data: TokenData::NumberLiteral(parsed)
                 }
             }
@@ -257,7 +150,8 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
             let parsed: f64 = token_string.parse()
                 .expect("Couldn't parse float");
             return Token {
-                location: self.iter.get_location(),
+                location: location,
+                text: Cow::Owned(token_string),
                 data: TokenData::NumberLiteral(parsed)
             }
         }
@@ -267,7 +161,8 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
             let parsed: f64 = token_string.parse()
                 .expect("Couldn't parse float");
             return Token {
-                location: self.iter.get_location(),
+                location: location,
+                text: Cow::Owned(token_string),
                 data: TokenData::NumberLiteral(parsed)
             }
         }
@@ -275,7 +170,8 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
         let parsed: f64 = token_string.parse()
             .expect("Couldn't parse float");
         return Token {
-            location: self.iter.get_location(),
+            location: location,
+            text: Cow::Owned(token_string),
             data: TokenData::NumberLiteral(parsed)
         }
     }
