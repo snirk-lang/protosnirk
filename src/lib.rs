@@ -1,12 +1,13 @@
 #![allow(dead_code, unused_imports)]
 
-extern crate unicode_categories;
-extern crate unicode_segmentation;
-#[macro_use]
-extern crate maplit;
 
 #[macro_use]
+extern crate maplit;
+#[macro_use]
 extern crate nom;
+extern crate unicode_categories;
+extern crate unicode_segmentation;
+
 
 mod lex;
 mod parse;
