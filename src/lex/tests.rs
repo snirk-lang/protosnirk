@@ -30,18 +30,18 @@ fn it_grabs_single_keyword() {
             data: TokenData::Keyword,
             text: Cow::Borrowed("let"),
             location: TextLocation {
-                start_char: 0,
-                start_line: 0,
-                start_column: 0
+                index: 0,
+                line: 0,
+                column: 0
             }
         },
         Token {
             data: TokenData::EOF,
             text: Cow::Borrowed(""),
             location: TextLocation {
-                start_char: 3,
-                start_line: 0,
-                start_column: 3
+                index: 3,
+                line: 0,
+                column: 3
             }
         }
     });
@@ -52,18 +52,18 @@ fn it_grabs_single_keyword() {
             data: TokenData::Keyword,
             text: Cow::Borrowed("mut"),
             location: TextLocation {
-                start_char: 0,
-                start_line: 0,
-                start_column: 0
+                index: 0,
+                line: 0,
+                column: 0
             }
         },
         Token {
             data: TokenData::EOF,
             text: Cow::Borrowed(""),
             location: TextLocation {
-                start_char: 3,
-                start_line: 0,
-                start_column: 3
+                index: 3,
+                line: 0,
+                column: 3
             }
         }
     });
@@ -74,18 +74,18 @@ fn it_grabs_single_keyword() {
             data: TokenData::Keyword,
             text: Cow::Borrowed("return"),
             location: TextLocation {
-                start_char: 0,
-                start_line: 0,
-                start_column: 0
+                index: 0,
+                line: 0,
+                column: 0
             }
         },
         Token {
             data: TokenData::EOF,
             text: Cow::Borrowed(""),
             location: TextLocation {
-                start_char: 6,
-                start_line: 0,
-                start_column: 6
+                index: 6,
+                line: 0,
+                column: 6
             }
         }
     });
@@ -105,9 +105,9 @@ fn it_grabs_prefix_symbol_at_end_of_file() {
             data: TokenData::EOF,
             text: Cow::Borrowed(""),
             location: TextLocation {
-                start_char: 1,
-                start_line: 0,
-                start_column: 1
+                index: 1,
+                line: 0,
+                column: 1
             }
         }
     });
@@ -126,18 +126,18 @@ fn it_grabs_adjacent_prefix_symbols() {
             data: TokenData::Symbol,
             text: Cow::Borrowed("-"),
             location: TextLocation {
-                start_char: 1,
-                start_line: 0,
-                start_column: 1
+                index: 1,
+                line: 0,
+                column: 1
             }
         },
         Token {
             data: TokenData::EOF,
             text: Cow::Borrowed(""),
             location: TextLocation {
-                start_char: 2,
-                start_line: 0,
-                start_column: 2
+                index: 2,
+                line: 0,
+                column: 2
             }
         }
     });
@@ -157,9 +157,9 @@ fn it_grabs_prefix_symbol_mid_file() {
             data: TokenData::EOF,
             text: Cow::Borrowed(""),
             location: TextLocation {
-                start_char: 2,
-                start_line: 0,
-                start_column: 2
+                index: 2,
+                line: 0,
+                column: 2
             }
         }
     });
@@ -180,18 +180,18 @@ fn it_gabs_unmatching_parens() {
             data: TokenData::Symbol,
             text: Cow::Borrowed("("),
             location: TextLocation {
-                start_char: 1,
-                start_line: 0,
-                start_column: 1
+                index: 1,
+                line: 0,
+                column: 1
             }
         },
         Token {
             data: TokenData::EOF,
             text: Cow::Borrowed(""),
             location: TextLocation {
-                start_char: 2,
-                start_line: 0,
-                start_column: 2
+                index: 2,
+                line: 0,
+                column: 2
             }
         }
     });
@@ -211,18 +211,18 @@ fn it_grabs_matching_parens() {
             data: TokenData::Symbol,
             text: Cow::Borrowed(")"),
             location: TextLocation {
-                start_char: 1,
-                start_line: 0,
-                start_column: 1
+                index: 1,
+                line: 0,
+                column: 1
             }
         },
         Token {
             data: TokenData::EOF,
             text: Cow::Borrowed(""),
             location: TextLocation {
-                start_char: 2,
-                start_line: 0,
-                start_column: 2
+                index: 2,
+                line: 0,
+                column: 2
             }
         }
     });
@@ -242,9 +242,9 @@ fn it_grabs_single_ident() {
             data: TokenData::EOF,
             text: Cow::Borrowed(""),
             location: TextLocation {
-                start_char: 14,
-                start_line: 0,
-                start_column: 14
+                index: 14,
+                line: 0,
+                column: 14
             }
         }
     });
@@ -263,18 +263,18 @@ fn it_grabs_let_ident() {
             data: TokenData::Ident,
             text: Cow::Borrowed("x"),
             location: TextLocation {
-                start_char: 4,
-                start_line: 0,
-                start_column: 4
+                index: 4,
+                line: 0,
+                column: 4
             }
         },
         Token {
             data: TokenData::EOF,
             text: Cow::Borrowed(""),
             location: TextLocation {
-                start_char: 5,
-                start_line: 0,
-                start_column: 5
+                index: 5,
+                line: 0,
+                column: 5
             }
         }
     });
@@ -294,9 +294,9 @@ fn it_grabs_float_literal() {
             data: TokenData::EOF,
             text: Cow::Borrowed(""),
             location: TextLocation {
-                start_char: 3,
-                start_line: 0,
-                start_column: 3
+                index: 3,
+                line: 0,
+                column: 3
             }
         }
     });
@@ -312,9 +312,9 @@ fn it_grabs_float_literal() {
             data: TokenData::EOF,
             text: Cow::Borrowed(""),
             location: TextLocation {
-                start_char: 3,
-                start_line: 0,
-                start_column: 3
+                index: 3,
+                line: 0,
+                column: 3
             }
         }
     });
@@ -330,9 +330,9 @@ fn it_grabs_float_literal() {
             data: TokenData::EOF,
             text: Cow::Borrowed(""),
             location: TextLocation {
-                start_char: 3,
-                start_line: 0,
-                start_column: 3
+                index: 3,
+                line: 0,
+                column: 3
             }
         }
     });
@@ -348,9 +348,9 @@ fn it_grabs_float_literal() {
             data: TokenData::EOF,
             text: Cow::Borrowed(""),
             location: TextLocation {
-                start_char: 5,
-                start_line: 0,
-                start_column: 5
+                index: 5,
+                line: 0,
+                column: 5
             }
         }
     });
@@ -365,9 +365,9 @@ fn it_ignores_whitespace() {
             data: TokenData::EOF,
             text: Cow::Borrowed(""),
             location: TextLocation {
-                start_char: 4,
-                start_line: 2,
-                start_column: 0
+                index: 4,
+                line: 2,
+                column: 0
             }
         }
     });
@@ -383,27 +383,27 @@ fn it_ignores_line_comment() {
             data: TokenData::Keyword,
             text: Cow::Borrowed("let"),
             location: TextLocation {
-                start_char: 10,
-                start_line: 1,
-                start_column: 0
+                index: 10,
+                line: 1,
+                column: 0
             }
         },
         Token {
             data: TokenData::Ident,
             text: Cow::Borrowed("x"),
             location: TextLocation {
-                start_char: 14,
-                start_line: 1,
-                start_column: 4
+                index: 14,
+                line: 1,
+                column: 4
             }
         },
         Token {
             data: TokenData::EOF,
             text: Cow::Borrowed(""),
             location: TextLocation {
-                start_char: 15,
-                start_line: 1,
-                start_column: 5
+                index: 15,
+                line: 1,
+                column: 5
             }
         }
     });
@@ -421,126 +421,126 @@ fn it_lexes_complex_input() {
             data: TokenData::Keyword,
             text: Cow::Borrowed("let"),
             location: TextLocation {
-                start_char: 0,
-                start_line: 0,
-                start_column: 0
+                index: 0,
+                line: 0,
+                column: 0
             }
         },
         Token {
             data: TokenData::Ident,
             text: Cow::Borrowed("x"),
             location: TextLocation {
-                start_char: 4,
-                start_line: 0,
-                start_column: 4
+                index: 4,
+                line: 0,
+                column: 4
             }
         },
         Token {
             data: TokenData::Symbol,
             text: Cow::Borrowed("="),
             location: TextLocation {
-                start_char: 6,
-                start_line: 0,
-                start_column: 6
+                index: 6,
+                line: 0,
+                column: 6
             }
         },
         Token {
             data: TokenData::Ident,
             text: Cow::Borrowed("y"),
             location: TextLocation {
-                start_char: 8,
-                start_line: 0,
-                start_column: 8
+                index: 8,
+                line: 0,
+                column: 8
             }
         },
         Token {
             data: TokenData::Ident,
             text: Cow::Borrowed("y"),
             location: TextLocation {
-                start_char: 10,
-                start_line: 0,
-                start_column: 10
+                index: 10,
+                line: 0,
+                column: 10
             }
         },
         Token {
             data: TokenData::Symbol,
             text: Cow::Borrowed("+="),
             location: TextLocation {
-                start_char: 12,
-                start_line: 0,
-                start_column: 12
+                index: 12,
+                line: 0,
+                column: 12
             }
         },
         Token {
             data: TokenData::NumberLiteral(55e7f64),
             text: Cow::Borrowed("55e7"),
             location: TextLocation {
-                start_char: 15,
-                start_line: 0,
-                start_column: 15
+                index: 15,
+                line: 0,
+                column: 15
             }
         },
         Token {
             data: TokenData::Keyword,
             text: Cow::Borrowed("return"),
             location: TextLocation {
-                start_char: 22,
-                start_line: 1,
-                start_column: 0
+                index: 22,
+                line: 1,
+                column: 0
             }
         },
         Token {
             data: TokenData::Ident,
             text: Cow::Borrowed("y"),
             location: TextLocation {
-                start_char: 29,
-                start_line: 1,
-                start_column: 7
+                index: 29,
+                line: 1,
+                column: 7
             }
         },
         Token {
             data: TokenData::Symbol,
             text: Cow::Borrowed("%"),
             location: TextLocation {
-                start_char: 31,
-                start_line: 1,
-                start_column: 9
+                index: 31,
+                line: 1,
+                column: 9
             }
         },
         Token {
             data: TokenData::Ident,
             text: Cow::Borrowed("x"),
             location: TextLocation {
-                start_char: 33,
-                start_line: 1,
-                start_column: 11
+                index: 33,
+                line: 1,
+                column: 11
             }
         },
         Token {
             data: TokenData::Symbol,
             text: Cow::Borrowed("+"),
             location: TextLocation {
-                start_char: 35,
-                start_line: 1,
-                start_column: 13
+                index: 35,
+                line: 1,
+                column: 13
             }
         },
         Token {
             data: TokenData::NumberLiteral(224.5f64),
             text: Cow::Borrowed("224.5"),
             location: TextLocation {
-                start_char: 37,
-                start_line: 1,
-                start_column: 15
+                index: 37,
+                line: 1,
+                column: 15
             }
         },
         Token {
             data: TokenData::EOF,
             text: Cow::Borrowed(""),
             location: TextLocation {
-                start_char: 42,
-                start_line: 1,
-                start_column: 20
+                index: 42,
+                line: 1,
+                column: 20
             }
         }
     });

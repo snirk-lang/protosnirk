@@ -9,8 +9,8 @@ pub mod tokenizer;
 #[cfg(test)]
 mod tests;
 
-pub use self::token::{Token, TokenType, TokenData, TextLocation};
-pub use self::textiter::{TextIter, PeekTextIter};
+pub use self::token::{Token, TokenType, TokenData};
+pub use self::textiter::{TextLocation, TextIter, PeekTextIter};
 pub use self::tokenizer::{Tokenizer, IterTokenizer};
 
 /// Type representing a borrowed or owned string

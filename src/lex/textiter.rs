@@ -1,7 +1,14 @@
 //! Trait for iterating over text
 
-use lex::TextLocation;
 use std::iter::{Iterator, Peekable};
+
+/// Structure representing the location of some character or string in a text.
+#[derive(Debug, PartialEq, Eq, Copy, Clone, Hash, Default)]
+pub struct TextLocation {
+    pub index: usize,
+    pub line: usize,
+    pub column: usize
+}
 
 /// A specialized iterator (for tokenizing) which also implements `peek()`
 /// and keeps track of its location.
@@ -39,7 +46,7 @@ impl<T: Iterator<Item=char>> TextIter for PeekTextIter<T> {
     }
     fn get_location(&self) -> TextLocation {
         TextLocation {
-            start_char: self.current_char,
+            index: self.current_char,
             start_line: self.current_line,
             start_column: self.current_column
         }
