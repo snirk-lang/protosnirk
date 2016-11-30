@@ -1,0 +1,28 @@
+sudo: false
+
+git:
+  depth: 3
+
+language: rust
+rust:
+  - stable
+  - beta
+
+matrix:
+  allow_failures:
+    - rust:
+        - beta
+  fast_finish: true
+
+cache:
+ - cargo
+
+notifications:
+  email: false
+
+install:
+ - cargo install --force cargo-check
+
+script:
+  - cargo check --verbose
+  - cargo test --verbose
