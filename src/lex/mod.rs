@@ -2,7 +2,6 @@
 
 mod token;
 pub mod tokens;
-mod error_codes;
 mod textiter;
 pub mod tokenizer;
 
