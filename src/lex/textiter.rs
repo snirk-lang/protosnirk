@@ -47,8 +47,8 @@ impl<T: Iterator<Item=char>> TextIter for PeekTextIter<T> {
     fn get_location(&self) -> TextLocation {
         TextLocation {
             index: self.current_char,
-            start_line: self.current_line,
-            start_column: self.current_column
+            line: self.current_line,
+            column: self.current_column
         }
     }
 }

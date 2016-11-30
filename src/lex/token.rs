@@ -5,6 +5,8 @@ use std::borrow::Cow;
 use std::collections::HashSet;
 use std::ops::Range;
 
+use lex::{TextLocation, CowStr};
+
 /// A token returned by the tokenizer.
 ///
 /// Each token has a definite
@@ -13,9 +15,44 @@ pub struct Token {
     /// Location of the token in a file
     pub location: TextLocation,
     /// Text of the token at that location
-    pub text: Cow<'static, str>,
+    pub text: CowStr,
     /// Additional data (type/literal) provided by the lexer
     pub data: TokenData
+}
+impl Token {
+    #[inline]
+    pub fn new_symbol<T: Into<CowStr>>(text: T, location: TextLocation) -> Token {
+        Token {
+            text: text.into(),
+            data: TokenData::Symbol,
+            location: location
+        }
+    }
+    #[inline]
+    pub fn new_keyword<T: Into<CowStr>>(text: T, location: TextLocation) -> Token {
+        Token {
+            text: text.into(),
+            data: TokenData::Keyword,
+            location: location
+        }
+    }
+    #[inline]
+    pub fn new_ident<T: Into<CowStr>>(text: T, location: TextLocation) -> Token {
+        Token {
+            text: text.into(),
+            data: TokenData::Ident,
+            location: location
+        }
+    }
+
+    #[inline]
+    pub fn new_eof(location: TextLocation) -> Token {
+        Token {
+            text: Cow::Borrowed(""),
+            data: TokenData::EOF,
+            location: location
+        }
+    }
 }
 
 /// Token enum - tokens are pretty simple, mostly dependent on string matching.
@@ -70,21 +107,4 @@ pub enum TokenType {
     Block,
     /// Token is an EOF
     EOF
-}
-
-/// Starting location of a token or expression.
-///
-/// Contains information to
-#[derive(Debug, PartialEq, Eq, Clone, Hash, Default)]
-pub struct TextLocation {
-    /// Which char position of the initial string the token starts on
-    ///
-    /// Should respect Unicode boundaries, etc.
-    pub start_char: usize,
-    /// Which line of the initial string the token starts on
-    pub start_line: usize,
-    /// Which column of the initial string the token starts on
-    pub start_column: usize,
-    // /// Name of the file the token appears in
-    // pub file_name: String
 }

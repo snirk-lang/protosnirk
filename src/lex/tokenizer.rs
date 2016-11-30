@@ -51,22 +51,14 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
     pub fn next(&mut self) -> Token {
         let peek_attempt = self.iter.peek();
         if !peek_attempt.is_some() {
-            return Token {
-                location: self.iter.get_location(),
-                text: Cow::Borrowed(""),
-                data: TokenData::EOF
-            }
+            return Token::new_eof(self.iter.get_location())
         }
         let mut peek = peek_attempt.expect("Checked expect");
         while peek.is_whitespace() {
             self.iter.next();
             let next = self.iter.peek();
             if next.is_none() {
-                return Token {
-                    location: self.iter.get_location(),
-                    text: Cow::Borrowed(""),
-                    data: TokenData::EOF
-                }
+                return Token::new_eof(self.iter.get_location())
             } else {
                 peek = next.expect("Checked expect");
             }
@@ -121,11 +113,7 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
                             None | Some(Complete) => unreachable!(),
                             // We stepped past a CompletePrefix token
                             Some(CompletePrefix) => {
-                                return Token {
-                                    location: location,
-                                    text: Cow::Owned(sym),
-                                    data: TokenData::Symbol
-                                }
+                                return Token::new_symbol(sym, location)
                             },
                             // We stepped past a partial token but did not complete it
                             Some(Partial) => {
@@ -137,20 +125,12 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
                 // We found a complete symbol - consume what we peeked and return it.
                 Some(Complete) => {
                     self.iter.next();
-                    return Token {
-                        location: location,
-                        text: Cow::Owned(sym),
-                        data: TokenData::Symbol
-                    }
+                    return Token::new_symbol(sym, location);
                 },
                 // We have more to go, consume what we peeked and look forward.
                 Some(CompletePrefix) | Some(Partial) => {
                     if !more {
-                        return Token {
-                            location: location,
-                            text: Cow::Owned(sym),
-                            data: TokenData::Symbol
-                        }
+                        return Token::new_symbol(sym, location)
                     }
                     self.iter.next();
                 }
@@ -163,17 +143,9 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
         let location = self.iter.get_location();
         let is_kw = self.take_while_ident(&mut token_string);
         if is_kw && self.keywords.get(&Cow::Borrowed(&*token_string)).is_some() {
-            Token {
-                location: location,
-                text: Cow::Owned(token_string),
-                data: TokenData::Keyword
-            }
+            Token::new_keyword(token_string, location)
         } else {
-            Token {
-                location: location,
-                text: Cow::Owned(token_string),
-                data: TokenData::Ident
-            }
+            Token::new_ident(token_string, location)
         }
     }
 
@@ -228,7 +200,6 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
             data: TokenData::NumberLiteral(parsed)
         }
     }
-
 
     /// Continue taking characters while a condition is met
     #[inline]
