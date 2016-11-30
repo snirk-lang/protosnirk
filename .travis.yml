@@ -1,19 +1,30 @@
-language: rust
 sudo: false
+
 git:
   depth: 3
+
+language: rust
 rust:
   - stable
   - beta
   - nightly
+
 matrix:
   allow_failures:
     - rust:
         - nightly
         - beta
   fast_finish: true
+
+cache:
+ - cargo
+
 notifications:
   email: false
+
+install:
+ - cargo install --force cargo-check
+
 script:
   - cargo check --verbose
   - cargo test --verbose
