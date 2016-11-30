@@ -165,7 +165,6 @@ fn it_grabs_prefix_symbol_mid_file() {
     });
 }
 
-
 #[test]
 fn it_gabs_unmatching_parens() {
     let input = "((";
@@ -249,6 +248,30 @@ fn it_grabs_single_ident() {
         }
     });
 }
+
+#[test]
+fn it_grabs_single_unicode_ident() {
+    // If you can see all of the characters here, you have a 21st century editor.
+    let input = "㐦ㅹthェsIşAUनïګoדÈIdԸntiϝieʴ";
+    let mut tokenizer = make_tokenizer(input.clone());
+    match_tokens!(tokenizer {
+        Token {
+            data: TokenData::Ident,
+            text: Cow::Borrowed(input),
+            location: TextLocation::default()
+        },
+        Token {
+            data: TokenData::EOF,
+            text: Cow::Borrowed(""),
+            location: TextLocation {
+                index: 26,
+                line: 0,
+                column: 26
+            }
+        }
+    });
+}
+
 #[test]
 fn it_grabs_let_ident() {
     let input = "let x";
@@ -410,7 +433,7 @@ fn it_ignores_line_comment() {
 }
 
 #[test]
-fn it_lexes_complex_input() {
+fn it_tokenizes_complex_input() {
     let input =
     "let x = y \
      y += 55e7\t \n\
