@@ -11,4 +11,3 @@ license = "MIT"
 [dependencies]
 maplit = "*"
 unicode_categories = "0.1"
-unicode-segmentation = "0.1"
