@@ -92,6 +92,143 @@ fn it_grabs_single_keyword() {
 }
 
 #[test]
+fn it_grabs_prefix_symbol_at_end_of_file() {
+    let input = "+";
+    let mut tokenizer = make_tokenizer(input);
+    match_tokens!(tokenizer {
+        Token {
+            data: TokenData::Symbol,
+            text: Cow::Borrowed("+"),
+            location: TextLocation::default()
+        },
+        Token {
+            data: TokenData::EOF,
+            text: Cow::Borrowed(""),
+            location: TextLocation {
+                start_char: 1,
+                start_line: 0,
+                start_column: 1
+            }
+        }
+    });
+}
+#[test]
+fn it_grabs_adjacent_prefix_symbols() {
+    let input = "+-";
+    let mut tokenizer = make_tokenizer(input);
+    match_tokens!(tokenizer {
+        Token {
+            data: TokenData::Symbol,
+            text: Cow::Borrowed("+"),
+            location: TextLocation::default()
+        },
+        Token {
+            data: TokenData::Symbol,
+            text: Cow::Borrowed("-"),
+            location: TextLocation {
+                start_char: 1,
+                start_line: 0,
+                start_column: 1
+            }
+        },
+        Token {
+            data: TokenData::EOF,
+            text: Cow::Borrowed(""),
+            location: TextLocation {
+                start_char: 2,
+                start_line: 0,
+                start_column: 2
+            }
+        }
+    });
+}
+
+#[test]
+fn it_grabs_prefix_symbol_mid_file() {
+    let input = "+ ";
+    let mut tokenizer = make_tokenizer(input);
+    match_tokens!(tokenizer {
+        Token {
+            data: TokenData::Symbol,
+            text: Cow::Borrowed("+"),
+            location: TextLocation::default()
+        },
+        Token {
+            data: TokenData::EOF,
+            text: Cow::Borrowed(""),
+            location: TextLocation {
+                start_char: 2,
+                start_line: 0,
+                start_column: 2
+            }
+        }
+    });
+}
+
+
+#[test]
+fn it_gabs_unmatching_parens() {
+    let input = "((";
+    let mut tokenizer = make_tokenizer(input);
+    match_tokens!(tokenizer {
+        Token {
+            data: TokenData::Symbol,
+            text: Cow::Borrowed("("),
+            location: TextLocation::default()
+        },
+        Token {
+            data: TokenData::Symbol,
+            text: Cow::Borrowed("("),
+            location: TextLocation {
+                start_char: 1,
+                start_line: 0,
+                start_column: 1
+            }
+        },
+        Token {
+            data: TokenData::EOF,
+            text: Cow::Borrowed(""),
+            location: TextLocation {
+                start_char: 2,
+                start_line: 0,
+                start_column: 2
+            }
+        }
+    });
+}
+
+#[test]
+fn it_grabs_matching_parens() {
+    let input = "()";
+    let mut tokenizer = make_tokenizer(input);
+    match_tokens!(tokenizer {
+        Token {
+            data: TokenData::Symbol,
+            text: Cow::Borrowed("("),
+            location: TextLocation::default()
+        },
+        Token {
+            data: TokenData::Symbol,
+            text: Cow::Borrowed(")"),
+            location: TextLocation {
+                start_char: 1,
+                start_line: 0,
+                start_column: 1
+            }
+        },
+        Token {
+            data: TokenData::EOF,
+            text: Cow::Borrowed(""),
+            location: TextLocation {
+                start_char: 2,
+                start_line: 0,
+                start_column: 2
+            }
+        }
+    });
+}
+
+#[test]
 fn it_grabs_single_ident() {
     let input = "anIdentifier_2";
     let mut tokenizer = make_tokenizer(input);

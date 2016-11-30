@@ -3,26 +3,37 @@
 //! We need a dumb tokenizer in case users want to register operators.
 
 use std::borrow::Cow;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::iter::Peekable;
 use std::str::Chars;
 
 use unicode_categories::UnicodeCategories;
 
-use lex::{tokens, Token, TokenData, TokenType, TextIter, PeekTextIter};
+use lex::{tokens,
+          TokenizerSymbolRule, CowStr,
+          Token, TokenData, TokenType,
+          TextIter, PeekTextIter};
 
 /// Trait for a tokenizer which can iterate over tokens.
 pub trait Tokenizer {
     fn next(&mut self) -> Token;
 }
 
+/// If the given char is a symbol.
+pub fn char_is_symbol(ch: char) -> bool {
+    ch == '%' || ch == '/' ||
+    ch == '(' || ch == ')' ||
+    ch == '-' ||
+    ch.is_symbol()
+}
+
 /// Hacky implementation of a tokenizer.
 pub struct IterTokenizer<I> where I: Iterator<Item=char> {
     /// Keywords registered with the tokenizer
-    keywords: HashSet<Cow<'static, str>>,
+    keywords: HashSet<CowStr>,
     /// Symbols registered with the tokenizer
-    symbols: HashSet<Cow<'static, str>>,
+    symbols: HashMap<CowStr, TokenizerSymbolRule>,
     iter: PeekTextIter<I>
 }
 
@@ -64,10 +75,10 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
             self.parse_float_literal()
         } else if peek.is_letter() {
             self.parse_keyword_or_ident()
-        } else if peek.is_symbol() || peek == '%' || peek == '/' {
+        } else if char_is_symbol(peek) {
             self.parse_symbol()
         } else {
-            panic!("Got weird character {:?}", peek);
+            panic!("Got unknown character {:?}", peek);
         }
     }
 
@@ -76,30 +87,72 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
     /// This logic differs from that of keyword parsing in that
     /// it attempts to match bigger symbols
     fn parse_symbol(&mut self) -> Token {
-        let mut sym = String::new();
+        use lex::TokenizerSymbolRule::*;
         let location = self.iter.get_location();
-        self.take_while(|ch| ch == '%' || ch == '/' || ch.is_symbol(), &mut sym);
-        if sym.starts_with("///") {
-            // doc comment - will be implemented later on
-            self.take_while(|ch| ch != '\n', &mut sym);
-            return self.next()
-        } else if sym.starts_with("//") {
-            self.skip_while(|ch| ch != '\n');
-            return self.next()
-        }
+        let mut sym = String::new();
+
         loop {
-            println!("Looking for symbols with {:?}", sym);
-            if self.symbols.contains(&Cow::Borrowed(&*sym)) {
-                return Token {
-                    location: location,
-                    text: Cow::Owned(sym),
-                    data: TokenData::Symbol
-                }
+            let more: bool;
+            if let Some(peeked) = self.iter.peek() {
+                more = true;
+                sym.push(peeked);
             } else {
-                if sym.is_empty() {
-                    panic!("Couldn't find symbol for {:?}", sym);
-                } else {
-                    sym.pop();
+                more = false;
+            }// Infinite loop??
+            if sym.starts_with("///") {
+                // doc comment - will be implemented later on
+                self.take_while(|ch| ch != '\n', &mut sym);
+                return self.next()
+            } else if sym.starts_with("//") {
+                self.skip_while(|ch| ch != '\n');
+                return self.next()
+            }
+
+            let symbol_type = self.symbols.get(&Cow::Borrowed(&*sym)).cloned();
+            match symbol_type {
+                // No symbol matched - we started out bad or peeked too far
+                None => {
+                    if sym.len() == 1 {
+                        panic!("Couldn't find symbol {:?}", sym);
+                    } else {
+                        sym.pop();
+                        match self.symbols.get(&Cow::Borrowed(&*sym)).cloned() {
+                            // We can't have stepped past these
+                            None | Some(Complete) => unreachable!(),
+                            // We stepped past a CompletePrefix token
+                            Some(CompletePrefix) => {
+                                return Token {
+                                    location: location,
+                                    text: Cow::Owned(sym),
+                                    data: TokenData::Symbol
+                                }
+                            },
+                            // We stepped past a partial token but did not complete it
+                            Some(Partial) => {
+                                panic!("Could not complete partial token {:?}", sym);
+                            }
+                        }
+                    }
+                }
+                // We found a complete symbol - consume what we peeked and return it.
+                Some(Complete) => {
+                    self.iter.next();
+                    return Token {
+                        location: location,
+                        text: Cow::Owned(sym),
+                        data: TokenData::Symbol
+                    }
+                },
+                // We have more to go, consume what we peeked and look forward.
+                Some(CompletePrefix) | Some(Partial) => {
+                    if !more {
+                        return Token {
+                            location: location,
+                            text: Cow::Owned(sym),
+                            data: TokenData::Symbol
+                        }
+                    }
+                    self.iter.next();
                 }
             }
         }
@@ -175,6 +228,7 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
             data: TokenData::NumberLiteral(parsed)
         }
     }
+
 
     /// Continue taking characters while a condition is met
     #[inline]
