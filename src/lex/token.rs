@@ -3,6 +3,8 @@
 
 use std::borrow::Cow;
 use std::collections::HashSet;
+use std::fmt::{Display, Formatter};
+use std::fmt::Result as FmtResult;
 use std::ops::Range;
 
 use lex::{TextLocation, CowStr};
@@ -52,6 +54,11 @@ impl Token {
             data: TokenData::EOF,
             location: location
         }
+    }
+}
+impl Display for Token {
+    fn fmt(&self, f: &mut Formatter) -> FmtResult {
+        write!(f, "({:?}, {:?})", self.data.get_type(), self.text)
     }
 }
 

@@ -59,32 +59,32 @@ impl Into<CowStr> for Identifier {
 /// Maths style binary operations (may be split up later)
 #[derive(Debug, PartialEq, Clone)]
 pub struct BinaryOperation {
-    operator: TokenType,
+    operator: Token,
     left: Box<Expression>,
     right: Box<Expression>
 }
 impl BinaryOperation {
-    pub fn new(operator: TokenType, left: Box<Expression>, right: Box<Expression>) -> BinaryOperation {
+    pub fn new(operator: Token, left: Box<Expression>, right: Box<Expression>) -> BinaryOperation {
         BinaryOperation {
             operator: operator,
             left: left,
             right: right
         }
     }
-    pub fn get_operator(&self) -> TokenType {
-        self.operator
+    pub fn get_operator(&self) -> &Token {
+        &self.operator
     }
 }
 
 /// Unary operation
 #[derive(Debug, PartialEq, Clone)]
 pub struct UnaryOperation {
-    operator: TokenType,
+    operator: Token,
     expression: Box<Expression>
 }
 impl UnaryOperation {
     /// Creates a new unary operation
-    pub fn new(operator: TokenType, expression: Box<Expression>) -> UnaryOperation {
+    pub fn new(operator: Token, expression: Box<Expression>) -> UnaryOperation {
         UnaryOperation { operator: operator, expression: expression }
     }
 }
@@ -157,7 +157,7 @@ impl Expression {
 
     /// Return an error if this expression cannot be used as an "rvalue"
     pub fn expect_value(self) -> Result<Expression, ParseError> {
-        if self.is_statement() {
+        if !self.is_statement() {
             Ok(self)
         } else {
             Err(ParseError::ExpectedRValue(self))

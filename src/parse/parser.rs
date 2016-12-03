@@ -9,6 +9,7 @@ use std::rc::Rc;
 
 use lex::{CowStr, Token, TokenType, Tokenizer};
 use parse::{Precedence, ParseError, ParseResult};
+use parse::expression::*;
 use parse::symbol::*;
 
 /// Parser object which parses things
@@ -24,16 +25,49 @@ pub struct Parser {
 }
 
 impl Parser {
+    /// Consumes the next token from the tokenizer.
     pub fn consume(&mut self) -> Token {
-        self.look_ahead(0usize);
+        self.look_ahead(1usize);
         self.lookahead.pop()
             .expect("Unable to queue token via lookahead for consume")
     }
 
-    pub fn try_consume(&mut self, expected_type: TokenType, expected_name: CowStr)
-            -> Result<Token, ParseError> {
+    /// Grab `count` more tokens from the lexer and return the last one.
+    ///
+    /// Usually called with `0usize` to just peek at the next one.
+    pub fn look_ahead(&mut self, count: usize) -> &Token {
+        debug_assert!(count != 0, "Cannot look ahead 0");
+        while count > self.lookahead.len() {
+            let next = self.tokenizer.next();
+            self.lookahead.push(next);
+        }
+        &self.lookahead[count - 1]
+    }
+
+    /// Peeks at the next available token
+    pub fn peek(&mut self) -> &Token {
+        self.look_ahead(1usize)
+    }
+
+    /// Attempts to match the next token from the tokenizer with the given type.
+    pub fn try_consume_type(&mut self, expected_type: TokenType) -> Result<Token, ParseError> {
         let token = self.consume();
-        if token.data.get_type() != expected_type || token.text != expected_name {
+        if token.data.get_type() != expected_type {
+            Err(ParseError::ExpectedToken {
+                expected: expected_type,
+                got: token.into()
+            })
+        }
+        else {
+            Ok(token)
+        }
+    }
+
+    /// Attempts to match the next token from the tokenizer with the given type and name.
+    pub fn try_consume_name(&mut self, expected_type: TokenType, expected_name: CowStr)
+            -> Result<Token, ParseError> {
+        let token = try!(self.try_consume_type(expected_type));
+        if token.text != expected_name {
             Err(ParseError::ExpectedToken {
                 expected: expected_type,
                 got: token.into()
@@ -45,38 +79,82 @@ impl Parser {
 
     /// Peek at the next token without consuming it.
     pub fn next_type(&mut self) -> TokenType {
-        self.look_ahead(0usize);
-        self.lookahead.last()
-            .expect("Unable to queue token via lookahead for peek")
+        self.look_ahead(1usize);
+        self.lookahead[0]
             .data.get_type()
     }
 
     /// Parses any expression with the given precedence.
-    pub fn expression(&mut self, precedence: Precedence) -> ParseResult {
+    pub fn expression(&mut self, precedence: Precedence) -> Result<Expression, ParseError> {
         let mut token = self.consume();
+        println!("Parsing expression(precedence={:?}) with {}", precedence, token);
         let prefix: Rc<PrefixSymbol + 'static>;
         if token.data.get_type() == TokenType::EOF {
+            println!("Parsing received EOF!");
             return Err(ParseError::LazyString(format!("got eof?")));
         }
         else if token.data.get_type() == TokenType::Ident {
+            println!("Parsing an identifier, using the identifier parser");
             prefix = Rc::new(IdentifierParser {});
         }
+        else if token.data.get_type() == TokenType::Literal {
+            println!("Got a literal token");
+            prefix = Rc::new(LiteralParser {});
+        }
         else if let Some(found_parser) = self.prefix_parsers.get(&(token.data.get_type(), Cow::Borrowed(&*token.text))) {
+            println!("Found a parser to parse ({:?}, {:?})", token.data.get_type(), token.text);
             prefix = found_parser.clone();
         }
         else {
+            println!("Could not find a parser!");
             return Err(ParseError::LazyString(format!("Unexpected token {:?}", token)))
         }
         let mut left = try!(prefix.parse(self, token));
+        println!("Parsed left expression: {:?}", left);
         while precedence < self.current_precedence() {
+            println!("Checking thatn {:?} < {:?}", precedence, self.current_precedence());
             token = self.consume();
+            println!("Continuing with {}", token);
             if let Some(infix) = self.infix_parsers.get(&(token.data.get_type(), Cow::Borrowed(&*token.text))).map(Rc::clone) {
+                println!("Parsing via infix parser!");
                 left = try!(infix.parse(self, left, token));
             }
         }
+        println!("Done parsing expression");
         Ok(left)
     }
 
+    /// Parse a block of code. This is synonymous with a "program" as programs do not support
+    /// nested blocks. Later on, this will be using the lexer's significant whitespace parsing
+    /// to support `Indent` and `Outdent` tokens for begin/end blocks.
+    pub fn block(&mut self) -> Result<Vec<Expression>, ParseError> {
+        let mut found = Vec::new();
+        loop {
+            if self.next_type() == TokenType::EOF {
+                break
+            }
+            let next_expr = try!(self.expression(Precedence::Min));
+            found.push(next_expr);
+        }
+        return Ok(found)
+    }
+
+    ///Grab an lvalue from the token stream
+    pub fn lvalue(&mut self) -> Result<Identifier, ParseError> {
+        let token = self.consume();
+        println!("Getting an lvalue from {}", token);
+        if token.data.get_type() == TokenType::Ident {
+            return IdentifierParser {}.parse(self, token)
+                .and_then(|e| e.expect_identifier());
+        } else {
+            return Err(ParseError::ExpectedToken {
+                expected: TokenType::Ident,
+                got: token
+            })
+        }
+    }
+
+    /// Create a new parser from the given tokenizer, initializing its fields to match
     pub fn new(tokenizer: Box<Tokenizer>) -> Parser {
         use parse::symbol::*;
         use lex::tokens;
@@ -97,7 +175,7 @@ impl Parser {
             (Symbol, tokens::Minus) => UnaryOpSymbol::with_precedence(Precedence::NumericPrefix),
             (Symbol, tokens::LeftParen) => Rc::new(ParensParser { }) as Rc<PrefixSymbol>,
 
-            (Symbol, tokens::Return) => Rc::new(ReturnParser { }) as Rc<PrefixSymbol>,
+            (Keyword, tokens::Return) => Rc::new(ReturnParser { }) as Rc<PrefixSymbol>,
         ];
 
         Parser {
@@ -106,17 +184,6 @@ impl Parser {
             infix_parsers: infix_map,
             prefix_parsers: prefix_map
         }
-    }
-
-    /// Grab `count` more tokens from the lexer and return the last one.
-    ///
-    /// Usually called with `0usize` to just peek at the next one.
-    pub fn look_ahead(&mut self, count: usize) -> &Token {
-        debug_assert!(count != 0, "Cannot look ahead 0");
-        while count >= self.lookahead.len() {
-            self.lookahead.push(self.tokenizer.next());
-        }
-        &self.lookahead[count - 1]
     }
 
     /// Get the current precedence

@@ -43,7 +43,7 @@ impl InfixSymbol for BinOpSymbol {
     fn parse(&self, parser: &mut Parser, left: Expression, token: Token) -> ParseResult {
         let right: Expression = try!(parser.expression(self.precedence));
         Ok(Expression::BinaryOp(
-            BinaryOperation::new(token.data.get_type(), Box::new(left), Box::new(right))))
+            BinaryOperation::new(token, Box::new(left), Box::new(right))))
     }
     fn get_precedence(&self) -> Precedence {
         self.precedence
@@ -67,13 +67,34 @@ impl PrefixSymbol for UnaryOpSymbol {
     fn parse(&self, parser: &mut Parser, token: Token) -> ParseResult {
         let right_expr = try!(parser.expression(self.precedence));
         let right_value = try!(right_expr.expect_value());
-        Ok(Expression::UnaryOp(UnaryOperation::new(token.data.get_type(), Box::new(right_value))))
+        Ok(Expression::UnaryOp(UnaryOperation::new(token, Box::new(right_value))))
     }
 }
 impl UnaryOpSymbol {
     /// Create a new BinaryOpSymbol parser with the given precedence
     pub fn with_precedence(precedence: Precedence) -> Rc<PrefixSymbol> {
         Rc::new(UnaryOpSymbol { precedence: precedence }) as Rc<PrefixSymbol>
+    }
+}
+
+/// Returns a literal expression
+///
+/// # Examples
+/// ```text
+/// 34
+/// ^literal
+/// ```
+pub struct LiteralParser { }
+impl PrefixSymbol for LiteralParser {
+    fn parse(&self, _parser: &mut Parser, token: Token) -> ParseResult {
+        match token.data {
+            TokenData::NumberLiteral(val) =>
+                Ok(Expression::Literal(Literal::new(val))),
+            _ => Err(ParseError::ExpectedToken {
+                    expected: TokenType::Literal,
+                    got: token
+                })
+        }
     }
 }
 
@@ -105,15 +126,21 @@ impl PrefixSymbol for DeclarationParser {
     fn parse(&self, parser: &mut Parser, _token: Token) -> ParseResult {
         debug_assert!(_token.text == tokens::Let,
                       "Let parser called with non-let token {:?}", _token);
+        println!("Parsing declaration for {}", _token);
         let is_mutable = parser.look_ahead(1).text == tokens::Mut;
         if is_mutable {
             parser.consume();
         }
-        let name_expr = try!(parser.expression(Precedence::Min));
-        let name = try!(name_expr.expect_identifier());
-        try!(parser.try_consume(TokenType::Symbol, tokens::Equals));
+        println!("Found mutability: {}", is_mutable);
+        let name = try!(parser.lvalue());
+        println!("Got name {:?}", name);
+        try!(parser.try_consume_name(TokenType::Symbol, tokens::Equals));
+        println!("Consumed =");
+        println!("Parsing an expression");
         let value_expr = try!(parser.expression(Precedence::Min));
+        println!("Getting a value from {:?}", value_expr);
         let value = try!(value_expr.expect_value());
+        println!("Got value");
         Ok(Expression::Declaration(Declaration::new(name.into(), is_mutable, Box::new(value))))
     }
 }
@@ -156,7 +183,7 @@ impl PrefixSymbol for ParensParser {
                       "Parens parser called with non-left-paren {:?}", _token);
         let inner_expr = try!(parser.expression(Precedence::Paren));
         let inner = try!(inner_expr.expect_value());
-        try!(parser.try_consume(TokenType::Symbol, tokens::RightParen));
+        try!(parser.try_consume_name(TokenType::Symbol, tokens::RightParen));
         Ok(inner)
     }
 }
@@ -176,7 +203,7 @@ impl PrefixSymbol for ReturnParser {
                       "Return parser called with non-return {:?}", _token);
         let inner_expr = try!(parser.expression(Precedence::Return));
         let inner = try!(inner_expr.expect_value());
-        Ok(inner)
+        Ok(Expression::Return(Return::new(Box::new(inner))))
     }
 }
 

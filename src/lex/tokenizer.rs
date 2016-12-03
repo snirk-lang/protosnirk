@@ -37,6 +37,12 @@ pub struct IterTokenizer<I> where I: Iterator<Item=char> {
     iter: PeekTextIter<I>
 }
 
+impl<I: Iterator<Item=char>> Tokenizer for IterTokenizer<I> {
+    fn next(&mut self) -> Token {
+        self.next()
+    }
+}
+
 impl<I: Iterator<Item=char>> IterTokenizer<I> {
     /// Creates a new StaticStrTokenizer from the given string
     pub fn new(input: I) -> IterTokenizer<I> {
