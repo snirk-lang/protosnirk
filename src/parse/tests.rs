@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use lex::{Token, TokenData, TextLocation, Tokenizer, IterTokenizer};
 use lex::tests::make_tokenizer;
-use parse::{Parser, Precedence};
+use parse::{Operator, Parser, Precedence};
 use parse::symbol;
 use parse::expression::*;
 
@@ -56,7 +56,8 @@ fn it_parses_simple_addition_expression() {
     let mut parser = make_parser("x + 3/4");
     let expr = parser.expression(Precedence::Min).unwrap();
     let expected = Expression::BinaryOp(BinaryOperation {
-        operator: Token {
+        operator: Operator::Addition,
+        op_token: Token {
             location: TextLocation {
                 index: 2,
                 line: 0,
@@ -77,7 +78,8 @@ fn it_parses_simple_addition_expression() {
             }
         })),
         right: Box::new(Expression::BinaryOp(BinaryOperation {
-            operator: Token {
+            operator: Operator::Division,
+            op_token: Token {
                 location: TextLocation {
                     index: 5,
                     line: 0,
@@ -152,7 +154,8 @@ fn it_parses_a_multi_statement_block() {
                 data: TokenData::Keyword
             },
             value: Some(Box::new(Expression::BinaryOp(BinaryOperation {
-                operator: Token {
+                operator: Operator::Addition,
+                op_token: Token {
                     location: TextLocation {
                         index: 19,
                         line: 0,

@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use lex::{CowStr, Token, TokenType, Tokenizer};
-use parse::{Precedence, ParseError, ParseResult};
+use parse::{Operator, Precedence, ParseError, ParseResult};
 use parse::expression::*;
 use parse::symbol::*;
 
@@ -22,6 +22,8 @@ pub struct Parser {
     infix_parsers: HashMap<(TokenType, CowStr), Rc<InfixSymbol + 'static>>,
     /// Parsers used for prefix symbols
     prefix_parsers: HashMap<(TokenType, CowStr), Rc<PrefixSymbol + 'static>>,
+    /// Mapping of tokens to applied operators
+    token_operators: HashMap<(TokenType, CowStr), Operator>
 }
 
 impl Parser {
@@ -144,13 +146,23 @@ impl Parser {
         let token = self.consume();
         println!("Getting an lvalue from {}", token);
         if token.data.get_type() == TokenType::Ident {
-            return IdentifierParser {}.parse(self, token)
-                .and_then(|e| e.expect_identifier());
+            IdentifierParser { }.parse(self, token)
+                .and_then(|e| e.expect_identifier())
         } else {
-            return Err(ParseError::ExpectedToken {
+            Err(ParseError::ExpectedToken {
                 expected: TokenType::Ident,
                 got: token
             })
+        }
+    }
+
+    /// Gets the operator registered for the given token.
+    pub fn operator(&self, token_type: TokenType, text: &CowStr) -> Result<Operator, ParseError> {
+        use std::ops::Deref;
+        if let Some(op) = self.token_operators.get(&(token_type, Cow::Borrowed(text.deref()))) {
+            Ok(*op)
+        } else {
+            Err(ParseError::UnknownOperator { text: text.clone(), token_type: token_type })
         }
     }
 
@@ -173,6 +185,7 @@ impl Parser {
             (Symbol, tokens::MinusEquals) => Rc::new(AssignOpParser { }) as Rc<InfixSymbol>,
             (Symbol, tokens::StarEquals) => Rc::new(AssignOpParser { }) as Rc<InfixSymbol>,
             (Symbol, tokens::PercentEquals) => Rc::new(AssignOpParser { }) as Rc<InfixSymbol>,
+            (Symbol, tokens::SlashEquals) => Rc::new(AssignOpParser { }) as Rc<InfixSymbol>
         ];
         let prefix_map: HashMap<(TokenType, CowStr), Rc<PrefixSymbol + 'static>> = hashmap![
             (Keyword, tokens::Let) => Rc::new(DeclarationParser { }) as Rc<PrefixSymbol>,
@@ -182,12 +195,25 @@ impl Parser {
 
             (Keyword, tokens::Return) => Rc::new(ReturnParser { }) as Rc<PrefixSymbol>,
         ];
+        let operator_map: HashMap<(TokenType, CowStr), Operator> = hashmap![
+            (Symbol, tokens::Plus) => Operator::Addition,
+            (Symbol, tokens::PlusEquals) => Operator::Addition,
+            (Symbol, tokens::Minus) => Operator::Subtraction,
+            (Symbol, tokens::MinusEquals) => Operator::Subtraction,
+            (Symbol, tokens::Star) => Operator::Multiplication,
+            (Symbol, tokens::StarEquals) => Operator::Multiplication,
+            (Symbol, tokens::Slash) => Operator::Division,
+            (Symbol, tokens::SlashEquals) => Operator::Division,
+            (Symbol, tokens::Percent) => Operator::Modulus,
+            (Symbol, tokens::PercentEquals) => Operator::Modulus,
+        ];
 
         Parser {
             tokenizer: tokenizer,
             lookahead: Vec::with_capacity(2usize),
             infix_parsers: infix_map,
-            prefix_parsers: prefix_map
+            prefix_parsers: prefix_map,
+            token_operators: operator_map
         }
     }
 

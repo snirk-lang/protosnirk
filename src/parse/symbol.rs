@@ -42,8 +42,9 @@ impl InfixSymbol for BinOpSymbol {
     /// Parses a binary operator expression.
     fn parse(&self, parser: &mut Parser, left: Expression, token: Token) -> ParseResult {
         let right: Expression = try!(parser.expression(self.precedence));
+        let bin_operator = try!(parser.operator(token.data.get_type(), &token.text));
         Ok(Expression::BinaryOp(
-            BinaryOperation::new(token, Box::new(left), Box::new(right))))
+            BinaryOperation::new(bin_operator, token, Box::new(left), Box::new(right))))
     }
     fn get_precedence(&self) -> Precedence {
         self.precedence
@@ -67,7 +68,8 @@ impl PrefixSymbol for UnaryOpSymbol {
     fn parse(&self, parser: &mut Parser, token: Token) -> ParseResult {
         let right_expr = try!(parser.expression(self.precedence));
         let right_value = try!(right_expr.expect_value());
-        Ok(Expression::UnaryOp(UnaryOperation::new(token, Box::new(right_value))))
+        let operator = try!(parser.operator(token.data.get_type(), &token.text));
+        Ok(Expression::UnaryOp(UnaryOperation::new(operator, token, Box::new(right_value))))
     }
 }
 impl UnaryOpSymbol {
@@ -243,8 +245,9 @@ impl InfixSymbol for AssignOpParser {
         let lvalue = try!(left.expect_identifier());
         let right_expr = try!(parser.expression(Precedence::Min));
         let right_value = try!(right_expr.expect_value());
+        let operator = try!(parser.operator(token.data.get_type(), &token.text));
         // We parse it here into an expanded expression.
-        let right_expr = Expression::BinaryOp(BinaryOperation::new(token, Box::new(Expression::VariableRef(lvalue.clone())), Box::new(right_value)));
+        let right_expr = Expression::BinaryOp(BinaryOperation::new(operator, token, Box::new(Expression::VariableRef(lvalue.clone())), Box::new(right_value)));
         Ok(Expression::Assignment(Assignment::new(lvalue, Box::new(right_expr))))
     }
     fn get_precedence(&self) -> Precedence {

@@ -1,7 +1,7 @@
 //! Expression types
 
 use lex::{CowStr, Token, TokenData, TokenType};
-use parse::ParseError;
+use parse::{Operator, ParseError};
 
 /// Variable declaration
 #[derive(Debug, PartialEq, Clone)]
@@ -70,33 +70,41 @@ impl Into<Token> for Identifier {
 /// Maths style binary operations (may be split up later)
 #[derive(Debug, PartialEq, Clone)]
 pub struct BinaryOperation {
-    pub operator: Token,
+    pub operator: Operator,
+    pub op_token: Token,
     pub left: Box<Expression>,
     pub right: Box<Expression>
 }
 impl BinaryOperation {
-    pub fn new(operator: Token, left: Box<Expression>, right: Box<Expression>) -> BinaryOperation {
+    pub fn new(operator: Operator, op_token: Token,
+        left: Box<Expression>, right: Box<Expression>) -> BinaryOperation {
         BinaryOperation {
             operator: operator,
+            op_token: op_token,
             left: left,
             right: right
         }
     }
-    pub fn get_operator(&self) -> &Token {
-        &self.operator
+    pub fn get_operator(&self) -> Operator {
+        self.operator
     }
 }
 
 /// Unary operation
 #[derive(Debug, PartialEq, Clone)]
 pub struct UnaryOperation {
-    pub operator: Token,
+    pub operator: Operator,
+    pub op_token: Token,
     pub expression: Box<Expression>
 }
 impl UnaryOperation {
     /// Creates a new unary operation
-    pub fn new(operator: Token, expression: Box<Expression>) -> UnaryOperation {
-        UnaryOperation { operator: operator, expression: expression }
+    pub fn new(operator: Operator, op_token: Token, expression: Box<Expression>) -> UnaryOperation {
+        UnaryOperation {
+            operator: operator,
+            op_token: op_token,
+            expression: expression
+        }
     }
 }
 
