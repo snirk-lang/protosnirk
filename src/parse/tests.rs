@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::str::Chars;
 
 use lex::{Token, TokenData, TextLocation, Tokenizer, IterTokenizer};
 use lex::tests::make_tokenizer;
@@ -16,9 +17,9 @@ fn expect_eq<T: ::std::fmt::Debug + PartialEq>(got: T, expected: T) {
         "\nExpected: {:#?}\nActual: {:#?}", expected, got);
 }
 
-fn make_parser(input: &'static str) -> Parser {
+fn make_parser(input: &'static str) -> Parser<IterTokenizer<Chars<'static>>> {
     let tokenizer = make_tokenizer(input);
-    Parser::new(Box::new(tokenizer) as Box<Tokenizer>)
+    Parser::new(tokenizer)
 }
 
 #[test]

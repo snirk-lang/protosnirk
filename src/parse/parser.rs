@@ -13,20 +13,20 @@ use parse::expression::*;
 use parse::symbol::*;
 
 /// Parser object which parses things
-pub struct Parser {
+pub struct Parser<T: Tokenizer> {
     /// Tokenizer which supplies tokens
-    tokenizer: Box<Tokenizer>,
+    tokenizer: T,
     /// Lookahead stack for peeking
     lookahead: Vec<Token>,
     /// Parsers used for infix symbols
-    infix_parsers: HashMap<(TokenType, CowStr), Rc<InfixSymbol + 'static>>,
+    infix_parsers: HashMap<(TokenType, CowStr), Rc<InfixSymbol<T> + 'static>>,
     /// Parsers used for prefix symbols
-    prefix_parsers: HashMap<(TokenType, CowStr), Rc<PrefixSymbol + 'static>>,
+    prefix_parsers: HashMap<(TokenType, CowStr), Rc<PrefixSymbol<T> + 'static>>,
     /// Mapping of tokens to applied operators
     token_operators: HashMap<(TokenType, CowStr), Operator>
 }
 
-impl Parser {
+impl<T: Tokenizer> Parser<T> {
     /// Consumes the next token from the tokenizer.
     pub fn consume(&mut self) -> Token {
         self.look_ahead(1usize);
@@ -90,7 +90,7 @@ impl Parser {
     pub fn expression(&mut self, precedence: Precedence) -> Result<Expression, ParseError> {
         let mut token = self.consume();
         println!("Parsing expression(precedence={:?}) with {}", precedence, token);
-        let prefix: Rc<PrefixSymbol + 'static>;
+        let prefix: Rc<PrefixSymbol<T> + 'static>;
         if token.data.get_type() == TokenType::EOF {
             println!("Parsing received EOF!");
             return Err(ParseError::LazyString(format!("got eof?")));
@@ -167,12 +167,12 @@ impl Parser {
     }
 
     /// Create a new parser from the given tokenizer, initializing its fields to match
-    pub fn new(tokenizer: Box<Tokenizer>) -> Parser {
+    pub fn new(tokenizer: T) -> Parser<T> {
         use parse::symbol::*;
         use lex::tokens;
         use lex::TokenType::*;
-        let infix_map: HashMap<(TokenType, CowStr), Rc<InfixSymbol + 'static>> = hashmap![
-            (Symbol, tokens::Equals) => Rc::new(AssignmentParser { }) as Rc<InfixSymbol>,
+        let infix_map: HashMap<(TokenType, CowStr), Rc<InfixSymbol<T> + 'static>> = hashmap![
+            (Symbol, tokens::Equals) => Rc::new(AssignmentParser { }) as Rc<InfixSymbol<T>>,
 
             (Symbol, tokens::Plus) => BinOpSymbol::with_precedence(Precedence::AddSub),
             (Symbol, tokens::Minus) => BinOpSymbol::with_precedence(Precedence::AddSub),
@@ -181,19 +181,19 @@ impl Parser {
 
             (Symbol, tokens::Percent) => BinOpSymbol::with_precedence(Precedence::Modulo),
 
-            (Symbol, tokens::PlusEquals) => Rc::new(AssignOpParser { }) as Rc<InfixSymbol>,
-            (Symbol, tokens::MinusEquals) => Rc::new(AssignOpParser { }) as Rc<InfixSymbol>,
-            (Symbol, tokens::StarEquals) => Rc::new(AssignOpParser { }) as Rc<InfixSymbol>,
-            (Symbol, tokens::PercentEquals) => Rc::new(AssignOpParser { }) as Rc<InfixSymbol>,
-            (Symbol, tokens::SlashEquals) => Rc::new(AssignOpParser { }) as Rc<InfixSymbol>
+            (Symbol, tokens::PlusEquals) => Rc::new(AssignOpParser { }) as Rc<InfixSymbol<T>>,
+            (Symbol, tokens::MinusEquals) => Rc::new(AssignOpParser { }) as Rc<InfixSymbol<T>>,
+            (Symbol, tokens::StarEquals) => Rc::new(AssignOpParser { }) as Rc<InfixSymbol<T>>,
+            (Symbol, tokens::PercentEquals) => Rc::new(AssignOpParser { }) as Rc<InfixSymbol<T>>,
+            (Symbol, tokens::SlashEquals) => Rc::new(AssignOpParser { }) as Rc<InfixSymbol<T>>
         ];
-        let prefix_map: HashMap<(TokenType, CowStr), Rc<PrefixSymbol + 'static>> = hashmap![
-            (Keyword, tokens::Let) => Rc::new(DeclarationParser { }) as Rc<PrefixSymbol>,
+        let prefix_map: HashMap<(TokenType, CowStr), Rc<PrefixSymbol<T> + 'static>> = hashmap![
+            (Keyword, tokens::Let) => Rc::new(DeclarationParser { }) as Rc<PrefixSymbol<T>>,
 
             (Symbol, tokens::Minus) => UnaryOpSymbol::with_precedence(Precedence::NumericPrefix),
-            (Symbol, tokens::LeftParen) => Rc::new(ParensParser { }) as Rc<PrefixSymbol>,
+            (Symbol, tokens::LeftParen) => Rc::new(ParensParser { }) as Rc<PrefixSymbol<T>>,
 
-            (Keyword, tokens::Return) => Rc::new(ReturnParser { }) as Rc<PrefixSymbol>,
+            (Keyword, tokens::Return) => Rc::new(ReturnParser { }) as Rc<PrefixSymbol<T>>,
         ];
         let operator_map: HashMap<(TokenType, CowStr), Operator> = hashmap![
             (Symbol, tokens::Plus) => Operator::Addition,
