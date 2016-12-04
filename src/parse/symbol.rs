@@ -88,8 +88,8 @@ pub struct LiteralParser { }
 impl PrefixSymbol for LiteralParser {
     fn parse(&self, _parser: &mut Parser, token: Token) -> ParseResult {
         match token.data {
-            TokenData::NumberLiteral(val) =>
-                Ok(Expression::Literal(Literal::new(val))),
+            TokenData::NumberLiteral(_) =>
+                Ok(Expression::Literal(Literal::new(token))),
             _ => Err(ParseError::ExpectedToken {
                     expected: TokenType::Literal,
                     got: token
@@ -109,7 +109,7 @@ impl PrefixSymbol for LiteralParser {
 pub struct IdentifierParser { }
 impl PrefixSymbol for IdentifierParser {
     fn parse(&self, _parser: &mut Parser, token: Token) -> ParseResult {
-        Ok(Expression::VariableRef(Identifier::new(token.text)))
+        Ok(Expression::VariableRef(Identifier::new(token)))
     }
 }
 
@@ -123,10 +123,10 @@ impl PrefixSymbol for IdentifierParser {
 #[derive(Debug)]
 pub struct DeclarationParser { }
 impl PrefixSymbol for DeclarationParser {
-    fn parse(&self, parser: &mut Parser, _token: Token) -> ParseResult {
-        debug_assert!(_token.text == tokens::Let,
-                      "Let parser called with non-let token {:?}", _token);
-        println!("Parsing declaration for {}", _token);
+    fn parse(&self, parser: &mut Parser, token: Token) -> ParseResult {
+        debug_assert!(token.text == tokens::Let,
+                      "Let parser called with non-let token {:?}", token);
+        println!("Parsing declaration for {}", token);
         let is_mutable = parser.look_ahead(1).text == tokens::Mut;
         if is_mutable {
             parser.consume();
@@ -198,12 +198,12 @@ impl PrefixSymbol for ParensParser {
 #[derive(Debug)]
 pub struct ReturnParser { }
 impl PrefixSymbol for ReturnParser {
-    fn parse(&self, parser: &mut Parser, _token: Token) -> ParseResult {
-        debug_assert!(_token.text == tokens::Return,
-                      "Return parser called with non-return {:?}", _token);
+    fn parse(&self, parser: &mut Parser, token: Token) -> ParseResult {
+        debug_assert!(token.text == tokens::Return,
+                      "Return parser called with non-return {:?}", token);
         let inner_expr = try!(parser.expression(Precedence::Return));
         let inner = try!(inner_expr.expect_value());
-        Ok(Expression::Return(Return::new(Box::new(inner))))
+        Ok(Expression::Return(Return::new(token, Box::new(inner))))
     }
 }
 
@@ -224,5 +224,30 @@ impl PrefixSymbol for BlockParser {
         }
         parser.consume(); // Skip over the end block
         return Ok(Expression::Block(stmts))
+    }
+}
+
+/// Parses expresisons using the expr/assign style operators.
+///
+/// This parser will actually generate a regular `Assignment` expression, desugaring
+/// the assignment+operation
+/// # Examples
+/// ```text
+/// x        +=   5
+/// ^lvalue  ^op  ^rvalue
+/// ```
+/// This will be parsed as `Assignment { Var { 'x' }, BinaryOp { +, Var { x }, Literal(5) } }`
+pub struct AssignOpParser { }
+impl InfixSymbol for AssignOpParser {
+    fn parse(&self, parser: &mut Parser, left: Expression, token: Token) -> ParseResult {
+        let lvalue = try!(left.expect_identifier());
+        let right_expr = try!(parser.expression(Precedence::Min));
+        let right_value = try!(right_expr.expect_value());
+        // We parse it here into an expanded expression.
+        let right_expr = Expression::BinaryOp(BinaryOperation::new(token, Box::new(Expression::VariableRef(lvalue.clone())), Box::new(right_value)));
+        Ok(Expression::Assignment(Assignment::new(lvalue, Box::new(right_expr))))
+    }
+    fn get_precedence(&self) -> Precedence {
+        Precedence::Assign
     }
 }

@@ -21,6 +21,7 @@ pub struct Token {
     /// Additional data (type/literal) provided by the lexer
     pub data: TokenData
 }
+impl Eq for Token {}
 impl Token {
     #[inline]
     pub fn new_symbol<T: Into<CowStr>>(text: T, location: TextLocation) -> Token {

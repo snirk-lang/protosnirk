@@ -168,6 +168,11 @@ impl Parser {
             (Symbol, tokens::Slash) => BinOpSymbol::with_precedence(Precedence::MulDiv),
 
             (Symbol, tokens::Percent) => BinOpSymbol::with_precedence(Precedence::Modulo),
+
+            (Symbol, tokens::PlusEquals) => Rc::new(AssignOpParser { }) as Rc<InfixSymbol>,
+            (Symbol, tokens::MinusEquals) => Rc::new(AssignOpParser { }) as Rc<InfixSymbol>,
+            (Symbol, tokens::StarEquals) => Rc::new(AssignOpParser { }) as Rc<InfixSymbol>,
+            (Symbol, tokens::PercentEquals) => Rc::new(AssignOpParser { }) as Rc<InfixSymbol>,
         ];
         let prefix_map: HashMap<(TokenType, CowStr), Rc<PrefixSymbol + 'static>> = hashmap![
             (Keyword, tokens::Let) => Rc::new(DeclarationParser { }) as Rc<PrefixSymbol>,

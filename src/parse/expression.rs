@@ -1,21 +1,21 @@
 //! Expression types
 
-use lex::{CowStr, Token, TokenType};
+use lex::{CowStr, Token, TokenData, TokenType};
 use parse::ParseError;
 
 /// Variable declaration
 #[derive(Debug, PartialEq, Clone)]
 pub struct Declaration {
-    name: CowStr,
-    mutable: bool,
-    value: Box<Expression>
+    pub mutable: bool,
+    pub token: Token,
+    pub value: Box<Expression>
 }
 impl Declaration {
-    pub fn new(name: CowStr, mutable: bool, value: Box<Expression>) -> Self {
-        Declaration { name: name, mutable: mutable, value: value }
+    pub fn new(token: Token, mutable: bool, value: Box<Expression>) -> Self {
+        Declaration { token: token, mutable: mutable, value: value }
     }
     pub fn get_name(&self) -> &str {
-        &self.name
+        &self.token.text
     }
     pub fn get_value(&self) -> &Expression {
         &self.value
@@ -26,42 +26,53 @@ impl Declaration {
 }
 
 /// Literal value
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub struct Literal(f64);
+#[derive(Debug, PartialEq, Clone)]
+pub struct Literal {
+    pub token: Token
+}
 impl Literal {
-    pub fn new(value: f64) -> Self {
-        Literal(value)
+    pub fn new(token: Token) -> Self {
+        debug_assert!(token.data.get_type() == TokenType::Literal,
+            "Literal token created with bad token {:?}", token);
+        Literal {
+            token: token
+        }
     }
     pub fn get_value(&self) -> f64 {
-        self.0
+        match self.token.data {
+            TokenData::NumberLiteral(num) => num,
+            ref bad => panic!("Invalid token {:?} owned by Literal", bad)
+        }
     }
 }
 
 /// Reference to a Variable
 /// the name of the variable...
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
-pub struct Identifier(CowStr);
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct Identifier {
+    pub token: Token
+}
 
 impl Identifier {
-    pub fn new(name: CowStr) -> Self {
-        Identifier(name)
+    pub fn new(token: Token) -> Self {
+        Identifier { token: token }
     }
     pub fn get_name(&self) -> &str {
-        &self.0
+        &self.token.text
     }
 }
-impl Into<CowStr> for Identifier {
-    fn into(self) -> CowStr {
-        self.0
+impl Into<Token> for Identifier {
+    fn into(self) -> Token {
+        self.token
     }
 }
 
 /// Maths style binary operations (may be split up later)
 #[derive(Debug, PartialEq, Clone)]
 pub struct BinaryOperation {
-    operator: Token,
-    left: Box<Expression>,
-    right: Box<Expression>
+    pub operator: Token,
+    pub left: Box<Expression>,
+    pub right: Box<Expression>
 }
 impl BinaryOperation {
     pub fn new(operator: Token, left: Box<Expression>, right: Box<Expression>) -> BinaryOperation {
@@ -79,8 +90,8 @@ impl BinaryOperation {
 /// Unary operation
 #[derive(Debug, PartialEq, Clone)]
 pub struct UnaryOperation {
-    operator: Token,
-    expression: Box<Expression>
+    pub operator: Token,
+    pub expression: Box<Expression>
 }
 impl UnaryOperation {
     /// Creates a new unary operation
@@ -92,8 +103,8 @@ impl UnaryOperation {
 /// An identifier is assigned to a value
 #[derive(Debug, PartialEq, Clone)]
 pub struct Assignment {
-    lvalue: Identifier,
-    rvalue: Box<Expression>
+    pub lvalue: Identifier,
+    pub rvalue: Box<Expression>
 }
 impl Assignment {
     pub fn new(name: Identifier, value: Box<Expression>) -> Assignment {
@@ -103,11 +114,12 @@ impl Assignment {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Return {
-    value: Option<Box<Expression>>
+    pub token: Token,
+    pub value: Option<Box<Expression>>
 }
 impl Return {
-    pub fn new<V: Into<Option<Box<Expression>>>>(value: V) -> Return {
-        Return { value: value.into() }
+    pub fn new<V: Into<Option<Box<Expression>>>>(token: Token, value: V) -> Return {
+        Return { token: token, value: value.into() }
     }
 }
 
