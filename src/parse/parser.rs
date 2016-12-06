@@ -11,6 +11,8 @@ use lex::{CowStr, Token, TokenType, Tokenizer};
 use parse::{Operator, Precedence, ParseError, ParseResult};
 use parse::expression::*;
 use parse::symbol::*;
+use parse::verify::Verifier;
+use parse::build::Program;
 
 /// Parser object which parses things
 pub struct Parser<T: Tokenizer> {
@@ -215,6 +217,11 @@ impl<T: Tokenizer> Parser<T> {
             prefix_parsers: prefix_map,
             token_operators: operator_map
         }
+    }
+
+    pub fn parse_program(&mut self) -> Result<Program, ParseError> {
+        let block = try!(self.block());
+        Ok(Verifier { }.verify_program(block))
     }
 
     /// Get the current precedence

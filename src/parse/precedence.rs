@@ -47,8 +47,6 @@ impl Precedence {
     }
 }
 
-// macros for unexpected/etc symbols
-
 #[cfg(test)]
 mod test {
     use std::mem;

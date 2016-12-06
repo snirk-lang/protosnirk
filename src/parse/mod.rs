@@ -3,6 +3,8 @@ mod operator;
 pub mod expression;
 mod parser;
 mod precedence;
+mod build;
+mod verify;
 pub mod symbol;
 
 #[cfg(test)]

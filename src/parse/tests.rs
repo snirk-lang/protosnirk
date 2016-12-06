@@ -17,7 +17,7 @@ fn expect_eq<T: ::std::fmt::Debug + PartialEq>(got: T, expected: T) {
         "\nExpected: {:#?}\nActual: {:#?}", expected, got);
 }
 
-fn make_parser(input: &'static str) -> Parser<IterTokenizer<Chars<'static>>> {
+pub fn make_parser(input: &'static str) -> Parser<IterTokenizer<Chars<'static>>> {
     let tokenizer = make_tokenizer(input);
     Parser::new(tokenizer)
 }
