@@ -2,6 +2,7 @@
 
 use std::mem;
 
+#[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Precedence {
     /// Extra value on the end
@@ -45,8 +46,6 @@ impl Precedence {
         }
     }
 }
-
-// macros for unexpected/etc symbols
 
 #[cfg(test)]
 mod test {

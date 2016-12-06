@@ -10,3 +10,4 @@ license = "MIT"
 
 [dependencies]
 maplit = "*"
+unicode_categories = "0.1"

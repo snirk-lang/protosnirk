@@ -1,23 +1,30 @@
 //! Contains the lexer which reads constable syntax.
 
-mod precedence;
-mod symbol;
-mod ident;
 mod token;
-mod lexer;
-mod literal;
-mod pratt;
+pub mod tokens;
+mod textiter;
+pub mod tokenizer;
 
-/// All the keywords in the language.
-pub const KEYWORDS: &'static[&'static str] = &[
-    "and", "or", "not", "bitand", "bitor", "bitnot",
-    "none", "true", "false",
-    "case", "match", "switch",
-    "for", "while", "loop", "if", "else",
-    "break", "continue", "do",
-    "let", "mut", "const", "static",
-    "type", "class", "struct", "enum", "trait",
-    "extends", "implements", "derive", "where", "of",
-    "public", "module", "package", "use",
-    "async", "await", "fixed", "send", "sync", "channel"
-    ];
+#[cfg(test)]
+pub mod tests;
+
+pub use self::token::{Token, TokenType, TokenData};
+pub use self::textiter::{TextLocation, TextIter, PeekTextIter};
+pub use self::tokenizer::{Tokenizer, IterTokenizer};
+
+/// Type representing a borrowed or owned string
+pub type CowStr = ::std::borrow::Cow<'static, str>;
+
+/// Rule for the symbol list indicating to the tokenizer
+/// how to parse symbols.
+#[derive(Debug, Clone, Copy)]
+pub enum TokenizerSymbolRule {
+    /// The symbol is completely parsed.
+    Complete,
+    /// The symbol is partially parsed.
+    /// More characters *must* match for a complete symbol.
+    Partial,
+    /// The parse is a complete symbol, but it could be part of
+    /// another symbol depending on the characters after it.
+    CompletePrefix
+}
