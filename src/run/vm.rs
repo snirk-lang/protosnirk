@@ -65,7 +65,7 @@ impl VM {
                 }
             }
         }
-        panic!("Program did not return!");
+        panic!("Program did not return!"); // We're not gonna be able to assert this for long ;)
     }
 }
 
