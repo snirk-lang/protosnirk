@@ -1,6 +1,6 @@
 //! Error handling in parsers
 
-use lex::{Token, TokenType};
+use lex::{CowStr, Token, TokenType};
 use parse::expression::{Expression, ExpressionType};
 
 /// Result given from main and expression parsers
@@ -22,6 +22,10 @@ pub enum ParseError {
     ExpectedRValue(Expression),
     GenericError {
 
+    },
+    UnknownOperator {
+        text: CowStr,
+        token_type: TokenType
     },
     LazyString(String)
 }

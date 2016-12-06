@@ -50,6 +50,7 @@ declare_tokens! {
         PlusEquals: "+="; Complete,
         MinusEquals: "-="; Complete,
         StarEquals: "*="; Complete,
+        SlashEquals: "/="; Complete,
         PercentEquals: "%="; Complete,
 
         LeftParen: "("; Complete,

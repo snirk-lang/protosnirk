@@ -6,7 +6,7 @@ mod textiter;
 pub mod tokenizer;
 
 #[cfg(test)]
-mod tests;
+pub mod tests;
 
 pub use self::token::{Token, TokenType, TokenData};
 pub use self::textiter::{TextLocation, TextIter, PeekTextIter};

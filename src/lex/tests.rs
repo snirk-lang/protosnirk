@@ -17,7 +17,7 @@ macro_rules! match_tokens {
     }
 }
 
-fn make_tokenizer<'a>(input: &'a str) -> IterTokenizer<Chars<'a>> {
+pub fn make_tokenizer<'a>(input: &'a str) -> IterTokenizer<Chars<'a>> {
     IterTokenizer::new(input.chars())
 }
 

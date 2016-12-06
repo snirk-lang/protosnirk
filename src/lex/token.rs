@@ -3,6 +3,8 @@
 
 use std::borrow::Cow;
 use std::collections::HashSet;
+use std::fmt::{Display, Formatter};
+use std::fmt::Result as FmtResult;
 use std::ops::Range;
 
 use lex::{TextLocation, CowStr};
@@ -19,6 +21,7 @@ pub struct Token {
     /// Additional data (type/literal) provided by the lexer
     pub data: TokenData
 }
+impl Eq for Token {}
 impl Token {
     #[inline]
     pub fn new_symbol<T: Into<CowStr>>(text: T, location: TextLocation) -> Token {
@@ -52,6 +55,11 @@ impl Token {
             data: TokenData::EOF,
             location: location
         }
+    }
+}
+impl Display for Token {
+    fn fmt(&self, f: &mut Formatter) -> FmtResult {
+        write!(f, "({:?}, {:?})", self.data.get_type(), self.text)
     }
 }
 

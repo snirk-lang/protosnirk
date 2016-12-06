@@ -5,7 +5,7 @@
 
 use std::rc::Rc;
 
-use lex::{tokens, Token, TokenType, TokenData};
+use lex::{tokens, Token, TokenType, TokenData, Tokenizer};
 use parse::{Parser, ParseResult, ParseError, Precedence};
 use parse::expression::*;
 
@@ -16,8 +16,8 @@ use parse::expression::*;
 ///
 /// Unary negate, for example, is implemented by registering a `PrefixSymbol`
 /// with the parser at a higher precedence than infix -.
-pub trait PrefixSymbol {
-    fn parse(&self, parser: &mut Parser,
+pub trait PrefixSymbol<T: Tokenizer> {
+    fn parse(&self, parser: &mut Parser<T>,
                  token: Token) -> ParseResult;
 }
 
@@ -26,8 +26,8 @@ pub trait PrefixSymbol {
 /// As opposed to a `PrefixSymbol`, `InfixSymbol` can handle all other operators,
 /// infix operators such as arithmetic and postfix operators like call
 /// (i.e. the open paren in `foo()`).
-pub trait InfixSymbol {
-    fn parse(&self, parser: &mut Parser,
+pub trait InfixSymbol<T: Tokenizer> {
+    fn parse(&self, parser: &mut Parser<T>,
                  left: Expression, token: Token) -> ParseResult;
     fn get_precedence(&self) -> Precedence;
 }
@@ -38,12 +38,13 @@ pub trait InfixSymbol {
 pub struct BinOpSymbol {
     precedence: Precedence
 }
-impl InfixSymbol for BinOpSymbol {
+impl<T: Tokenizer> InfixSymbol<T> for BinOpSymbol {
     /// Parses a binary operator expression.
-    fn parse(&self, parser: &mut Parser, left: Expression, token: Token) -> ParseResult {
+    fn parse(&self, parser: &mut Parser<T>, left: Expression, token: Token) -> ParseResult {
         let right: Expression = try!(parser.expression(self.precedence));
+        let bin_operator = try!(parser.operator(token.data.get_type(), &token.text));
         Ok(Expression::BinaryOp(
-            BinaryOperation::new(token.data.get_type(), Box::new(left), Box::new(right))))
+            BinaryOperation::new(bin_operator, token, Box::new(left), Box::new(right))))
     }
     fn get_precedence(&self) -> Precedence {
         self.precedence
@@ -51,8 +52,8 @@ impl InfixSymbol for BinOpSymbol {
 }
 impl BinOpSymbol {
     /// Creates a BinOpSymbol with the given type and precedence.
-    pub fn with_precedence(precedence: Precedence) -> Rc<InfixSymbol> {
-        Rc::new(BinOpSymbol { precedence: precedence }) as Rc<InfixSymbol>
+    pub fn with_precedence<T: Tokenizer>(precedence: Precedence) -> Rc<InfixSymbol<T>> {
+        Rc::new(BinOpSymbol { precedence: precedence }) as Rc<InfixSymbol<T>>
     }
 }
 
@@ -63,17 +64,39 @@ impl BinOpSymbol {
 pub struct UnaryOpSymbol {
     precedence: Precedence
 }
-impl PrefixSymbol for UnaryOpSymbol {
-    fn parse(&self, parser: &mut Parser, token: Token) -> ParseResult {
+impl<T: Tokenizer> PrefixSymbol<T> for UnaryOpSymbol {
+    fn parse(&self, parser: &mut Parser<T>, token: Token) -> ParseResult {
         let right_expr = try!(parser.expression(self.precedence));
         let right_value = try!(right_expr.expect_value());
-        Ok(Expression::UnaryOp(UnaryOperation::new(token.data.get_type(), Box::new(right_value))))
+        let operator = try!(parser.operator(token.data.get_type(), &token.text));
+        Ok(Expression::UnaryOp(UnaryOperation::new(operator, token, Box::new(right_value))))
     }
 }
 impl UnaryOpSymbol {
     /// Create a new BinaryOpSymbol parser with the given precedence
-    pub fn with_precedence(precedence: Precedence) -> Rc<PrefixSymbol> {
-        Rc::new(UnaryOpSymbol { precedence: precedence }) as Rc<PrefixSymbol>
+    pub fn with_precedence<T: Tokenizer>(precedence: Precedence) -> Rc<PrefixSymbol<T>> {
+        Rc::new(UnaryOpSymbol { precedence: precedence }) as Rc<PrefixSymbol<T>>
+    }
+}
+
+/// Returns a literal expression
+///
+/// # Examples
+/// ```text
+/// 34
+/// ^literal
+/// ```
+pub struct LiteralParser { }
+impl<T: Tokenizer> PrefixSymbol<T> for LiteralParser {
+    fn parse(&self, _parser: &mut Parser<T>, token: Token) -> ParseResult {
+        match token.data {
+            TokenData::NumberLiteral(_) =>
+                Ok(Expression::Literal(Literal::new(token))),
+            _ => Err(ParseError::ExpectedToken {
+                    expected: TokenType::Literal,
+                    got: token
+                })
+        }
     }
 }
 
@@ -86,9 +109,9 @@ impl UnaryOpSymbol {
 /// ```
 #[derive(Debug)]
 pub struct IdentifierParser { }
-impl PrefixSymbol for IdentifierParser {
-    fn parse(&self, _parser: &mut Parser, token: Token) -> ParseResult {
-        Ok(Expression::VariableRef(Identifier::new(token.text)))
+impl<T: Tokenizer> PrefixSymbol<T> for IdentifierParser {
+    fn parse(&self, _parser: &mut Parser<T>, token: Token) -> ParseResult {
+        Ok(Expression::VariableRef(Identifier::new(token)))
     }
 }
 
@@ -101,19 +124,25 @@ impl PrefixSymbol for IdentifierParser {
 /// ```
 #[derive(Debug)]
 pub struct DeclarationParser { }
-impl PrefixSymbol for DeclarationParser {
-    fn parse(&self, parser: &mut Parser, _token: Token) -> ParseResult {
-        debug_assert!(_token.text == tokens::Let,
-                      "Let parser called with non-let token {:?}", _token);
+impl<T: Tokenizer> PrefixSymbol<T> for DeclarationParser {
+    fn parse(&self, parser: &mut Parser<T>, token: Token) -> ParseResult {
+        debug_assert!(token.text == tokens::Let,
+                      "Let parser called with non-let token {:?}", token);
+        println!("Parsing declaration for {}", token);
         let is_mutable = parser.look_ahead(1).text == tokens::Mut;
         if is_mutable {
             parser.consume();
         }
-        let name_expr = try!(parser.expression(Precedence::Min));
-        let name = try!(name_expr.expect_identifier());
-        try!(parser.try_consume(TokenType::Symbol, tokens::Equals));
+        println!("Found mutability: {}", is_mutable);
+        let name = try!(parser.lvalue());
+        println!("Got name {:?}", name);
+        try!(parser.try_consume_name(TokenType::Symbol, tokens::Equals));
+        println!("Consumed =");
+        println!("Parsing an expression");
         let value_expr = try!(parser.expression(Precedence::Min));
+        println!("Getting a value from {:?}", value_expr);
         let value = try!(value_expr.expect_value());
+        println!("Got value");
         Ok(Expression::Declaration(Declaration::new(name.into(), is_mutable, Box::new(value))))
     }
 }
@@ -127,8 +156,8 @@ impl PrefixSymbol for DeclarationParser {
 /// ```
 #[derive(Debug)]
 pub struct AssignmentParser { }
-impl InfixSymbol for AssignmentParser {
-    fn parse(&self, parser: &mut Parser, left: Expression, _token: Token) -> ParseResult {
+impl<T: Tokenizer> InfixSymbol<T> for AssignmentParser {
+    fn parse(&self, parser: &mut Parser<T>, left: Expression, _token: Token) -> ParseResult {
         debug_assert!(_token.text == tokens::Equals,
                       "Assign parser called with non-assign token {:?}", _token);
         let ident = try!(left.expect_identifier());
@@ -150,13 +179,13 @@ impl InfixSymbol for AssignmentParser {
 /// ```
 #[derive(Debug)]
 pub struct ParensParser { }
-impl PrefixSymbol for ParensParser {
-    fn parse(&self, parser: &mut Parser, _token: Token) -> ParseResult {
+impl<T: Tokenizer> PrefixSymbol<T> for ParensParser {
+    fn parse(&self, parser: &mut Parser<T>, _token: Token) -> ParseResult {
         debug_assert!(_token.text == tokens::LeftParen,
                       "Parens parser called with non-left-paren {:?}", _token);
         let inner_expr = try!(parser.expression(Precedence::Paren));
         let inner = try!(inner_expr.expect_value());
-        try!(parser.try_consume(TokenType::Symbol, tokens::RightParen));
+        try!(parser.try_consume_name(TokenType::Symbol, tokens::RightParen));
         Ok(inner)
     }
 }
@@ -170,13 +199,13 @@ impl PrefixSymbol for ParensParser {
 /// ```
 #[derive(Debug)]
 pub struct ReturnParser { }
-impl PrefixSymbol for ReturnParser {
-    fn parse(&self, parser: &mut Parser, _token: Token) -> ParseResult {
-        debug_assert!(_token.text == tokens::Return,
-                      "Return parser called with non-return {:?}", _token);
+impl<T: Tokenizer> PrefixSymbol<T> for ReturnParser {
+    fn parse(&self, parser: &mut Parser<T>, token: Token) -> ParseResult {
+        debug_assert!(token.text == tokens::Return,
+                      "Return parser called with non-return {:?}", token);
         let inner_expr = try!(parser.expression(Precedence::Return));
         let inner = try!(inner_expr.expect_value());
-        Ok(inner)
+        Ok(Expression::Return(Return::new(token, Box::new(inner))))
     }
 }
 
@@ -188,8 +217,8 @@ impl PrefixSymbol for ReturnParser {
 /// ```
 #[derive(Debug)]
 pub struct BlockParser { }
-impl PrefixSymbol for BlockParser {
-    fn parse(&self, parser: &mut Parser, _token: Token) -> ParseResult {
+impl<T: Tokenizer> PrefixSymbol<T> for BlockParser {
+    fn parse(&self, parser: &mut Parser<T>, _token: Token) -> ParseResult {
         let mut stmts = Vec::new();
         while parser.look_ahead(1).data != TokenData::EndBlock {
             let expr = try!(parser.expression(Precedence::Min));
@@ -197,5 +226,31 @@ impl PrefixSymbol for BlockParser {
         }
         parser.consume(); // Skip over the end block
         return Ok(Expression::Block(stmts))
+    }
+}
+
+/// Parses expresisons using the expr/assign style operators.
+///
+/// This parser will actually generate a regular `Assignment` expression, desugaring
+/// the assignment+operation
+/// # Examples
+/// ```text
+/// x        +=   5
+/// ^lvalue  ^op  ^rvalue
+/// ```
+/// This will be parsed as `Assignment { Var { 'x' }, BinaryOp { +, Var { x }, Literal(5) } }`
+pub struct AssignOpParser { }
+impl<T: Tokenizer> InfixSymbol<T> for AssignOpParser {
+    fn parse(&self, parser: &mut Parser<T>, left: Expression, token: Token) -> ParseResult {
+        let lvalue = try!(left.expect_identifier());
+        let right_expr = try!(parser.expression(Precedence::Min));
+        let right_value = try!(right_expr.expect_value());
+        let operator = try!(parser.operator(token.data.get_type(), &token.text));
+        // We parse it here into an expanded expression.
+        let right_expr = Expression::BinaryOp(BinaryOperation::new(operator, token, Box::new(Expression::VariableRef(lvalue.clone())), Box::new(right_value)));
+        Ok(Expression::Assignment(Assignment::new(lvalue, Box::new(right_expr))))
+    }
+    fn get_precedence(&self) -> Precedence {
+        Precedence::Assign
     }
 }
