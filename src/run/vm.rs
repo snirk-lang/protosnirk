@@ -99,13 +99,86 @@ mod test {
     fn it_executes_1_plus_2() {
         let consts = vec![Value(1f64), Value(2f64)];
         let instructions = vec![
+            // Register #0 to 1
+            Instruction::load_const(0, 0),
+            // Register #1 to 2
+            Instruction::load_const(1, 1),
+            // #2 = #0 + #1
+            Instruction::add(0, 1, 2),
+            // Return #2
+            Instruction::return_(2)
+        ];
+        let program = Chunk::new(consts, instructions, 3);
+        let mut machine = VM {};
+        let returned = machine.eval_chunk(program);
+        assert_eq!(returned, Value(3f64));
+    }
+
+    #[test]
+    fn it_executes_1_minus_2() {
+        let consts = vec![Value(1f64), Value(2f64)];
+        let instructions = vec![
+            // Register #0 to 1
+            Instruction::load_const(0, 0),
+            // Register #1 to 2
+            Instruction::load_const(1, 1),
+            // #2 = #0 - #1
+            Instruction::sub(0, 1, 2),
+            // Return #2
+            Instruction::return_(2)
+        ];
+        let program = Chunk::new(consts, instructions, 3);
+        let mut machine = VM {};
+        let returned = machine.eval_chunk(program);
+        assert_eq!(returned, Value(-1f64));
+    }
+    #[test]
+    fn it_executes_3_times_2() {
+        let consts = vec![Value(3f64), Value(2f64)];
+        let instructions = vec![
             // Register 0 to 1
             Instruction::load_const(0, 0),
             // Register 1 to 2
             Instruction::load_const(1, 1),
-            // Add 2 = 0 + 1
-            Instruction::add(0, 1, 2),
-            // Return 2
+            // #2 = #0 * #1
+            Instruction::mul(0, 1, 2),
+            // Return #2
+            Instruction::return_(2)
+        ];
+        let program = Chunk::new(consts, instructions, 3);
+        let mut machine = VM {};
+        let returned = machine.eval_chunk(program);
+        assert_eq!(returned, Value(6f64));
+    }
+    #[test]
+    fn it_executes_10_mod_2() {
+        let consts = vec![Value(10f64), Value(2f64)];
+        let instructions = vec![
+            // Register #0 to @0
+            Instruction::load_const(0, 0),
+            // Register #1 to @1
+            Instruction::load_const(1, 1),
+            // #2 = #0 % #1
+            Instruction::modulo(0, 1, 2),
+            // Return #2
+            Instruction::return_(2)
+        ];
+        let program = Chunk::new(consts, instructions, 3);
+        let mut machine = VM {};
+        let returned = machine.eval_chunk(program);
+        assert_eq!(returned, Value(0f64));
+    }
+    #[test]
+    fn it_executes_6_div_2() {
+        let consts = vec![Value(6f64), Value(2f64)];
+        let instructions = vec![
+            // load #0 to @0
+            Instruction::load_const(0, 0),
+            // load #1 to @1
+            Instruction::load_const(1, 1),
+            // #2 = #0 / #1
+            Instruction::div(0, 1, 2),
+            // Return #2
             Instruction::return_(2)
         ];
         let program = Chunk::new(consts, instructions, 3);
