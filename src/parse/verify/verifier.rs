@@ -1,6 +1,6 @@
 use parse::expression::Expression;
 
-use parse::build::Program;
+use parse::build::{SymbolTable, Program};
 use parse::verify::{ExpressionChecker, ErrorCollector};
 use parse::verify::checker::*;
 
@@ -14,10 +14,11 @@ pub struct Verifier {
 }
 impl Verifier {
     pub fn verify_program(&mut self, block: Vec<Expression>) -> Program {
-        let mut errors = ErrorCollector::new();
-        let mut symbol_builder = SymbolTableChecker::new();
-        symbol_builder.check_block(&mut errors, &block);
-        let symbol_table = symbol_builder.into();
+        let errors = ErrorCollector::new();
+        let symbol_table = SymbolTable::new();
+        let mut symbol_builder = SymbolTableChecker::new(errors, symbol_table);
+        symbol_builder.check_block(&block);
+        let (symbol_table, mut errors) = symbol_builder.decompose();
         UsageChecker { }.warn_for_unsused(&mut errors, &symbol_table);
         Program::new(block, symbol_table, errors)
     }

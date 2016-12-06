@@ -9,59 +9,58 @@ use parse::build::{SymbolTable, Symbol};
 /// and reports variable declaration and mutability errors.
 #[derive(Debug, Default)]
 pub struct SymbolTableChecker {
-    symbol_table: SymbolTable
+    symbol_table: SymbolTable,
+    errors: ErrorCollector
 }
 impl SymbolTableChecker {
-    pub fn new() -> SymbolTableChecker {
+    pub fn new(errors: ErrorCollector, symbol_table: SymbolTable) -> SymbolTableChecker {
         SymbolTableChecker {
-            symbol_table: SymbolTable::new(),
+            symbol_table: symbol_table,
+            errors: errors
         }
+    }
+    pub fn decompose(self) -> (SymbolTable, ErrorCollector) {
+        (self.symbol_table, self.errors)
     }
 }
 impl ExpressionChecker for SymbolTableChecker {
-    fn check_declaration(&mut self, errors: &mut ErrorCollector, decl: &Declaration) {
+    fn check_declaration(&mut self, decl: &Declaration) {
         // Check rvalue first to prevent use-before-declare
-        self.check_expression(errors, &decl.value);
+        self.check_expression(&decl.value);
 
         if let Some(declared_at) = self.symbol_table.get(decl.get_name()).map(|sym| sym.get_token().clone()) {
             // Add previous declaration
             let references: Vec<Token> = vec![declared_at];
             let err_text = format!("Variable {} is already declared", decl.get_name());
-            errors.add_error(VerifyError::new(decl.token.clone(), references, err_text));
+            self.errors.add_error(VerifyError::new(decl.token.clone(), references, err_text));
         } else {
             self.symbol_table.insert(decl.get_name().to_string(), Symbol::from_declaration(decl));
         }
     }
-    fn check_var_ref(&mut self, errors: &mut ErrorCollector, var_ref: &Identifier) {
+    fn check_var_ref(&mut self, var_ref: &Identifier) {
         if !self.symbol_table.contains_key(var_ref.get_name()) {
             let err_text = format!("Variable {} was not declared", var_ref.get_name());
-            errors.add_error(VerifyError::new(var_ref.token.clone(), vec![], err_text));
+            self.errors.add_error(VerifyError::new(var_ref.token.clone(), vec![], err_text));
         } else {
             self.symbol_table.get_mut(var_ref.get_name()).map(Symbol::set_used);
         }
     }
-    fn check_assignment(&mut self, errors: &mut ErrorCollector, assign: &Assignment) {
+    fn check_assignment(&mut self, assign: &Assignment) {
         if !self.symbol_table.contains_key(assign.lvalue.get_name()) {
             let err_text = format!("Variable {} was not declared", assign.lvalue.get_name());
-            errors.add_error(VerifyError::new(assign.lvalue.token.clone(), vec![], err_text));
+            self.errors.add_error(VerifyError::new(assign.lvalue.token.clone(), vec![], err_text));
         }
         else if !self.symbol_table[assign.lvalue.get_name()].is_mutable() {
             let err_text = format!("Variable {} was not declared mutable", assign.lvalue.get_name());
             let references = vec![self.symbol_table[assign.lvalue.get_name()].get_token().clone()];
-            errors.add_error(VerifyError::new(assign.lvalue.token.clone(), references, err_text));
+            self.errors.add_error(VerifyError::new(assign.lvalue.token.clone(), references, err_text));
         }
         else {
             self.symbol_table.get_mut(assign.lvalue.get_name()).map(Symbol::set_mutated);
         }
-        self.check_expression(errors, &assign.rvalue);
+        self.check_expression(&assign.rvalue);
     }
 }
-impl Into<SymbolTable> for SymbolTableChecker {
-    fn into(self) -> SymbolTable {
-        self.symbol_table
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::borrow::Cow;
@@ -69,16 +68,18 @@ mod tests {
     use lex::{Token, TokenData, TextLocation};
     use parse::tests::make_parser;
     use parse::verify::{ExpressionChecker, ErrorCollector, VerifyError};
+    use parse::build::SymbolTable;
     use super::SymbolTableChecker;
 
     #[test]
     fn it_finds_extra_declaration() {
         let mut parser = make_parser("let x = 0 let x = 1");
         let block = parser.block().unwrap();
-        let mut sym_checker = SymbolTableChecker::new();
-        let mut verifier = ErrorCollector::new();
-
-        sym_checker.check_block(&mut verifier, &block);
+        let errors = ErrorCollector::new();
+        let symbol_table = SymbolTable::new();
+        let mut sym_checker = SymbolTableChecker::new(errors, symbol_table);
+        sym_checker.check_block(&block);
+        let (_table, verifier) = sym_checker.decompose();
         let expected = vec![
             VerifyError::new(Token {
                     location: TextLocation { index: 14, line: 0, column: 14 },
@@ -101,9 +102,11 @@ mod tests {
     fn it_finds_missing_declaration() {
         let mut parser = make_parser("let mut y = 0 y = x + 1");
         let block = parser.block().unwrap();
-        let mut sym_checker = SymbolTableChecker::new();
-        let mut verifier = ErrorCollector::new();
-        sym_checker.check_block(&mut verifier, &block);
+        let errors = ErrorCollector::new();
+        let symbol_table = SymbolTable::new();
+        let mut sym_checker = SymbolTableChecker::new(errors, symbol_table);
+        sym_checker.check_block(&block);
+        let (_table, verifier) = sym_checker.decompose();
         let expected = vec![
             VerifyError::new(Token {
                 location: TextLocation { index: 18, line: 0, column: 18 },
@@ -120,9 +123,11 @@ mod tests {
     fn it_finds_extra_declaration_of_different_type() {
         let mut parser = make_parser("let x = 0 let mut x = 1");
         let block = parser.block().unwrap();
-        let mut sym_checker = SymbolTableChecker::new();
-        let mut verifier = ErrorCollector::new();
-        sym_checker.check_block(&mut verifier, &block);
+        let errors = ErrorCollector::new();
+        let symbol_table = SymbolTable::new();
+        let mut sym_checker = SymbolTableChecker::new(errors, symbol_table);
+        sym_checker.check_block(&block);
+        let (_table, verifier) = sym_checker.decompose();
         let expected = vec![
             VerifyError::new(Token {
                 location: TextLocation { index: 18, line: 0, column: 18 },
@@ -145,9 +150,11 @@ mod tests {
     fn it_finds_missing_declaration_in_return_stmt() {
         let mut parser = make_parser("let x = 0 return y");
         let block = parser.block().unwrap();
-        let mut sym_checker = SymbolTableChecker::new();
-        let mut verifier = ErrorCollector::new();
-        sym_checker.check_block(&mut verifier, &block);
+        let errors = ErrorCollector::new();
+        let symbol_table = SymbolTable::new();
+        let mut sym_checker = SymbolTableChecker::new(errors, symbol_table);
+        sym_checker.check_block(&block);
+        let (_table, verifier) = sym_checker.decompose();
         let expected: Vec<VerifyError> = vec![
             VerifyError::new(Token {
                 location: TextLocation {
@@ -167,9 +174,11 @@ mod tests {
     fn it_finds_missing_declaration_in_binary_op() {
         let mut parser = make_parser("let x = 0 x + y");
         let block = parser.block().unwrap();
-        let mut sym_checker = SymbolTableChecker::new();
-        let mut verifier = ErrorCollector::new();
-        sym_checker.check_block(&mut verifier, &block);
+        let errors = ErrorCollector::new();
+        let symbol_table = SymbolTable::new();
+        let mut sym_checker = SymbolTableChecker::new(errors, symbol_table);
+        sym_checker.check_block(&block);
+        let (_table, verifier) = sym_checker.decompose();
         let expected = vec![
             VerifyError::new(Token {
                 location: TextLocation { index: 14, line: 0, column: 14 },
@@ -187,9 +196,11 @@ mod tests {
     fn it_finds_missing_declaration_in_unary_op() {
         let mut parser = make_parser("let x = 0 return -y");
         let block = parser.block().unwrap();
-        let mut sym_checker = SymbolTableChecker::new();
-        let mut verifier = ErrorCollector::new();
-        sym_checker.check_block(&mut verifier, &block);
+        let errors = ErrorCollector::new();
+        let symbol_table = SymbolTable::new();
+        let mut sym_checker = SymbolTableChecker::new(errors, symbol_table);
+        sym_checker.check_block(&block);
+        let (_table, verifier) = sym_checker.decompose();
         let expected: Vec<VerifyError> = vec![
             VerifyError::new(Token {
                 location: TextLocation {
@@ -210,9 +221,11 @@ mod tests {
     fn it_finds_missing_declaration_in_var_ref_expr() {
         let mut parser = make_parser("let x = 0 y");
         let block = parser.block().unwrap();
-        let mut sym_checker = SymbolTableChecker::new();
-        let mut verifier = ErrorCollector::new();
-        sym_checker.check_block(&mut verifier, &block);
+        let errors = ErrorCollector::new();
+        let symbol_table = SymbolTable::new();
+        let mut sym_checker = SymbolTableChecker::new(errors, symbol_table);
+        sym_checker.check_block(&block);
+        let (_table, verifier) = sym_checker.decompose();
         let expected: Vec<VerifyError> = vec![
             VerifyError::new(Token {
                 location: TextLocation {
@@ -232,9 +245,11 @@ mod tests {
     fn it_finds_missing_declaration_in_assignment_lvalue() {
         let mut parser = make_parser("let x = 0 y = x");
         let block = parser.block().unwrap();
-        let mut sym_checker = SymbolTableChecker::new();
-        let mut verifier = ErrorCollector::new();
-        sym_checker.check_block(&mut verifier, &block);
+        let errors = ErrorCollector::new();
+        let symbol_table = SymbolTable::new();
+        let mut sym_checker = SymbolTableChecker::new(errors, symbol_table);
+        sym_checker.check_block(&block);
+        let (_table, verifier) = sym_checker.decompose();
         let expected: Vec<VerifyError> = vec![
             VerifyError::new(Token {
                 location: TextLocation {
@@ -254,9 +269,11 @@ mod tests {
     fn it_finds_missing_declaration_in_assignment_rvalue() {
         let mut parser = make_parser("let mut x = 0 x = y");
         let block = parser.block().unwrap();
-        let mut sym_checker = SymbolTableChecker::new();
-        let mut verifier = ErrorCollector::new();
-        sym_checker.check_block(&mut verifier, &block);
+        let errors = ErrorCollector::new();
+        let symbol_table = SymbolTable::new();
+        let mut sym_checker = SymbolTableChecker::new(errors, symbol_table);
+        sym_checker.check_block(&block);
+        let (_table, verifier) = sym_checker.decompose();
         let expected = vec![
             VerifyError::new(Token {
                 location: TextLocation { index: 18, line: 0, column: 18 },
@@ -273,9 +290,11 @@ mod tests {
     fn it_finds_circular_declaration() {
         let mut parser = make_parser("let x = x");
         let block = parser.block().unwrap();
-        let mut sym_checker = SymbolTableChecker::new();
-        let mut verifier = ErrorCollector::new();
-        sym_checker.check_block(&mut verifier, &block);
+        let errors = ErrorCollector::new();
+        let symbol_table = SymbolTable::new();
+        let mut sym_checker = SymbolTableChecker::new(errors, symbol_table);
+        sym_checker.check_block(&block);
+        let (_table, verifier) = sym_checker.decompose();
         let expected: Vec<VerifyError> = vec![
             VerifyError::new(Token {
                 location: TextLocation {
