@@ -11,7 +11,7 @@ impl VM {
                       "Requested compiling chunk with too many registers");
         debug_assert!(chunk.constants.len() < MAX_CONSTANTS as usize,
                       "Requested compiling chunk with too many constants");
-        let mut registers = vec![Value::Null; chunk.stack_size as usize];
+        let mut registers = vec![Value(0f64); chunk.stack_size as usize];
         debug_assert!(registers.len() == chunk.stack_size as usize);
         for inst in chunk.instructions {
             match inst.op {
@@ -78,7 +78,7 @@ mod test {
 
     #[test]
     fn it_executes_0_plus_1() {
-        let consts = vec![Value::Number(0), Value::Number(1)];
+        let consts = vec![Value(0f64), Value(1f64)];
         let instructions = vec![
             // Set register 0 to zero
             Instruction::load_const(0, 0),
@@ -92,12 +92,12 @@ mod test {
         let program = Chunk::new(consts, instructions, 2);
         let mut machine = VM {};
         let returned = machine.eval_chunk(program);
-        assert_eq!(returned, Value::Number(1));
+        assert_eq!(returned, Value(1f64));
     }
 
     #[test]
     fn it_executes_1_plus_2() {
-        let consts = vec![Value::Number(1), Value::Number(2)];
+        let consts = vec![Value(1f64), Value(2f64)];
         let instructions = vec![
             // Register 0 to 1
             Instruction::load_const(0, 0),
@@ -111,6 +111,6 @@ mod test {
         let program = Chunk::new(consts, instructions, 3);
         let mut machine = VM {};
         let returned = machine.eval_chunk(program);
-        assert_eq!(returned, Value::Number(3));
+        assert_eq!(returned, Value(3f64));
     }
 }

@@ -2,8 +2,8 @@
 
 use std::ops::*;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd)]
-pub struct Value(f64);
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+pub struct Value(pub f64);
 
 macro_rules! impl_op {
     ($typ:ty, $fun:ident) => {
