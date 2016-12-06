@@ -268,4 +268,27 @@ mod tests {
         ];
         assert_eq!(verifier.get_errors(), &*expected);
     }
+
+    #[test]
+    fn it_finds_circular_declaration() {
+        let mut parser = make_parser("let x = x");
+        let block = parser.block().unwrap();
+        let mut sym_checker = SymbolTableChecker::new();
+        let mut verifier = ErrorCollector::new();
+        sym_checker.check_block(&mut verifier, &block);
+        let expected: Vec<VerifyError> = vec![
+            VerifyError::new(Token {
+                location: TextLocation {
+                    index: 8,
+                    line: 0,
+                    column: 8
+                },
+                text: Cow::Borrowed("x"),
+                data: TokenData::Ident
+            }, vec![],
+            "Variable x was not declared".into())
+        ];
+        assert_eq!(verifier.get_errors(), &*expected);
+    }
+
 }
