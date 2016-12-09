@@ -13,6 +13,7 @@ pub const MAX_CONSTANTS: u8 = 128;
 // add/sub/div/mul/mod dest: RegisterIx left: RegisterIx, right: RegisterIx
 
 /// Opcodes
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub enum OpCode {
     LoadConst,
     Move,
@@ -25,6 +26,7 @@ pub enum OpCode {
 }
 
 /// A single instruction in the protosnirk VM
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct Instruction {
     pub op: OpCode,
     pub left: RegisterIx,

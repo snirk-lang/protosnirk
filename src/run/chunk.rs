@@ -3,6 +3,7 @@
 use super::value::Value;
 use super::instruction::Instruction;
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct Chunk {
     pub stack_size: u8,
     pub constants: Vec<Value>,
@@ -17,4 +18,3 @@ impl Chunk {
         }
     }
 }
-

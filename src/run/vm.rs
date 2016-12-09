@@ -7,22 +7,25 @@ pub struct VM {
 
 impl VM {
     pub fn eval_chunk(&mut self, chunk: Chunk) -> Value {
+        println!("Evaluate {:#?}", chunk);
         debug_assert!(chunk.stack_size < MAX_REGISTERS,
                       "Requested compiling chunk with too many registers");
         debug_assert!(chunk.constants.len() < MAX_CONSTANTS as usize,
                       "Requested compiling chunk with too many constants");
-        let mut registers = vec![Value(0f64); chunk.stack_size as usize];
+        let mut registers = vec![Value(-999f64); chunk.stack_size as usize];
         debug_assert!(registers.len() == chunk.stack_size as usize);
         for inst in chunk.instructions {
+            println!("Eval {:?}", inst); // Sure, let's debug-print every instruction we evaluate. That's how computers work.
             match inst.op {
                 OpCode::LoadConst => {
-                    debug_assert!(inst.left < registers.len() as u8);
-                    registers[inst.left as usize as usize] = chunk.constants[inst.dest as usize as usize];
+                    debug_assert!(inst.left < chunk.constants.len() as u8);
+                    debug_assert!(inst.right < registers.len() as u8);
+                    registers[inst.dest as usize] = chunk.constants[inst.left as usize];
                 },
                 OpCode::Move => {
                     debug_assert!(inst.left < registers.len() as u8);
-                    debug_assert!(inst.right < registers.len() as u8);
-                    registers[inst.left as usize] = registers[inst.right as usize];
+                    debug_assert!(inst.dest < registers.len() as u8);
+                    registers[inst.dest as usize] = registers[inst.left as usize];
                 },
                 OpCode::Add => {
                     debug_assert!(inst.left < registers.len() as u8);
