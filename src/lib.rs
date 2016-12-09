@@ -9,3 +9,6 @@ pub mod lex;
 pub mod parse;
 pub mod compile;
 pub mod run;
+
+#[cfg(test)]
+mod tests;
