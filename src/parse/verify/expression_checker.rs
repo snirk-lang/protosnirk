@@ -78,5 +78,6 @@ pub trait ExpressionChecker {
     #[inline]
     #[allow(unused_variables)]
     fn check_declaration(&mut self, decl: &Declaration) {
+        self.check_expression(&*decl.value);
     }
 }

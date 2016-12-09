@@ -20,6 +20,9 @@ impl Verifier {
         symbol_builder.check_block(&block);
         let (symbol_table, mut errors) = symbol_builder.decompose();
         UsageChecker { }.warn_for_unsused(&mut errors, &symbol_table);
-        Program::new(block, symbol_table, errors)
+        let mut constant_assembler = ConstantAssembler::new();
+        constant_assembler.check_block(&block);
+        let constants = constant_assembler.into();
+        Program::new(block, symbol_table, constants, errors)
     }
 }

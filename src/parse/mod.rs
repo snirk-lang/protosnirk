@@ -14,3 +14,6 @@ pub use self::errors::{ParseError, ParseResult};
 pub use self::parser::Parser;
 pub use self::precedence::Precedence;
 pub use self::operator::Operator;
+
+pub use self::build::{Program, Symbol, SymbolTable};
+pub use self::verify::{ExpressionChecker, VerifyError, ErrorCollector};
