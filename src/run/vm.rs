@@ -8,12 +8,11 @@ pub struct VM {
 impl VM {
     pub fn eval_chunk(&mut self, chunk: Chunk) -> Value {
         println!("Evaluate {:#?}", chunk);
-        debug_assert!(chunk.stack_size < MAX_REGISTERS,
+        debug_assert!(chunk.register_count < MAX_REGISTERS,
                       "Requested compiling chunk with too many registers");
         debug_assert!(chunk.constants.len() < MAX_CONSTANTS as usize,
                       "Requested compiling chunk with too many constants");
-        let mut registers = vec![Value(-999f64); chunk.stack_size as usize];
-        debug_assert!(registers.len() == chunk.stack_size as usize);
+        let mut registers = vec![Value(-999f64); chunk.register_count as usize];
         for inst in chunk.instructions {
             println!("Eval {:?}", inst); // Sure, let's debug-print every instruction we evaluate. That's how computers work.
             match inst.op {

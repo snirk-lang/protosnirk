@@ -3,18 +3,22 @@
 use super::value::Value;
 use super::instruction::Instruction;
 
+/// Contains information for running a block or function
 #[derive(Debug, Clone, PartialEq)]
 pub struct Chunk {
-    pub stack_size: u8,
+    /// Max number of registers used
+    pub register_count: u8,
+    /// List of constants associated with this chunk
     pub constants: Vec<Value>,
+    /// List of instructions compiled for the chunk
     pub instructions: Vec<Instruction>
 }
 impl Chunk {
-    pub fn new(consts: Vec<Value>, instructions: Vec<Instruction>, stack_size: u8) -> Chunk {
+    pub fn new(consts: Vec<Value>, instructions: Vec<Instruction>, register_count: u8) -> Chunk {
         Chunk {
             constants: consts,
             instructions: instructions,
-            stack_size: stack_size
+            register_count: register_count
         }
     }
 }
