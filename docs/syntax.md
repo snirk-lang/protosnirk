@@ -40,7 +40,7 @@ Variables are declared as a sequence Unicode letters, numbers, and `_`. Variable
 cannot start with a number. `camelCase` names are encouraged.
 
 Good:
-`someValue`, `lúcio`, `myVariableName`, `constant2`
+`someValue`, `totalLúcioBoops`, `myVariableName`, `constant2`
 
 Allowed:
 `_num_vars`, `LOUD_VARIABLE`, `l337KiLlZcOuNt`
@@ -66,7 +66,9 @@ Constants are interpreted via Rust's `f64::parse()`.
 
 `0`, `12.2`, `-0`, `223e5`, `2e3.15`, `11.5e2.45`
 
-I forgot to parse `NaN` (and `-NaN`). I will add it.
+Because all values are floats, division by zero results in `NaN`:
+
+`let NaN = 0/0`
 
 ## Expressions
 
@@ -78,7 +80,7 @@ Because expressions "have value", you can use them when declaring variables.
 You can put any of those to the right of `let myVar =` and your program will compile.
 
 **Statements** on the other hand, are operations that are done which you can't get any external
-"value from" - for example an assignment, such as `let x = 0` or `x += 5`.
+"value from" - for example an assignment, such as `let x = 0` or `x += 5` (`x = x + 5`).
 
 Some programs let you do this (i.e. C with its `if (x = foo())`). Right now, protosnirk does not.
 
