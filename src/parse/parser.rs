@@ -221,7 +221,13 @@ impl<T: Tokenizer> Parser<T> {
 
     pub fn parse_program(&mut self) -> Result<Program, ParseError> {
         let block = try!(self.block());
-        Ok(Verifier { }.verify_program(block))
+        let program = Verifier { }.verify_program(block);
+        if let Err(errors) = program {
+            Err(ParseError::VerifierError { collection: errors })
+        }
+        else {
+            Ok(program.expect("Checked expect"))
+        }
     }
 
     /// Get the current precedence

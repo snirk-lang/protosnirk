@@ -1,4 +1,4 @@
-//! Contains the lexer which reads constable syntax.
+//! Contains the lexer which reads protosnirk syntax.
 
 mod token;
 pub mod tokens;

@@ -192,3 +192,111 @@ fn it_parses_a_multi_statement_block() {
     ];
     assert_eq!(block, expected, "Got {:#?}", block);
 }
+
+#[test]
+fn it_parses_pemdas() {
+    let input =
+        "let x = 1 + 2 * 3 - 4 / 5 % 6 x";
+    let mut parser = make_parser(input);
+    let block = parser.block();
+    println!("{:#?}", block);
+    let expected = vec![
+        Expression::Declaration(Declaration {
+            mutable: false,
+            token: Token {
+                location: TextLocation { index: 4, line: 0, column: 4 },
+                text: Cow::Borrowed("x"),
+                data: TokenData::Ident
+            },
+            value: Box::new(Expression::BinaryOp(BinaryOperation {
+            operator: Operator::Subtraction,
+            op_token: Token {
+                location: TextLocation { index: 18, line: 0, column: 18 },
+                text: Cow::Borrowed("-"),
+                data: TokenData::Symbol
+            },
+            left: Box::new(Expression::BinaryOp(BinaryOperation {
+                operator: Operator::Addition,
+                op_token: Token {
+                    location: TextLocation { index: 10, line: 0, column: 10 },
+                    text: Cow::Borrowed("+"),
+                    data: TokenData::Symbol
+                },
+                left: Box::new(Expression::Literal(Literal {
+                    token: Token {
+                        location: TextLocation { index: 8, line: 0, column: 8 },
+                        text: Cow::Borrowed("1"),
+                        data: TokenData::NumberLiteral(1f64)
+                    }
+                })),
+                right: Box::new(Expression::BinaryOp(BinaryOperation {
+                    operator: Operator::Multiplication,
+                    op_token: Token {
+                        location: TextLocation { index: 14, line: 0, column: 14 },
+                        text: Cow::Borrowed("*"),
+                        data: TokenData::Symbol
+                    },
+                    left: Box::new(Expression::Literal(Literal {
+                        token: Token {
+                            location: TextLocation { index: 12, line: 0, column: 12 },
+                            text: Cow::Borrowed("2"),
+                            data: TokenData::NumberLiteral(2f64)
+                        }
+                    })),
+                    right: Box::new(Expression::Literal(Literal {
+                        token: Token {
+                            location: TextLocation { index: 16, line: 0, column: 16 },
+                            text: Cow::Borrowed("3"),
+                            data: TokenData::NumberLiteral(3f64)
+                        }
+                    }))
+                }))
+            })),
+            right: Box::new(Expression::BinaryOp(BinaryOperation {
+                operator: Operator::Division,
+                op_token: Token {
+                    location: TextLocation { index: 22, line: 0, column: 22 },
+                    text: Cow::Borrowed("/"),
+                    data: TokenData::Symbol
+                },
+                left: Box::new(Expression::Literal(Literal {
+                    token: Token {
+                        location: TextLocation { index: 20, line: 0, column: 20 },
+                        text: Cow::Borrowed("4"),
+                        data: TokenData::NumberLiteral(4f64)
+                    }
+                })),
+                right: Box::new(Expression::BinaryOp(BinaryOperation {
+                    operator: Operator::Modulus,
+                    op_token: Token {
+                        location: TextLocation { index: 26, line: 0, column: 26 },
+                        text: Cow::Borrowed("%"),
+                        data: TokenData::Symbol
+                    },
+                    left: Box::new(Expression::Literal(Literal {
+                        token: Token {
+                            location: TextLocation { index: 24, line: 0, column: 24 },
+                            text: Cow::Borrowed("5"),
+                            data: TokenData::NumberLiteral(5f64)
+                        }
+                    })),
+                    right: Box::new(Expression::Literal(Literal {
+                        token: Token {
+                            location: TextLocation { index: 28, line: 0, column: 28 },
+                            text: Cow::Borrowed("6"),
+                            data: TokenData::NumberLiteral(6f64)
+                        }
+                    }))
+                }))
+            }))
+        }))
+    }),
+    Expression::VariableRef(Identifier {
+        token: Token {
+            location: TextLocation { index: 30, line: 0, column: 30 },
+            text: Cow::Borrowed("x"),
+            data: TokenData::Ident
+        }
+    })];
+    assert_eq!(block.unwrap(), expected);
+}
