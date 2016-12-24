@@ -2,6 +2,7 @@
 
 use lex::{CowStr, Token, TokenType};
 use parse::expression::{Expression, ExpressionType};
+use parse::verify::ErrorCollector;
 
 /// Result given from main and expression parsers
 pub type ParseResult = Result<Expression, ParseError>;
@@ -20,8 +21,8 @@ pub enum ParseError {
     },
     ExpectedLValue(Expression),
     ExpectedRValue(Expression),
-    GenericError {
-
+    VerifierError {
+        collection: ErrorCollector
     },
     UnknownOperator {
         text: CowStr,

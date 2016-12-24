@@ -310,4 +310,22 @@ mod tests {
         assert_eq!(verifier.get_errors(), &*expected);
     }
 
+    #[test]
+    fn it_finds_missing_declaration_in_assignop_expression() {
+        let mut parser = make_parser("let x = 0 \n\
+        let mut y = -x - 1 \n\
+        let z = 2 \n\
+        y += z \n\
+        t += z * (2 % 2) \n\
+        return y - 2");
+        let block = parser.block().unwrap();
+        let errors = ErrorCollector::new();
+        let symbol_table = SymbolTable::new();
+        let mut sym_checker = SymbolTableChecker::new(errors, symbol_table);
+        sym_checker.check_block(&block);
+        let (_table, verifier) = sym_checker.decompose();
+        let expected: Vec<VerifyError> = vec![];
+        assert_eq!(verifier.get_errors(), &*expected);
+    }
+
 }

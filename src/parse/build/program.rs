@@ -11,6 +11,7 @@ use parse::expression::Expression;
 use parse::verify::ErrorCollector;
 use run::{Instruction, Value};
 
+#[derive(Debug, PartialEq, Clone)]
 pub struct Program {
     block: Vec<Expression>,
     symbol_table: SymbolTable,

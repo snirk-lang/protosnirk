@@ -2,10 +2,10 @@ use super::value::Value;
 use super::chunk::Chunk;
 use super::instruction::{OpCode, Instruction, RegisterIx, MAX_REGISTERS, MAX_CONSTANTS};
 
-pub struct VM {
-}
+pub struct VM { }
 
 impl VM {
+    /// Evaluate a given chunk (from scratch)
     pub fn eval_chunk(&mut self, chunk: Chunk) -> Value {
         println!("Evaluate {:#?}", chunk);
         debug_assert!(chunk.register_count < MAX_REGISTERS,
