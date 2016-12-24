@@ -39,5 +39,5 @@ fn all_math_operators() {
         a = a + 1
         y += a
         return y - 2";
-    assert_eq!(run_program(program), Value(-1f64));
+    assert_eq!(run_program(program), Value(0f64));
 }

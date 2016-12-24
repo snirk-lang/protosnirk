@@ -324,7 +324,22 @@ mod tests {
         let mut sym_checker = SymbolTableChecker::new(errors, symbol_table);
         sym_checker.check_block(&block);
         let (_table, verifier) = sym_checker.decompose();
-        let expected: Vec<VerifyError> = vec![];
+        let expected: Vec<VerifyError> = vec![
+            VerifyError::new(
+                Token {
+                    location: TextLocation { index: 50, line: 4, column: 0 },
+                    text: Cow::Borrowed("t"),
+                    data: TokenData::Ident
+                }, vec![],
+                "Variable t was not declared".into()),
+            VerifyError::new(
+                Token {
+                    location: TextLocation { index: 50, line: 4, column: 0 },
+                    text: Cow::Borrowed("t"),
+                    data: TokenData::Ident
+                }, vec![],
+                "Variable t was not declared".into())
+            ];
         assert_eq!(verifier.get_errors(), &*expected);
     }
 
