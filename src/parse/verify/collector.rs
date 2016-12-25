@@ -41,7 +41,7 @@ impl ErrorCollector {
     pub fn get_warnings_mut(&mut self) -> &mut [VerifyError] {
         &mut self.warnings
     }
-    pub fn get_lints_mut(&mut self) -> &[VerifyError] {
+    pub fn get_lints_mut(&mut self) -> &mut [VerifyError] {
         &mut self.errors
     }
 

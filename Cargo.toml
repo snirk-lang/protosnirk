@@ -11,3 +11,6 @@ license = "MIT"
 [dependencies]
 maplit = "*"
 unicode_categories = "0.1"
+
+[dependencies.iron_llvm]
+git = "https://github.com/Immington-Industries/iron-llvm"
