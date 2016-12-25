@@ -149,7 +149,26 @@ impl<M:ModuleProvider> ExpressionChecker for ModuleCompiler<M> {
         }
         else {
             let mut builder = self.context.get_ir_builder_mut();
-            builder.build_ret_void(); // hopefully doesn't happen
+            // Hopefully doesn't happen, protosnirk doesn't support void types
+            builder.build_ret_void();
+        }
+    }
+
+    fn check_block(&mut self, block: &Vec<Expression>) {
+        for expr in block {
+            self.check_expression(expr)
+        }
+        let mut builder = self.context.get_ir_builder_mut();
+        // We can auto-issue a return stmt if the ir_code hasn't been
+        // consumed. Otherwise, we return 0f64.
+        // If the last statement _was_ a return, it's just a redundant
+        // return that llvm should optimize out.
+        // This will also need to be fixed when allowing nested blocks.
+        if let Some(remaining_expr) = self.ir_code.pop() {
+            builder.build_ret(&remaining_expr);
+        }
+        else {
+            builder.build_ret_void();
         }
     }
 }
