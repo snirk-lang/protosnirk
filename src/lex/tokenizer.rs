@@ -24,7 +24,7 @@ pub trait Tokenizer {
 pub fn char_is_symbol(ch: char) -> bool {
     ch == '%' || ch == '/' ||
     ch == '(' || ch == ')' ||
-    ch == '-' ||
+    ch == '-' || ch == '*' ||
     ch.is_symbol()
 }
 

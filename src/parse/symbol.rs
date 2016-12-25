@@ -183,7 +183,7 @@ impl<T: Tokenizer> PrefixSymbol<T> for ParensParser {
     fn parse(&self, parser: &mut Parser<T>, _token: Token) -> ParseResult {
         debug_assert!(_token.text == tokens::LeftParen,
                       "Parens parser called with non-left-paren {:?}", _token);
-        let inner_expr = try!(parser.expression(Precedence::Paren));
+        let inner_expr = try!(parser.expression(Precedence::Min));
         let inner = try!(inner_expr.expect_value());
         try!(parser.try_consume_name(TokenType::Symbol, tokens::RightParen));
         Ok(inner)

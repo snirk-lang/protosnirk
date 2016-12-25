@@ -7,6 +7,8 @@
 //! The verifiers in this module will build structures from the `build` module.
 mod symbol_checker;
 mod usage_checker;
+mod constant_checker;
 
 pub use self::symbol_checker::SymbolTableChecker;
 pub use self::usage_checker::UsageChecker;
+pub use self::constant_checker::ConstantAssembler;
