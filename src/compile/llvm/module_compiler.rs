@@ -6,9 +6,12 @@ use compile::llvm::{LLVMContext, ModuleProvider};
 
 use llvm_sys::prelude::*;
 use llvm_sys::LLVMOpcode;
+use llvm_sys::analysis::LLVMVerifierFailureAction;
 use iron_llvm::LLVMRef;
-use iron_llvm::core::types::{RealTypeRef, RealTypeCtor};
-use iron_llvm::core::value::{RealConstRef, RealConstCtor, ConstCtor, Value};
+use iron_llvm::core::Function;
+use iron_llvm::core::value::{RealConstRef, FunctionRef, Value};
+use iron_llvm::core::types::{RealTypeRef, FunctionTypeRef, FunctionTypeCtor, RealTypeCtor};
+use iron_llvm::core::value::{RealConstCtor, ConstCtor, FunctionCtor};
 
 pub struct ModuleCompiler<M: ModuleProvider> {
     module_provider: M,
@@ -155,9 +158,19 @@ impl<M:ModuleProvider> ExpressionChecker for ModuleCompiler<M> {
     }
 
     fn check_block(&mut self, block: &Vec<Expression>) {
+
+        let fn_ret_double = RealTypeRef::get_float().to_ref();
+        let block_fn_type = FunctionTypeRef::get(&fn_ret_double, &mut [], false);
+        let mut fn_ref = FunctionRef::new(&mut self.module_provider.get_module_mut(), "main", &block_fn_type);
+        let mut basic_block = fn_ref.append_basic_block_in_context(self.context.get_global_context_mut(), "entry");
+        self.context.get_ir_builder_mut().position_at_end(&mut basic_block);
+
+        self.scopes.push(HashMap::new());
         for expr in block {
             self.check_expression(expr)
         }
+        self.scopes.pop();
+
         let mut builder = self.context.get_ir_builder_mut();
         // We can auto-issue a return stmt if the ir_code hasn't been
         // consumed. Otherwise, we return 0f64.
@@ -170,5 +183,10 @@ impl<M:ModuleProvider> ExpressionChecker for ModuleCompiler<M> {
         else {
             builder.build_ret_void();
         }
+
+        fn_ref.verify(LLVMVerifierFailureAction::LLVMAbortProcessAction);
+        self.module_provider.get_pass_manager().run(&mut fn_ref);
+        // The final ir_code value should be a reference tothe function
+        self.ir_code.push(fn_ref.to_ref());
     }
 }

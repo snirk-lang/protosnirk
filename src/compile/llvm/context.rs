@@ -1,8 +1,12 @@
 use std::collections::HashMap;
 
-use iron_llvm::core::{Context, Builder};
-use iron_llvm::core::types::RealTypeRef;
+use compile::llvm::ModuleProvider;
 
+use iron_llvm::LLVMRef;
+use iron_llvm::core::{Context, Builder, Function};
+use iron_llvm::core::types::{RealTypeRef, FunctionTypeRef};
+use iron_llvm::core::types::{RealTypeCtor, FunctionTypeCtor};
+use iron_llvm::core::value::{FunctionRef, FunctionCtor};
 use llvm_sys::prelude::LLVMValueRef;
 
 /// Contains structures pertaining to the LLVM's
@@ -31,6 +35,9 @@ impl LLVMContext {
     pub fn get_global_context(&self) -> &Context {
         &self.context
     }
+    pub fn get_global_context_mut(&mut self) -> &mut Context {
+        &mut self.context
+    }
     /// Gets the IR builder of this context
     pub fn get_ir_builder(&self) -> &Builder {
         &self.builder
@@ -39,4 +46,5 @@ impl LLVMContext {
     pub fn get_ir_builder_mut(&mut self) -> &mut Builder {
         &mut self.builder
     }
+
 }
