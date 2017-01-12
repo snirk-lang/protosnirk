@@ -91,40 +91,40 @@ impl<T: Tokenizer> Parser<T> {
     /// Parses any expression with the given precedence.
     pub fn expression(&mut self, precedence: Precedence) -> Result<Expression, ParseError> {
         let mut token = self.consume();
-        println!("Parsing expression(precedence={:?}) with {}", precedence, token);
+        trace!("Parsing expression(precedence={:?}) with {}", precedence, token);
         let prefix: Rc<PrefixSymbol<T> + 'static>;
         if token.data.get_type() == TokenType::EOF {
-            println!("Parsing received EOF!");
+            trace!("Parsing received EOF!");
             return Err(ParseError::LazyString(format!("got eof?")));
         }
         else if token.data.get_type() == TokenType::Ident {
-            println!("Parsing an identifier, using the identifier parser");
+            trace!("Parsing an identifier, using the identifier parser");
             prefix = Rc::new(IdentifierParser {});
         }
         else if token.data.get_type() == TokenType::Literal {
-            println!("Got a literal token");
+            trace!("Got a literal token");
             prefix = Rc::new(LiteralParser {});
         }
         else if let Some(found_parser) = self.prefix_parsers.get(&(token.data.get_type(), Cow::Borrowed(&*token.text))) {
-            println!("Found a parser to parse ({:?}, {:?})", token.data.get_type(), token.text);
+            trace!("Found a parser to parse ({:?}, {:?})", token.data.get_type(), token.text);
             prefix = found_parser.clone();
         }
         else {
-            println!("Could not find a parser!");
+            trace!("Could not find a parser!");
             return Err(ParseError::LazyString(format!("Unexpected token {:?}", token)))
         }
         let mut left = try!(prefix.parse(self, token));
-        println!("Parsed left expression: {:?}", left);
+        trace!("Parsed left expression: {:?}", left);
         while precedence < self.current_precedence() {
-            println!("Checking thatn {:?} < {:?}", precedence, self.current_precedence());
+            trace!("Checking thatn {:?} < {:?}", precedence, self.current_precedence());
             token = self.consume();
-            println!("Continuing with {}", token);
+            trace!("Continuing with {}", token);
             if let Some(infix) = self.infix_parsers.get(&(token.data.get_type(), Cow::Borrowed(&*token.text))).map(Rc::clone) {
-                println!("Parsing via infix parser!");
+                trace!("Parsing via infix parser!");
                 left = try!(infix.parse(self, left, token));
             }
         }
-        println!("Done parsing expression");
+        trace!("Done parsing expression");
         Ok(left)
     }
 
@@ -146,7 +146,7 @@ impl<T: Tokenizer> Parser<T> {
     ///Grab an lvalue from the token stream
     pub fn lvalue(&mut self) -> Result<Identifier, ParseError> {
         let token = self.consume();
-        println!("Getting an lvalue from {}", token);
+        trace!("Getting an lvalue from {}", token);
         if token.data.get_type() == TokenType::Ident {
             IdentifierParser { }.parse(self, token)
                 .and_then(|e| e.expect_identifier())
