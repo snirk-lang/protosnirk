@@ -5,6 +5,7 @@ mod instruction;
 mod value;
 mod vm;
 mod llvm_runner;
+mod llvm_state;
 
 pub use self::chunk::Chunk;
 pub use self::instruction::*;
