@@ -44,8 +44,11 @@ impl MCJIT {
         }
     }
 
+    /// Close the current module and create a new one.
+    ///
+    /// iron_llvm tutorial dictates creating a new module per
+    /// function written to the command line.
     fn close_current_module(&mut self) {
-
         let new_module = Module::new(&self.current_module_name);
         let mut pass_manager = FunctionPassManager::new(&new_module);
         pass_manager.add_basic_alias_analysis_pass();
