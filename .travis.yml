@@ -8,6 +8,12 @@ rust:
   - stable
   - beta
 
+addons:
+  apt:
+    packages:
+      - llvm-2.9-dev
+      - llvm-2.9-runtime
+
 matrix:
   allow_failures:
     - rust:
@@ -20,9 +26,10 @@ cache:
 notifications:
   email: false
 
-install:
- - cargo install --force cargo-check
+#install:
+# - cargo install --force cargo-check
 
 script:
+  - llvm-config --version
   - cargo check --verbose
   - cargo test --verbose
