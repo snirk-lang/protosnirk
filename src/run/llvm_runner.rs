@@ -17,28 +17,37 @@ pub trait LLVMJIT : ModuleProvider {
     fn run_function(&mut self, func: LLVMValueRef) -> f64;
 }
 
+fn default_pass_manager(module: &Module, optimize: bool) -> FunctionPassManager {
+    let mut pass_manager = FunctionPassManager::new(module);
+    pass_manager.add_basic_alias_analysis_pass();
+    pass_manager.add_CFG_simplification_pass();
+    if optimize {
+        pass_manager.add_instruction_combining_pass();
+        pass_manager.add_reassociate_pass();
+        pass_manager.add_GVN_pass();
+    }
+    pass_manager.initialize();
+    pass_manager
+}
+
 pub struct MCJIT {
     current_module_name: String,
     current_module: Module,
     pass_manager: FunctionPassManager,
+    optimization: bool,
 
     shared_state: Rc<RefCell<LLVMState>>
 }
 
 impl MCJIT {
-    pub fn new(name: String) -> MCJIT {
+    pub fn new(name: String, optimization: bool) -> MCJIT {
         let module = Module::new(&name);
-        let mut pass_manager = FunctionPassManager::new(&module);
-        pass_manager.add_basic_alias_analysis_pass();
-        pass_manager.add_instruction_combining_pass();
-        pass_manager.add_reassociate_pass();
-        pass_manager.add_GVN_pass();
-        pass_manager.add_CFG_simplification_pass();
-        pass_manager.initialize();
+        let pass_manager = default_pass_manager(&module, optimization);
 
         MCJIT {
             current_module_name: name,
             current_module: module,
+            optimization: optimization,
             pass_manager: pass_manager,
             shared_state: Rc::new(RefCell::new(LLVMState::new()))
         }
