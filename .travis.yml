@@ -1,3 +1,4 @@
+dist: trusty
 sudo: false
 
 git:
@@ -11,8 +12,8 @@ rust:
 addons:
   apt:
     packages:
-      - llvm-2.9-dev
-      - llvm-2.9-runtime
+      - llvm-3.6-dev
+      - llvm-3.6-runtime
 
 matrix:
   allow_failures:
@@ -26,8 +27,8 @@ cache:
 notifications:
   email: false
 
-#install:
-# - cargo install --force cargo-check
+install:
+ - cargo install --force cargo-check
 
 script:
   - llvm-config --version
