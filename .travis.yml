@@ -1,5 +1,5 @@
 dist: trusty
-sudo: false
+sudo: required
 
 git:
   depth: 3
@@ -7,28 +7,25 @@ git:
 language: rust
 rust:
   - stable
-  - beta
+#  - beta
 
-addons:
-  apt:
-    packages:
-      - llvm-3.6-dev
-      - llvm-3.6-runtime
+#matrix:
+#  allow_failures:
+#    - rust:
+#        - beta
+#  fast_finish: true
 
-matrix:
-  allow_failures:
-    - rust:
-        - beta
-  fast_finish: true
-
-cache:
- - cargo
+#cache:
+# - cargo
 
 notifications:
   email: false
 
 install:
  - cargo install --force cargo-check
+# - sudo apt-get upgrade
+ - sudo apt-get install llvm-3.6-dev -y
+ - sudo apt-get install llvm-3.6-dev -y
 
 script:
   - llvm-config --version
