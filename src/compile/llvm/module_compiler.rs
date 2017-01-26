@@ -140,7 +140,7 @@ impl<M:ModuleProvider> ExpressionChecker for ModuleCompiler<M> {
         }
     }
 
-    fn check_block(&mut self, block: &Vec<Expression>) {
+    fn check_block(&mut self, block: &Block) {
         trace!("Checking block");
         let fn_ret_double = RealTypeRef::get_float().to_ref();
         let block_fn_type = FunctionTypeRef::get(&fn_ret_double, &mut [], false);
@@ -151,7 +151,7 @@ impl<M:ModuleProvider> ExpressionChecker for ModuleCompiler<M> {
         trace!("Positioned IR builder at the end of entry block");
 
         self.scope_manager.new_scope();
-        for expr in block {
+        for expr in &block.statements {
             self.check_expression(expr)
         }
         self.scope_manager.pop();

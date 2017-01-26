@@ -131,7 +131,7 @@ impl<T: Tokenizer> Parser<T> {
     /// Parse a block of code. This is synonymous with a "program" as programs do not support
     /// nested blocks. Later on, this will be using the lexer's significant whitespace parsing
     /// to support `Indent` and `Outdent` tokens for begin/end blocks.
-    pub fn block(&mut self) -> Result<Vec<Expression>, ParseError> {
+    pub fn block(&mut self) -> Result<Block, ParseError> {
         let mut found = Vec::new();
         loop {
             if self.next_type() == TokenType::EOF {
@@ -140,7 +140,7 @@ impl<T: Tokenizer> Parser<T> {
             let next_expr = try!(self.expression(Precedence::Min));
             found.push(next_expr);
         }
-        return Ok(found)
+        return Ok(Block::new(found))
     }
 
     ///Grab an lvalue from the token stream

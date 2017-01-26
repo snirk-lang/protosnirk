@@ -120,6 +120,7 @@ impl Assignment {
     }
 }
 
+/// Explicit return statement
 #[derive(Debug, PartialEq, Clone)]
 pub struct Return {
     pub token: Token,
@@ -128,6 +129,17 @@ pub struct Return {
 impl Return {
     pub fn new<V: Into<Option<Box<Expression>>>>(token: Token, value: V) -> Return {
         Return { token: token, value: value.into() }
+    }
+}
+
+/// A block of instructions
+#[derive(Debug, PartialEq, Clone)]
+pub struct Block {
+    pub statements: Vec<Expression>
+}
+impl Block {
+    pub fn new(statements: Vec<Expression>) -> Block {
+        Block { statements: statements }
     }
 }
 
@@ -143,8 +155,8 @@ pub enum Expression {
     /// Unary operation
     UnaryOp(UnaryOperation),
 
-    /// Block of statements with a return
-    Block(Vec<Expression>),
+    /// Block of statements with some return expression
+    Block(Block),
 
     // non-expressions should return () or not be allowed in stmt positions later on
 

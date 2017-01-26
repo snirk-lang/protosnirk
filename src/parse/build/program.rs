@@ -7,19 +7,19 @@
 //!
 
 use parse::build::SymbolTable;
-use parse::expression::Expression;
+use parse::expression::Block;
 use parse::verify::ErrorCollector;
 use run::{Instruction, Value};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Program {
-    block: Vec<Expression>,
+    block: Block,
     symbol_table: SymbolTable,
     constants: Vec<Value>,
     errors: ErrorCollector
 }
 impl Program {
-    pub fn new(block: Vec<Expression>, symbol_table: SymbolTable, constants: Vec<Value>, errors: ErrorCollector) -> Program {
+    pub fn new(block: Block, symbol_table: SymbolTable, constants: Vec<Value>, errors: ErrorCollector) -> Program {
         Program {
             block: block,
             symbol_table: symbol_table,
@@ -36,10 +36,10 @@ impl Program {
     pub fn get_constants(&self) -> &Vec<Value> {
         &self.constants
     }
-    pub fn get_block(&self) -> &Vec<Expression> {
+    pub fn get_block(&self) -> &Block {
         &self.block
     }
-    pub fn decompose(self) -> (Vec<Expression>, SymbolTable, Vec<Value>, ErrorCollector) {
+    pub fn decompose(self) -> (Block, SymbolTable, Vec<Value>, ErrorCollector) {
         (self.block, self.symbol_table, self.constants, self.errors)
     }
 }

@@ -70,8 +70,9 @@ pub trait ExpressionChecker {
     #[allow(unused_variables)]
     fn check_var_ref(&mut self, var_ref: &Identifier) {
     }
-    fn check_block(&mut self, block: &Vec<Expression>) {
-        for expr in block {
+
+    fn check_block(&mut self, block: &Block) {
+        for expr in &block.statements {
             self.check_expression(expr);
         }
     }

@@ -225,7 +225,7 @@ impl<T: Tokenizer> PrefixSymbol<T> for BlockParser {
             stmts.push(expr);
         }
         parser.consume(); // Skip over the end block
-        return Ok(Expression::Block(stmts))
+        return Ok(Expression::Block(Block::new(stmts)))
     }
 }
 
