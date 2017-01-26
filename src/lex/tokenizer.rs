@@ -163,7 +163,7 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
             self.tokenizer_state = TokenizerState::ReachedEOF;
             return self.next_eof()
         }
-        let mut peek = peek.expect("checked expect");
+        let mut peek = maybe_peek.expect("checked expect");
 
         // Skip spacing if between tokens.
         // TODO for linting purposes, keep track of spaces used.
@@ -199,7 +199,7 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
             }
             // Peek for the \n
             let expected_newline = self.iter.peek().expect("Already peeked");
-            if expected_newline != "\n" {
+            if expected_newline != '\n' {
                 // TODO need to format i.e. `\t` -> `\\t` here...
                 panic!("Invalid control sequence `\\r{}`", expected_newline);
             }

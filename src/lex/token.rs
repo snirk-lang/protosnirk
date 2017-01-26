@@ -52,7 +52,7 @@ impl Token {
     pub fn newline(location: TextLocation) -> Token {
         Token {
             text: Cow::Borrowed(""),
-            data: TokenData::NewLine,
+            data: TokenData::Newline,
             location: location
         }
     }
@@ -105,7 +105,7 @@ pub enum TokenData {
     /// Indendation of block
     BeginBock,
     /// New line, end of statement
-    NewLine,
+    Newline,
     /// Outdendation of block
     EndBlock,
     /// Token is an EOF
@@ -121,7 +121,9 @@ impl TokenData {
             Ident => TokenType::Ident,
             Keyword => TokenType::Keyword,
             Symbol => TokenType::Symbol,
-            BeginBock | EndBlock | NewLine => TokenType::Block,
+            BeginBock => TokenType::BeginBlock,
+            EndBlock => TokenType::EndBlock,
+            Newline => TokenType::Newline,
             EOF => TokenType::EOF
         }
     }
@@ -142,7 +144,9 @@ pub enum TokenType {
     /// Token is a registered symbol
     Symbol,
     /// Token is a begin/end block
-    Block,
+    BeginBlock,
+    EndBlock,
+    Newline,
     /// Token is an EOF
     EOF
 }
