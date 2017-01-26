@@ -49,6 +49,33 @@ impl Token {
     }
 
     #[inline]
+    pub fn newline(location: TextLocation) -> Token {
+        Token {
+            text: Cow::Borrowed(""),
+            data: TokenData::NewLine,
+            location: location
+        }
+    }
+
+    #[inline]
+    pub fn new_indent(location: TextLocation) -> Token {
+        Token {
+            text: Cow::Borrowed(""),
+            data: TokenData::BeginBock,
+            location: location
+        }
+    }
+
+    #[inline]
+    pub fn new_outdent(location: TextLocation) -> Token {
+        Token {
+            text: Cow::Borrowed(""),
+            data: TokenData::EndBlock,
+            location: location
+        }
+    }
+
+    #[inline]
     pub fn new_eof(location: TextLocation) -> Token {
         Token {
             text: Cow::Borrowed(""),
@@ -75,8 +102,11 @@ pub enum TokenData {
     Keyword,
     /// Token is some symbol
     Symbol,
-
+    /// Indendation of block
     BeginBock,
+    /// New line, end of statement
+    NewLine,
+    /// Outdendation of block
     EndBlock,
     /// Token is an EOF
     EOF
@@ -91,7 +121,7 @@ impl TokenData {
             Ident => TokenType::Ident,
             Keyword => TokenType::Keyword,
             Symbol => TokenType::Symbol,
-            BeginBock | EndBlock => TokenType::Block,
+            BeginBock | EndBlock | NewLine => TokenType::Block,
             EOF => TokenType::EOF
         }
     }

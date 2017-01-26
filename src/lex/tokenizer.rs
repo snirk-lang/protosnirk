@@ -28,12 +28,42 @@ pub fn char_is_symbol(ch: char) -> bool {
     ch.is_symbol()
 }
 
+/// If the character is whitespace, but not newlines.
+pub fn char_is_spacing(ch: char) -> bool {
+    ch != '\r' && ch != '\n' && ch.is_whitespace()
+}
+
+/// Simple state for parser to be in
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum TokenizerState {
+    /// Tokenizing at beginning of line, spacing is `BlockBegin`
+    LookingForIndent,
+    /// Tokenized all indents, getting keywords, symbols, and idents until
+    LookingForNewline,
+    /// Tokenizer reached EOF, only EOF tokens from here
+    ReachedEOF
+}
+
 /// Hacky implementation of a tokenizer.
 pub struct IterTokenizer<I> where I: Iterator<Item=char> {
     /// Keywords registered with the tokenizer
     keywords: HashSet<CowStr>,
     /// Symbols registered with the tokenizer
     symbols: HashMap<CowStr, TokenizerSymbolRule>,
+    /// Ezpexted number of spaces to indent per indentation level.
+    ///
+    /// Derived from first indent used, can emit warnings for
+    /// inconsistent indenting if spaces do not match.
+    expected_indent_length: usize,
+    /// Whether the file is being indented with spaces or tabs.
+    ///
+    /// An error is emitted if tab and space indenting is mized.
+    expected_indent_spaces: bool,
+    /// Whether whitespace is tokenized as indentation
+    tokenizer_state: TokenizerState,
+    /// Stack of indents being made.
+    indent_size_stack: Vec<usize>,
+    /// Peekable iterator over the characters
     iter: PeekTextIter<I>
 }
 
@@ -49,34 +79,148 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
         IterTokenizer {
             keywords: tokens::default_keywords(),
             symbols: tokens::default_symbols(),
+
+            // Will be overridden later when reading file
+            // If first line beins with a space, error
+            expected_indent_length: 0usize,
+            expected_indent_spaces: true,
+            // This will discard spacing at the beginning of a file
+            tokenizer_state: TokenizerState::LookingForNewline,
+            indent_size_stack: vec![0usize],
+
             iter: PeekTextIter::new(input.peekable())
         }
     }
 
     /// Gets the next token from the tokenizer
     pub fn next(&mut self) -> Token {
-        let peek_attempt = self.iter.peek();
-        if !peek_attempt.is_some() {
-            return Token::new_eof(self.iter.get_location())
+        match self.tokenizer_state {
+            TokenizerState::LookingForIndent =>
+                self.next_indent(),
+            TokenizerState::LookingForNewline =>
+                self.next_line(),
+            TokenizerState::ReachedEOF =>
+                self.next_eof()
         }
-        let mut peek = peek_attempt.expect("Checked expect");
-        while peek.is_whitespace() {
+    }
+
+    /// Emit remaining `BlockEnd` and `EOF` tokens
+    fn next_eof(&mut self) -> Token {
+        if self.indent_size_stack.len() > 1usize {
+            self.indent_size_stack.pop();
+            return Token::new_outdent(self.iter.get_location())
+        }
+        return Token::new_eof(self.iter.get_location())
+    }
+
+    /// Get the next `BlockBegin` token(s)
+    fn next_indent(&mut self) -> Token {
+        let peek_attempt = self.iter.peek();
+        if peek_attempt.is_none() {
+            self.tokenizer_state = TokenizerState::ReachedEOF;
+            return self.next_eof()
+        }
+        let mut space_count = 0usize;
+        let mut peeked = peek_attempt.expect("Checked expect");
+        // Take all consecutive spaces
+        while char_is_spacing(peeked) {
             self.iter.next();
-            let next = self.iter.peek();
-            if next.is_none() {
-                return Token::new_eof(self.iter.get_location())
-            } else {
-                peek = next.expect("Checked expect");
+            space_count += 1;
+            let next_peek = self.iter.peek();
+            if next_peek.is_none() {
+                break
+            }
+            peeked = next_peek.expect("checked expect")
+            // TODO error on mixed tabs/spaces
+        }
+        // Now that indents are found, go back to regular tokens.
+        self.tokenizer_state = TokenizerState::LookingForNewline;
+
+        // We've itered over some number of spaces until a non-space.
+        let current_indent = *self.indent_size_stack.last()
+            .expect("Indent stack was missing leading 0");
+
+        // Equal indentation: no starting block, go directly to parsing line
+        if space_count == current_indent {
+            self.next_line()
+        }
+        // Greater Indendation: new block
+        else if space_count > current_indent {
+            self.indent_size_stack.push(space_count);
+            Token::new_indent(self.iter.get_location())
+        }
+        else { // space_count < current_indent
+            self.indent_size_stack.pop();
+            Token::new_outdent(self.iter.get_location())
+        }
+    }
+
+    /// We've parsed all the indentation, so parse tokens until newline,
+    /// then prepare to parse indentation again.
+    fn next_line(&mut self) -> Token {
+        let maybe_peek = self.iter.peek();
+        if maybe_peek.is_none() {
+            self.tokenizer_state = TokenizerState::ReachedEOF;
+            return self.next_eof()
+        }
+        let mut peek = peek.expect("checked expect");
+
+        // Skip spacing if between tokens.
+        // TODO for linting purposes, keep track of spaces used.
+        // Midline tabs are not appreciated, nor are spaces missing
+        // between symbols, in some contexts.
+        while char_is_spacing(peek) {
+            self.iter.next();
+            let next_peek = self.iter.peek();
+            if next_peek.is_none() {
+                self.tokenizer_state = TokenizerState::ReachedEOF;
+                return self.next_eof()
+            }
+            else {
+                peek = next_peek.expect("checked expect")
             }
         }
-        if peek.is_number() {
+
+        // We've eliminated spaces after the last token.
+        // We have the peeked char for the different token parsers to look at.
+
+        // If we have a newline, we need to emit a token for it and go
+        // back to checking idents. This means that empty whitespace at the
+        // end of lines that have text is okay.
+
+        // We handle \r first, then look at the following \n.
+        // TODO warn on mixed \r\n and \n
+        if peek == '\r' {
+            self.iter.next(); // comsume \r
+            // Give an error for \r at EOF
+            if self.iter.peek().is_none() {
+                // TODO error here
+                panic!("Hanging `\\r` at EOF, {:?}", self.iter.get_location());
+            }
+            // Peek for the \n
+            let expected_newline = self.iter.peek().expect("Already peeked");
+            if expected_newline != "\n" {
+                // TODO need to format i.e. `\t` -> `\\t` here...
+                panic!("Invalid control sequence `\\r{}`", expected_newline);
+            }
+            peek = expected_newline; // peeked \n here
+        }
+
+        // We either ran into it after some amount of whitespace, or found it
+        // after `\r`. Line is done, parse the indents on the next one.
+        if peek == '\n' {
+            self.iter.next(); // Original `peek` OR `peek` from the if above
+            self.tokenizer_state = TokenizerState::LookingForIndent;
+            Token::newline(self.iter.get_location())
+        }
+        else if peek.is_number() {
             self.parse_float_literal()
         } else if peek.is_letter() {
             self.parse_keyword_or_ident()
         } else if char_is_symbol(peek) {
             self.parse_symbol()
         } else {
-            panic!("Got unknown character {:?}", peek);
+            panic!("Unknown character `{:?}` in next_line", peek);
         }
     }
 
@@ -97,6 +241,9 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
             } else {
                 more = false;
             }// Infinite loop??
+            // We can take newlines off of comments in symbol parsing.
+            // The newlines at the end of comments shouldn't show up
+            // as tokens anyway.
             if sym.starts_with("///") {
                 // doc comment - will be implemented later on
                 self.take_while(|ch| ch != '\n', &mut sym);
@@ -133,7 +280,7 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
                     self.iter.next();
                     return Token::new_symbol(sym, location);
                 },
-                // We have more to go, consume what we peeked and look forward.
+                // We have more to go, consume what we peeked and continue the loop
                 Some(CompletePrefix) | Some(Partial) => {
                     if !more {
                         return Token::new_symbol(sym, location)
@@ -144,6 +291,7 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
         }
     }
 
+    /// Parse keyword or identifier
     fn parse_keyword_or_ident(&mut self) -> Token {
         let mut token_string = String::new();
         let location = self.iter.get_location();

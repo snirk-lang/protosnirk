@@ -116,7 +116,7 @@ impl<T: Tokenizer> Parser<T> {
         let mut left = try!(prefix.parse(self, token));
         trace!("Parsed left expression: {:?}", left);
         while precedence < self.current_precedence() {
-            trace!("Checking thatn {:?} < {:?}", precedence, self.current_precedence());
+            trace!("Checking that {:?} < {:?}", precedence, self.current_precedence());
             token = self.consume();
             trace!("Continuing with {}", token);
             if let Some(infix) = self.infix_parsers.get(&(token.data.get_type(), Cow::Borrowed(&*token.text))).map(Rc::clone) {
