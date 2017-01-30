@@ -32,12 +32,12 @@ fn all_math_operators() {
         let mut y = -x - 1 \n\
         let z = 2 \n\
         y += z \n\
-        let mut a = 5 % -2
-        a *= 2
-        a /= 2
-        a %= 1
-        a = a + 1
-        y += a
+        let mut a = 5 % -2 \n\
+        a *= 2 \n\
+        a /= 2 \n\
+        a %= 1 \n\
+        a = a + 1 \n\
+        y += a \n\
         return y - 2";
     assert_eq!(run_program(program), Value(0f64));
 }

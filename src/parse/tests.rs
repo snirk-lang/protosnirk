@@ -190,7 +190,7 @@ fn it_parses_a_multi_statement_block() {
             })))
         })
     ];
-    assert_eq!(block, expected, "Got {:#?}", block);
+    assert_eq!(block.statements, expected, "Got {:#?}", block);
 }
 
 #[test]
@@ -298,5 +298,5 @@ fn it_parses_pemdas() {
             data: TokenData::Ident
         }
     })];
-    assert_eq!(block.unwrap(), expected);
+    assert_eq!(block.unwrap().statements, expected);
 }

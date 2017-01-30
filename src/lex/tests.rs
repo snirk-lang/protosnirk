@@ -380,23 +380,6 @@ fn it_grabs_float_literal() {
 }
 
 #[test]
-fn it_ignores_whitespace() {
-    let input = "\n\t\r\n";
-    let mut tokenizer = make_tokenizer(input);
-    match_tokens!(tokenizer {
-        Token {
-            data: TokenData::EOF,
-            text: Cow::Borrowed(""),
-            location: TextLocation {
-                index: 4,
-                line: 2,
-                column: 0
-            }
-        }
-    });
-}
-
-#[test]
 fn it_ignores_line_comment() {
     let input =
     "//comment\nlet x";
