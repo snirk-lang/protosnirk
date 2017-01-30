@@ -4,7 +4,7 @@
 //! source tree.
 
 use std::borrow::{Cow, BorrowMut};
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::rc::Rc;
 use std::cell::Cell;
 
@@ -19,8 +19,8 @@ use parse::build::Program;
 pub struct Parser<T: Tokenizer> {
     /// Tokenizer which supplies tokens
     tokenizer: T,
-    /// Lookahead stack for peeking
-    lookahead: Vec<Token>,
+    /// Lookahead queue for peeking
+    lookahead: VecDeque<Token>,
     /// Parsers used for infix symbols
     infix_parsers: HashMap<(TokenType, CowStr), Rc<InfixSymbol<T> + 'static>>,
     /// Parsers used for prefix symbols
@@ -64,7 +64,7 @@ impl<T: Tokenizer> Parser<T> {
     /// Consumes the next token from the tokenizer.
     pub fn consume(&mut self) -> Token {
         self.look_ahead(1usize);
-        self.lookahead.pop()
+        self.lookahead.pop_back()
             .expect("Unable to queue token via lookahead for consume")
     }
 
@@ -86,7 +86,7 @@ impl<T: Tokenizer> Parser<T> {
         while count > self.lookahead.len() {
             let next = self.tokenizer.next();
             if self.indent_rules.is_empty() {
-                self.lookahead.push(next);
+                self.lookahead.push_front(next);
             }
             else {
                 let indent_rule = self.indent_rules.last().cloned()
@@ -288,7 +288,7 @@ impl<T: Tokenizer> Parser<T> {
 
         Parser {
             tokenizer: tokenizer,
-            lookahead: Vec::with_capacity(2usize),
+            lookahead: VecDeque::new(),
             infix_parsers: infix_map,
             prefix_parsers: prefix_map,
             token_operators: operator_map,
