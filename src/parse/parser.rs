@@ -8,14 +8,12 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use std::cell::Cell;
 
-use lex::{CowStr, Token, TokenType, Tokenizer};
+use lex::{CowStr, Token, TokenType, TokenData, Tokenizer};
 use parse::{Operator, Precedence, ParseError, ParseResult};
 use parse::expression::*;
 use parse::symbol::*;
 use parse::verify::Verifier;
 use parse::build::Program;
-
-pub type TokenParseResult = Result<(Token, Option<ParserIndentRef>), ParseError>;
 
 /// Parser object which parses things
 pub struct Parser<T: Tokenizer> {
@@ -29,15 +27,40 @@ pub struct Parser<T: Tokenizer> {
     prefix_parsers: HashMap<(TokenType, CowStr), Rc<PrefixSymbol<T> + 'static>>,
     /// Mapping of tokens to applied operators
     token_operators: HashMap<(TokenType, CowStr), Operator>,
-    /// How many `BlockEnd` tokens the parser needs to skip over. This field is
-    /// used by the ParserIndentRef struct for RAII handling of indendation.
-    ///
-    /// This is determined by the symbol handlers, which may use
-    /// "indent-peekahead" to ignore the indentation of a block, at least temporarily.
-    skipped_deindents: Rc<Cell<u32>>
+    /// Allows the parser to skip over unneeded indentation
+    indent_rules: Vec<IndentationRule>
 }
 
 impl<T: Tokenizer> Parser<T> {
+
+    /// Peeks at the next available token
+    pub fn peek(&mut self) -> &Token {
+        self.look_ahead(1usize)
+    }
+
+    /// Peeks at the next available token
+    pub fn peek_around_indent(&mut self) -> (bool, &Token) {
+        let mut indent = false;
+        for size in 1usize.. {
+            let peeked_type = self.look_ahead(size).data.get_type();
+            if peeked_type != TokenType::BeginBlock &&
+                peeked_type != TokenType::EndBlock {
+                return (indent, self.look_ahead(size))
+            }
+            else {
+                indent = true;
+            }
+        }
+        unreachable!()
+    }
+
+    /// Determines if the next token to be peeked at is on a different
+    // line
+    pub fn peek_is_newline(&mut self, current: &Token) -> bool {
+        let peeked = self.look_ahead(1usize);
+        peeked.location.line > current.location.line
+    }
+
     /// Consumes the next token from the tokenizer.
     pub fn consume(&mut self) -> Token {
         self.look_ahead(1usize);
@@ -45,21 +68,63 @@ impl<T: Tokenizer> Parser<T> {
             .expect("Unable to queue token via lookahead for consume")
     }
 
+    /// Consume the next token, returning whether the given rule has been
+    /// applied.
+    pub fn consume_with_rule(&mut self, rule: IndentationRule) -> (bool, Token) {
+        let next = self.consume();
+        if next.data.get_type() == TokenType::BeginBlock {
+            self.indent_rules.push(rule);
+            (true, self.consume())
+        } else {
+            (false, next)
+        }
+    }
+
     /// Grab `count` more tokens from the lexer and return the last one.
-    ///
-    /// Usually called with `0usize` to just peek at the next one.
     pub fn look_ahead(&mut self, count: usize) -> &Token {
         debug_assert!(count != 0, "Cannot look ahead 0");
         while count > self.lookahead.len() {
             let next = self.tokenizer.next();
-            self.lookahead.push(next);
+            if self.indent_rules.is_empty() {
+                self.lookahead.push(next);
+            }
+            else {
+                let indent_rule = self.indent_rules.last().cloned()
+                    .expect("checked expect");
+                match indent_rule {
+                    // Ignore indentation until match found
+                    IndentationRule::UntilToken(_indent_type) => {
+                        unimplemented!()
+                    },
+                    // Negate the next EndBlock
+                    IndentationRule::NegateDeindent => {
+                        if next.data.get_type() == TokenType::EndBlock {
+                            self.indent_rules.pop();
+                            continue
+                        }
+                    },
+                    // ????
+                    IndentationRule::ResetIndentation => {
+
+                    },
+                    // ????
+                    IndentationRule::ClearIndentation => {
+
+                    },
+                    // Negate all the indentation
+                    IndentationRule::DisableIndentation => {
+                        if next.data.get_type() == TokenType::BeginBlock
+                            || next.data.get_type() == TokenType::EndBlock {
+                            continue
+                        }
+                    },
+                    IndentationRule::None | IndentationRule::ExpectNoIndent => {
+                        unreachable!("Invalid IndentationRule found its way onto the stack")
+                    }
+                }
+            }
         }
         &self.lookahead[count - 1]
-    }
-
-    /// Peeks at the next available token
-    pub fn peek(&mut self) -> &Token {
-        self.look_ahead(1usize)
     }
 
     /// Attempts to match the next token from the tokenizer with the given type.
@@ -92,9 +157,7 @@ impl<T: Tokenizer> Parser<T> {
 
     /// Peek at the next token without consuming it.
     pub fn next_type(&mut self) -> TokenType {
-        self.look_ahead(1usize);
-        self.lookahead[0]
-            .data.get_type()
+        self.peek().data.get_type()
     }
 
     /// Parses any expression with the given precedence.
@@ -229,10 +292,11 @@ impl<T: Tokenizer> Parser<T> {
             infix_parsers: infix_map,
             prefix_parsers: prefix_map,
             token_operators: operator_map,
-            skipped_deindents: Default::default()
+            indent_rules: Vec::new()
         }
     }
 
+    /// Parse a block and verify it for errors
     pub fn parse_program(&mut self) -> Result<Program, ParseError> {
         let block = try!(self.block());
         let program = Verifier { }.verify_program(block);
@@ -261,32 +325,20 @@ impl<T: Tokenizer> Parser<T> {
     }
 }
 
-pub enum ParseBlock {
-    Inline,
-    Skip,
-}
-
-#[derive(Debug)]
-pub struct ParserIndentRef {
-    deindent_count: u32,
-    parser_deindent: Rc<Cell<u32>>
-}
-impl ParserIndentRef {
-    /// Disables the RAII that this reference will do.
-    pub fn invalidate(&mut self) {
-        self.deindent_count = 0;
-    }
-    pub fn combine(&mut self, other: Option<ParserIndentRef>) {
-        if let Some(mut other) = other {
-            self.deindent_count += other.deindent_count;
-            other.invalidate();
-        }
-    }
-}
-impl Drop for ParserIndentRef {
-    fn drop(&mut self) {
-        if self.deindent_count != 0 {
-            self.parser_deindent.set(self.parser_deindent.get() + self.deindent_count);
-        }
-    }
+#[derive(Debug, Clone)]
+pub enum IndentationRule {
+    /// Ignore indentation until a matching token is consumed
+    UntilToken(TokenData),
+    /// Remove the next indentation found
+    NegateDeindent,
+    /// Ignore all indent/deindent tokens
+    DisableIndentation,
+    /// Push back any saved indentation
+    ResetIndentation,
+    /// Clear any indentation encountered
+    ClearIndentation,
+    /// Compiler should emit indentation errors
+    ExpectNoIndent,
+    /// Receive all whitespace tokens
+    None,
 }
