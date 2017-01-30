@@ -136,7 +136,7 @@ impl<T: Tokenizer> PrefixSymbol<T> for DeclarationParser {
         println!("Found mutability: {}", is_mutable);
         let name = try!(parser.lvalue());
         println!("Got name {:?}", name);
-        try!(parser.try_consume_name(TokenType::Symbol, tokens::Equals));
+        try!(parser.consume_name(TokenType::Symbol, tokens::Equals));
         println!("Consumed =");
         println!("Parsing an expression");
         let value_expr = try!(parser.expression(Precedence::Min));
@@ -185,7 +185,7 @@ impl<T: Tokenizer> PrefixSymbol<T> for ParensParser {
                       "Parens parser called with non-left-paren {:?}", _token);
         let inner_expr = try!(parser.expression(Precedence::Min));
         let inner = try!(inner_expr.expect_value());
-        try!(parser.try_consume_name(TokenType::Symbol, tokens::RightParen));
+        try!(parser.consume_name(TokenType::Symbol, tokens::RightParen));
         Ok(inner)
     }
 }

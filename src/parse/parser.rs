@@ -39,7 +39,7 @@ impl<T: Tokenizer> Parser<T> {
     }
 
     /// Peeks at the next available token
-    pub fn peek_around_indent(&mut self) -> (bool, &Token) {
+    pub fn peek_indented(&mut self) -> (bool, &Token) {
         let mut indent = false;
         for size in 1usize.. {
             let peeked_type = self.look_ahead(size).data.get_type();
@@ -57,8 +57,8 @@ impl<T: Tokenizer> Parser<T> {
     /// Determines if the next token to be peeked at is on a different
     // line
     pub fn peek_is_newline(&mut self, current: &Token) -> bool {
-        let peeked = self.look_ahead(1usize);
-        peeked.location.line > current.location.line
+        let (indent, peeked) = self.peek_indented();
+        indent || peeked.location.line > current.location.line
     }
 
     /// Consumes the next token from the tokenizer.
@@ -70,7 +70,7 @@ impl<T: Tokenizer> Parser<T> {
 
     /// Consume the next token, returning whether the given rule has been
     /// applied.
-    pub fn consume_with_rule(&mut self, rule: IndentationRule) -> (bool, Token) {
+    pub fn consume_indented(&mut self, rule: IndentationRule) -> (bool, Token) {
         let next = self.consume();
         if next.data.get_type() == TokenType::BeginBlock {
             self.indent_rules.push(rule);
@@ -81,6 +81,8 @@ impl<T: Tokenizer> Parser<T> {
     }
 
     /// Grab `count` more tokens from the lexer and return the last one.
+    ///
+    /// This core method applies all indentation rules
     pub fn look_ahead(&mut self, count: usize) -> &Token {
         debug_assert!(count != 0, "Cannot look ahead 0");
         while count > self.lookahead.len() {
@@ -128,7 +130,7 @@ impl<T: Tokenizer> Parser<T> {
     }
 
     /// Attempts to match the next token from the tokenizer with the given type.
-    pub fn try_consume_type(&mut self, expected_type: TokenType) -> Result<Token, ParseError> {
+    pub fn consume_type(&mut self, expected_type: TokenType) -> Result<Token, ParseError> {
         let token = self.consume();
         if token.data.get_type() != expected_type {
             Err(ParseError::ExpectedToken {
@@ -141,23 +143,66 @@ impl<T: Tokenizer> Parser<T> {
         }
     }
 
+    pub fn consume_type_indented(&mut self, expected_type: TokenType, rule: IndentationRule)
+        -> Result<(bool, Token), ParseError> {
+            let (indented, token) = self.consume_indented(rule);
+            if token.data.get_type() != expected_type {
+                Err(ParseError::ExpectedToken {
+                    expected: expected_type,
+                    got: token.into()
+                })
+            }
+            else {
+                Ok((indented, token))
+            }
+        }
+
     /// Attempts to match the next token from the tokenizer with the given type and name.
-    pub fn try_consume_name(&mut self, expected_type: TokenType, expected_name: CowStr)
+    pub fn consume_name(&mut self, expected_type: TokenType, expected_name: CowStr)
             -> Result<Token, ParseError> {
-        let token = try!(self.try_consume_type(expected_type));
+        let token = try!(self.consume_type(expected_type));
         if token.text != expected_name {
             Err(ParseError::ExpectedToken {
                 expected: expected_type,
                 got: token.into()
             })
-        } else {
+        }
+        else {
             Ok(token)
+        }
+    }
+
+    /// Attempt to match the next token by name, applying the given rule
+    /// if whitespace is found.
+    pub fn consume_name_indented(&mut self,
+                                 expected_type: TokenType,
+                                 expected_name: CowStr,
+                                 rule: IndentationRule) -> Result<(bool, Token), ParseError> {
+        let (applied, token) = try!(self.consume_type_indented(expected_type, rule));
+        if token.text != expected_name {
+            Err(ParseError::ExpectedToken {
+                expected: expected_type,
+                got: token.into()
+            })
+        }
+        else {
+            Ok((applied, token))
         }
     }
 
     /// Peek at the next token without consuming it.
     pub fn next_type(&mut self) -> TokenType {
         self.peek().data.get_type()
+    }
+
+    /// Push an indentation rule manually onto the stack
+    pub fn push_rule(&mut self, rule: IndentationRule) {
+        self.indent_rules.push(rule);
+    }
+
+    /// Pop an indentation rule manually from the stack
+    pub fn pop_rule(&mut self) -> Option<IndentationRule> {
+        self.indent_rules.pop()
     }
 
     /// Parses any expression with the given precedence.
