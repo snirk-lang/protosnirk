@@ -1,13 +1,14 @@
-mod block;
 mod expression;
 mod item;
 mod stmt;
 
-pub use self::block::*;
 pub use self::expression::*;
 pub use self::item::*;
 pub use self::stmt::*;
 
+use lex::Token;
+
+/// Basic identifier type
 #[derive(Debug, PartialEq, Clone)]
 pub struct Identifier {
     pub token: Token
@@ -26,6 +27,7 @@ impl Into<Token> for Identifier {
     }
 }
 
+/// Collection of statements which may have an expression value
 #[derive(Debug, PartialEq, Clone)]
 pub struct Block {
     pub statements: Vec<Expression>

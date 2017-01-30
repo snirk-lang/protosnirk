@@ -1,12 +1,11 @@
 //! Error handling in parsers
 
 use lex::{CowStr, Token, TokenType};
-use parse::expression::{Expression, ExpressionType};
+use parse::ast::{Expression};
 use parse::verify::ErrorCollector;
 
 /// Result given from main and expression parsers
-pub type ParseResult = Result<Expression, ParseError>;
-
+pub type ParseResult<T> = Result<T, ParseError>;
 
 /// Error given from parsers
 #[derive(Debug, Clone, PartialEq)]
@@ -16,7 +15,7 @@ pub enum ParseError {
         got: Token
     },
     ExpectedExpression {
-        expected: ExpressionType,
+        expected: ExpectedNextType,
         got: Expression
     },
     ExpectedLValue(Expression),
@@ -29,4 +28,14 @@ pub enum ParseError {
         token_type: TokenType
     },
     LazyString(String)
+}
+
+/// Information of what the parser was expecting to get
+pub enum ExpectedNextType {
+    AnyStatement,
+    AnyExpression,
+    AnyItem,
+    Lvalue,
+    Rvalue,
+    SpecificToken(CowStr),
 }

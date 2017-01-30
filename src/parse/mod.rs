@@ -1,6 +1,6 @@
 mod errors;
 mod operator;
-pub mod expression;
+pub mod ast;
 mod parser;
 mod precedence;
 mod build;

@@ -1,14 +1,22 @@
-/// Expression values
-///
-/// Expression values are used in the `Expression` and `Statement` contexts.
-/// They are usually emitted as asm instructions operating on variables.
+//! Expression values
+//!
+//! Expression values are used in the `Expression` and `Statement` contexts.
+//! They are usually emitted as asm instructions operating on variables.
+
+use lex::{Token, TokenType, TokenData};
+use parse::ast::Identifier;
+use parse::operator::Operator;
 
 /// Expression types
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expression {
+    /// Literal value expression
     Literal(Literal),
+    /// Variable reference
     VariableRef(Identifier),
+    /// Binary operation
     BinaryOp(BinaryOperation),
+    /// Unary operation
     UnaryOp(UnaryOperation),
 }
 

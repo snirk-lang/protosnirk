@@ -5,7 +5,9 @@
 /// `Expression`s are because of their ability to use indentation.
 
 use lex::{CowStr, Token, TokenData, TokenType};
+use parse::ast::{Expression, Block, Identifier};
 
+/// Statement representation
 #[derive(Debug, PartialEq, Clone)]
 pub enum Statement {
     Expression(Expression),
@@ -18,9 +20,9 @@ pub enum Statement {
 impl Statement {
     pub fn has_value(&self) -> bool {
         match *self {
-            Statement::Expression => true,
-            Statement::Assignment => false,
-            Statement::DoBlock => true // TODO inner has value
+            Statement::Expression(_) => true,
+            Statement::Assignment(_) => false,
+            Statement::DoBlock(ref inner) => inner.has_value(),
         }
     }
 }
@@ -60,9 +62,10 @@ impl Assignment {
 }
 
 /// Do <block> statement.
+#[derive(Debug, PartialEq, Clone)]
 pub struct DoBlock {
     pub do_token: Token,
-    pub value: Box<Block>
+    pub block: Box<Block>
 }
 impl DoBlock {
 }
