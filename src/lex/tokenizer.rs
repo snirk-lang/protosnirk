@@ -142,7 +142,7 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
 
         // Equal indentation: no starting block, go directly to parsing line
         if space_count == current_indent {
-            self.next_line()
+            self.next_line() // Mutually recursive for empty lines
         }
         // Greater Indendation: new block
         else if space_count > current_indent {
@@ -211,7 +211,7 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
         if peek == '\n' {
             self.iter.next(); // Original `peek` OR `peek` from the if above
             self.tokenizer_state = TokenizerState::LookingForIndent;
-            Token::newline(self.iter.get_location())
+            self.next_indent() // Mutually recursive for emtpy lines
         }
         else if peek.is_number() {
             self.parse_float_literal()

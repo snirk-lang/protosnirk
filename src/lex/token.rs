@@ -49,15 +49,6 @@ impl Token {
     }
 
     #[inline]
-    pub fn newline(location: TextLocation) -> Token {
-        Token {
-            text: Cow::Borrowed(""),
-            data: TokenData::Newline,
-            location: location
-        }
-    }
-
-    #[inline]
     pub fn new_indent(location: TextLocation) -> Token {
         Token {
             text: Cow::Borrowed(""),
@@ -104,8 +95,6 @@ pub enum TokenData {
     Symbol,
     /// Indendation of block
     BeginBock,
-    /// New line, end of statement
-    Newline,
     /// Outdendation of block
     EndBlock,
     /// Token is an EOF
@@ -123,7 +112,6 @@ impl TokenData {
             Symbol => TokenType::Symbol,
             BeginBock => TokenType::BeginBlock,
             EndBlock => TokenType::EndBlock,
-            Newline => TokenType::Newline,
             EOF => TokenType::EOF
         }
     }
@@ -146,7 +134,6 @@ pub enum TokenType {
     /// Token is a begin/end block
     BeginBlock,
     EndBlock,
-    Newline,
     /// Token is an EOF
     EOF
 }
