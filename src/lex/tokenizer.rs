@@ -57,7 +57,7 @@ pub struct IterTokenizer<I> where I: Iterator<Item=char> {
     expected_indent_length: usize,
     /// Whether the file is being indented with spaces or tabs.
     ///
-    /// An error is emitted if tab and space indenting is mized.
+    /// An error is emitted if tab and space indenting is mixed.
     expected_indent_spaces: bool,
     /// Whether whitespace is tokenized as indentation
     tokenizer_state: TokenizerState,
@@ -68,6 +68,7 @@ pub struct IterTokenizer<I> where I: Iterator<Item=char> {
 }
 
 impl<I: Iterator<Item=char>> Tokenizer for IterTokenizer<I> {
+    #[inline]
     fn next(&mut self) -> Token {
         self.next()
     }

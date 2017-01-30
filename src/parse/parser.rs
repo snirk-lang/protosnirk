@@ -3,9 +3,10 @@
 //! The parser is a configurable object which parses a stream of tokens into a
 //! source tree.
 
-use std::borrow::Cow;
+use std::borrow::{Cow, BorrowMut};
 use std::collections::HashMap;
 use std::rc::Rc;
+use std::cell::Cell;
 
 use lex::{CowStr, Token, TokenType, Tokenizer};
 use parse::{Operator, Precedence, ParseError, ParseResult};
@@ -13,6 +14,8 @@ use parse::expression::*;
 use parse::symbol::*;
 use parse::verify::Verifier;
 use parse::build::Program;
+
+pub type TokenParseResult = Result<(Token, Option<ParserIndentRef>), ParseError>;
 
 /// Parser object which parses things
 pub struct Parser<T: Tokenizer> {
@@ -25,7 +28,13 @@ pub struct Parser<T: Tokenizer> {
     /// Parsers used for prefix symbols
     prefix_parsers: HashMap<(TokenType, CowStr), Rc<PrefixSymbol<T> + 'static>>,
     /// Mapping of tokens to applied operators
-    token_operators: HashMap<(TokenType, CowStr), Operator>
+    token_operators: HashMap<(TokenType, CowStr), Operator>,
+    /// How many `BlockEnd` tokens the parser needs to skip over. This field is
+    /// used by the ParserIndentRef struct for RAII handling of indendation.
+    ///
+    /// This is determined by the symbol handlers, which may use
+    /// "indent-peekahead" to ignore the indentation of a block, at least temporarily.
+    skipped_deindents: Rc<Cell<u32>>
 }
 
 impl<T: Tokenizer> Parser<T> {
@@ -96,6 +105,10 @@ impl<T: Tokenizer> Parser<T> {
         if token.data.get_type() == TokenType::EOF {
             trace!("Parsing received EOF!");
             return Err(ParseError::LazyString(format!("got eof?")));
+        }
+        else if token.data.get_type() == TokenType::EndBlock {
+            trace!("Received end block mid-parse");
+            return Err(ParseError::LazyString("Unexpected EndBlock".to_string()))
         }
         else if token.data.get_type() == TokenType::Ident {
             trace!("Parsing an identifier, using the identifier parser");
@@ -215,7 +228,8 @@ impl<T: Tokenizer> Parser<T> {
             lookahead: Vec::with_capacity(2usize),
             infix_parsers: infix_map,
             prefix_parsers: prefix_map,
-            token_operators: operator_map
+            token_operators: operator_map,
+            skipped_deindents: Default::default()
         }
     }
 
@@ -236,12 +250,43 @@ impl<T: Tokenizer> Parser<T> {
         let lookup: (TokenType, CowStr);
         {
             let looked_ahead = self.look_ahead(1);
-            lookup = (looked_ahead.data.get_type(), Cow::Owned(looked_ahead.text.deref().into()));
+            lookup = (looked_ahead.data.get_type(),
+                      Cow::Owned(looked_ahead.text.deref().into()));
         }
         if let Some(infix_parser) = self.infix_parsers.get(&lookup) {
             infix_parser.get_precedence()
         } else {
             Precedence::Min
+        }
+    }
+}
+
+pub enum ParseBlock {
+    Inline,
+    Skip,
+}
+
+#[derive(Debug)]
+pub struct ParserIndentRef {
+    deindent_count: u32,
+    parser_deindent: Rc<Cell<u32>>
+}
+impl ParserIndentRef {
+    /// Disables the RAII that this reference will do.
+    pub fn invalidate(&mut self) {
+        self.deindent_count = 0;
+    }
+    pub fn combine(&mut self, other: Option<ParserIndentRef>) {
+        if let Some(mut other) = other {
+            self.deindent_count += other.deindent_count;
+            other.invalidate();
+        }
+    }
+}
+impl Drop for ParserIndentRef {
+    fn drop(&mut self) {
+        if self.deindent_count != 0 {
+            self.parser_deindent.set(self.parser_deindent.get() + self.deindent_count);
         }
     }
 }
