@@ -11,7 +11,7 @@ pub mod symbol;
 pub mod tests;
 
 pub use self::errors::{ParseError, ParseResult};
-pub use self::parser::Parser;
+pub use self::parser::{Parser, IndentationRule};
 pub use self::precedence::Precedence;
 pub use self::operator::Operator;
 

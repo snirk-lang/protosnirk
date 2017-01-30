@@ -6,7 +6,7 @@
 use std::rc::Rc;
 
 use lex::{tokens, Token, TokenType, TokenData, Tokenizer};
-use parse::{Parser, ParseResult, ParseError, Precedence};
+use parse::{Parser, ParseResult, ParseError, Precedence, IndentationRule};
 use parse::expression::*;
 
 /// A parser which parses an operator that is a prefix operator.
@@ -239,6 +239,7 @@ impl<T: Tokenizer> PrefixSymbol<T> for BlockParser {
 /// ^lvalue  ^op  ^rvalue
 /// ```
 /// This will be parsed as `Assignment { Var { 'x' }, BinaryOp { +, Var { x }, Literal(5) } }`
+#[derive(Debug)]
 pub struct AssignOpParser { }
 impl<T: Tokenizer> InfixSymbol<T> for AssignOpParser {
     fn parse(&self, parser: &mut Parser<T>, left: Expression, token: Token) -> ParseResult {
@@ -252,5 +253,34 @@ impl<T: Tokenizer> InfixSymbol<T> for AssignOpParser {
     }
     fn get_precedence(&self) -> Precedence {
         Precedence::Assign
+    }
+}
+
+/// Parses a block statement using the prefix symol `do`.
+///
+/// # Examples
+/// ```text
+/// do    \+    let x = 0 stmt*
+/// ^take ^take ^block
+///
+/// do     x += 5
+/// ^take  ^expr
+/// ```
+/// Produces `Expression::Block`s.
+#[derive(Debug)]
+pub struct DoBlockParser { }
+impl <T: Tokenizer> PrefixSymbol<T> for DoBlockParser {
+    fn parse(&self, parser: &mut Parser<T>, token: Token) -> ParseResult {
+        debug_assert!(token.text == "do",
+            "Invalid token {:?} in DoBlockParser", token);
+        if parser.next_type() == TokenType::BeginBlock {
+            parser.consume();
+            let block = try!(parser.block());
+            Ok(Expression::Block(block))
+        }
+        else { // Allow for inline form `do <expr>`
+            let expr = try!(parser.expression(Precedence::Min));
+            Ok(expr)
+        }
     }
 }

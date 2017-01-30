@@ -206,9 +206,12 @@ impl<T: Tokenizer> Parser<T> {
     }
 
     /// Parses any expression with the given precedence.
+    ///
+    /// This parser will push a `NegateDeindent` rule to the rule stack.
     pub fn expression(&mut self, precedence: Precedence) -> Result<Expression, ParseError> {
-        let mut token = self.consume();
+        let (_indented, mut token) = self.consume_indented(IndentationRule::NegateDeindent);
         trace!("Parsing expression(precedence={:?}) with {}", precedence, token);
+        if _indented { trace!("Parsing indented expression"); }
         let prefix: Rc<PrefixSymbol<T> + 'static>;
         if token.data.get_type() == TokenType::EOF {
             trace!("Parsing received EOF!");
@@ -238,24 +241,36 @@ impl<T: Tokenizer> Parser<T> {
         trace!("Parsed left expression: {:?}", left);
         while precedence < self.current_precedence() {
             trace!("Checking that {:?} < {:?}", precedence, self.current_precedence());
-            token = self.consume();
-            trace!("Continuing with {}", token);
+            // We allow indentation before any infix operator in expression!
+            let (_infix_indented, new_token) = self.consume_indented(IndentationRule::NegateDeindent);
+            token = new_token;
+            trace!("Continuing with {}, indentation: {}", token, _infix_indented);
             if let Some(infix) = self.infix_parsers.get(&(token.data.get_type(), Cow::Borrowed(&*token.text))).map(Rc::clone) {
                 trace!("Parsing via infix parser!");
                 left = try!(infix.parse(self, left, token));
             }
         }
         trace!("Done parsing expression");
+        
         Ok(left)
     }
 
-    /// Parse a block of code. This is synonymous with a "program" as programs do not support
+    /// Parse a block of code.
+    ///
+    /// This is synonymous with a "program" as programs do not support
     /// nested blocks. Later on, this will be using the lexer's significant whitespace parsing
     /// to support `Indent` and `Outdent` tokens for begin/end blocks.
+    ///
+    /// Block parsing assumes the `BeginBlock` token has already been consumed.
     pub fn block(&mut self) -> Result<Block, ParseError> {
         let mut found = Vec::new();
         loop {
-            if self.next_type() == TokenType::EOF {
+            let next_type = self.next_type();
+            if next_type == TokenType::EOF {
+                break
+            }
+            else if next_type == TokenType::EndBlock {
+                self.consume();
                 break
             }
             let next_expr = try!(self.expression(Precedence::Min));
