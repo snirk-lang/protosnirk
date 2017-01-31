@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 
 use lex::Token;
-use parse::expression::Declaration;
+use parse::ast::Declaration;
 
 pub type SymbolTable = HashMap<String, Symbol>;
 

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use parse::{Operator, ExpressionChecker, SymbolTable};
+use parse::{Operator, ASTVisitor, SymbolTable};
 use parse::ast::*;
 use compile::llvm::{LLVMContext, ModuleProvider, LexicalScopeManager};
 
@@ -36,7 +36,7 @@ impl<M: ModuleProvider> ModuleCompiler<M> {
         (self.module_provider, self.context, self.symbols)
     }
 }
-impl<M:ModuleProvider> ExpressionChecker for ModuleCompiler<M> {
+impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
     fn check_literal(&mut self, literal: &Literal) {
         trace!("Checking literal {}", literal.token);
         let float_type = RealTypeRef::get_float();

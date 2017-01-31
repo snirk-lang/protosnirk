@@ -1,6 +1,7 @@
+use parse::ASTVisitor;
 use parse::ast::{Expression, Block};
 use parse::build::{SymbolTable, Program};
-use parse::verify::{ExpressionChecker, ErrorCollector};
+use parse::ErrorCollector;
 use parse::verify::checker::*;
 
 /// Runs verifications against code

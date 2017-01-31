@@ -1,4 +1,4 @@
-use parse::{Program, ExpressionChecker};
+use parse::{Program, ASTVisitor};
 use run::{self, Chunk};
 use super::chunk_creator::ChunkCreator;
 

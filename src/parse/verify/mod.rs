@@ -67,7 +67,6 @@
 //!     ^ `var` is declared but not used
 //! return y
 //! ```
-mod expression_checker;
 pub mod checker;
 mod verification_result;
 mod collector;
@@ -76,4 +75,3 @@ mod verifier;
 pub use self::collector::ErrorCollector;
 pub use self::verifier::Verifier;
 pub use self::verification_result::VerifyError;
-pub use self::expression_checker::ExpressionChecker;

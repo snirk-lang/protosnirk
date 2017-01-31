@@ -20,8 +20,7 @@ impl Statement {
         match *self {
             Statement::Expression(ref inner) => inner.has_value(),
             Statement::DoBlock(ref inner) => inner.has_value(),
-            Statement::Return(ref inner) =>
-                inner.value.map(|expr| expr.has_value()).unwrap_or(false)
+            Statement::Return(ref return_) => return_.has_value()
         }
     }
 }
@@ -35,6 +34,14 @@ pub struct Return {
 impl Return {
     pub fn new<V: Into<Option<Box<Expression>>>>(token: Token, value: V) -> Return {
         Return { token: token, value: value.into() }
+    }
+    pub fn has_value(&self) -> bool {
+        if let Some(ref val) = self.value {
+            val.has_value()
+        }
+        else {
+            false
+        }
     }
 }
 

@@ -9,7 +9,7 @@ use parse::ast::Expression as BaseExpression;
 use super::{ErrorCollector, VerifyError};
 
 /// Trait for expression checkers: visitors on the expression tree.
-pub trait ExpressionChecker {
+pub trait ASTVisitor {
     fn check_expression(&mut self, expr: &BaseExpression) {
         match *expr {
             BaseExpression::Assignment(ref assign) => {
@@ -21,14 +21,8 @@ pub trait ExpressionChecker {
             BaseExpression::BinaryOp(ref bin) => {
                 self.check_binary_op(bin)
             },
-            BaseExpression::Block(ref block) => {
-                self.check_block(block)
-            },
             BaseExpression::Declaration(ref decl) => {
                 self.check_declaration(decl)
-            },
-            BaseExpression::Return(ref ret) => {
-                self.check_return(ret)
             },
             BaseExpression::UnaryOp(ref unary_op) => {
                 self.check_unary_op(unary_op)
@@ -38,6 +32,33 @@ pub trait ExpressionChecker {
             }
         }
     }
+
+    fn check_statement(&mut self, stmt: &Statement) {
+        match *stmt {
+            Statement::Expression(ref expr) => {
+                self.check_expression(expr)
+            },
+            Statement::Return(ref return_) => {
+                self.check_return(return_)
+            },
+            Statement::DoBlock(ref block) => {
+                self.check_do_block(block)
+            }
+        }
+    }
+
+    fn check_block(&mut self, block: &Block) {
+        for expr in &block.statements {
+            self.check_expression(expr);
+        }
+    }
+
+    #[inline]
+    #[allow(unused_variables)]
+    fn check_do_block(&mut self, block: &DoBlock) {
+        self.check_block(&block.block);
+    }
+
     #[inline]
     #[allow(unused_variables)]
     fn check_assignment(&mut self, assignment: &Assignment) {
@@ -71,11 +92,6 @@ pub trait ExpressionChecker {
     fn check_var_ref(&mut self, var_ref: &Identifier) {
     }
 
-    fn check_block(&mut self, block: &Block) {
-        for expr in &block.statements {
-            self.check_expression(expr);
-        }
-    }
     #[inline]
     #[allow(unused_variables)]
     fn check_declaration(&mut self, decl: &Declaration) {

@@ -257,7 +257,18 @@ impl<T: Tokenizer> Parser<T> {
     }
 
     pub fn statement(&mut self) -> Result<Statement, ParseError> {
-
+        let mut found_parser: Option<Rc<PrefixParser<Statement, T> + 'static>> = None;
+        let peek_data = (self.next_type(), Cow::Owned(self.peek().text.to_string()));
+        if let Some(stmt_parser) = self.stmt_prefix_parsers.get(&(peek_data.0, Cow::Borrowed(&*peek_data.1))) {
+            trace!("Found statement parser for {}", &peek_data.1);
+            found_parser = Some(stmt_parser.clone());
+        }
+        if found_parser.is_none() {
+            trace!("Using expr parser for statement");
+            return self.expression(Precedence::Min).map(Expression::to_statement)
+        }
+        let token = self.consume();
+        return found_parser.expect("Checked expect").parse(self, token)
     }
 
     /// Parse a block of code.

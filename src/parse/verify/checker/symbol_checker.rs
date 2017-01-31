@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
 use lex::Token;
+use parse::ASTVisitor;
 use parse::ast::{Declaration, Identifier, Assignment};
-use parse::verify::{ErrorCollector, ExpressionChecker, VerifyError};
+use parse::verify::{ErrorCollector, VerifyError};
 use parse::build::{SymbolTable, Symbol};
 
 /// Builds up the symbol table for a parse tree
@@ -23,7 +24,7 @@ impl SymbolTableChecker {
         (self.symbol_table, self.errors)
     }
 }
-impl ExpressionChecker for SymbolTableChecker {
+impl ASTVisitor for SymbolTableChecker {
     fn check_declaration(&mut self, decl: &Declaration) {
         // Check rvalue first to prevent use-before-declare
         self.check_expression(&decl.value);
@@ -67,7 +68,7 @@ mod tests {
 
     use lex::{Token, TokenData, TextLocation};
     use parse::tests::make_parser;
-    use parse::verify::{ExpressionChecker, ErrorCollector, VerifyError};
+    use parse::verify::{ASTVisitor, ErrorCollector, VerifyError};
     use parse::build::SymbolTable;
     use super::SymbolTableChecker;
 

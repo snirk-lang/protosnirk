@@ -3,6 +3,7 @@ mod operator;
 pub mod ast;
 mod parser;
 mod precedence;
+mod ast_visitor;
 mod build;
 mod verify;
 pub mod symbol;
@@ -14,6 +15,7 @@ pub use self::errors::{ParseError, ParseResult, ExpectedNextType};
 pub use self::parser::{Parser, IndentationRule};
 pub use self::precedence::Precedence;
 pub use self::operator::Operator;
+pub use self::ast_visitor::ASTVisitor;
 
 pub use self::build::{Program, Symbol, SymbolTable};
-pub use self::verify::{ExpressionChecker, VerifyError, ErrorCollector};
+pub use self::verify::{VerifyError, ErrorCollector};
