@@ -251,8 +251,11 @@ impl<T: Tokenizer> Parser<T> {
             }
         }
         trace!("Done parsing expression");
-        
         Ok(left)
+    }
+
+    pub fn statement(&mut self) -> Result<Statement, ParseError> {
+        
     }
 
     /// Parse a block of code.

@@ -18,6 +18,13 @@ pub enum Expression {
     BinaryOp(BinaryOperation),
     /// Unary operation
     UnaryOp(UnaryOperation),
+    /// Assignment is parsed with expression parsers.
+    Assignment(Assignment),
+}
+impl Expression {
+    pub fn to_statement(self) -> Statement {
+
+    }
 }
 
 /// Literal value

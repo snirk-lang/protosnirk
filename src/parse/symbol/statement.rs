@@ -6,8 +6,8 @@
 //! by calling its `expression()` method.
 //! Note that assignment becomes a statement in this case.
 
-/// Parser for a given statement. Statements
-pub trait StatementPrefixSymbol<T: Tokenizer> {
+/// Parser for a given statement.
+pub trait StatementSymbol<T: Tokenizer> {
     /// Parse a statement from the given prefix token.
     fn parse(&mut self, parser: &mut Parser<T>) -> ParseResult<Statement>;
 }
