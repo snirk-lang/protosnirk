@@ -10,7 +10,7 @@ use std::cell::Cell;
 
 use lex::{CowStr, Token, TokenType, TokenData, Tokenizer};
 use parse::{Operator, Precedence, ParseError, ParseResult};
-use parse::expression::*;
+use parse::ast::*;
 use parse::symbol::*;
 use parse::verify::Verifier;
 use parse::build::Program;
@@ -21,10 +21,12 @@ pub struct Parser<T: Tokenizer> {
     tokenizer: T,
     /// Lookahead queue for peeking
     lookahead: VecDeque<Token>,
-    /// Parsers used for infix symbols
-    infix_parsers: HashMap<(TokenType, CowStr), Rc<InfixSymbol<T> + 'static>>,
-    /// Parsers used for prefix symbols
-    prefix_parsers: HashMap<(TokenType, CowStr), Rc<PrefixSymbol<T> + 'static>>,
+    /// Parsers used for prefix symbols in statements (`return`, `do`)
+    stmt_prefix_parsers: HashMap<(TokenType, CowStr), Rc<PrefixParser<Statement, T> + 'static>>,
+    /// Parsers used for infix symbols in expressions (`+`, `<`)
+    expr_infix_parsers: HashMap<(TokenType, CowStr), Rc<InfixParser<Expression, T> + 'static>>,
+    /// Parsers used for prefix symbols in expressions (`not`, `let`)
+    expr_prefix_parsers: HashMap<(TokenType, CowStr), Rc<PrefixParser<Expression, T> + 'static>>,
     /// Mapping of tokens to applied operators
     token_operators: HashMap<(TokenType, CowStr), Operator>,
     /// Allows the parser to skip over unneeded indentation
@@ -212,7 +214,7 @@ impl<T: Tokenizer> Parser<T> {
         let (_indented, mut token) = self.consume_indented(IndentationRule::NegateDeindent);
         trace!("Parsing expression(precedence={:?}) with {}", precedence, token);
         if _indented { trace!("Parsing indented expression"); }
-        let prefix: Rc<PrefixSymbol<T> + 'static>;
+        let prefix: Rc<PrefixParser<Expression, T> + 'static>;
         if token.data.get_type() == TokenType::EOF {
             trace!("Parsing received EOF!");
             return Err(ParseError::LazyString(format!("got eof?")));
@@ -229,7 +231,7 @@ impl<T: Tokenizer> Parser<T> {
             trace!("Got a literal token");
             prefix = Rc::new(LiteralParser {});
         }
-        else if let Some(found_parser) = self.prefix_parsers.get(&(token.data.get_type(), Cow::Borrowed(&*token.text))) {
+        else if let Some(found_parser) = self.expr_prefix_parsers.get(&(token.data.get_type(), Cow::Borrowed(&*token.text))) {
             trace!("Found a parser to parse ({:?}, {:?})", token.data.get_type(), token.text);
             prefix = found_parser.clone();
         }
@@ -245,7 +247,7 @@ impl<T: Tokenizer> Parser<T> {
             let (_infix_indented, new_token) = self.consume_indented(IndentationRule::NegateDeindent);
             token = new_token;
             trace!("Continuing with {}, indentation: {}", token, _infix_indented);
-            if let Some(infix) = self.infix_parsers.get(&(token.data.get_type(), Cow::Borrowed(&*token.text))).map(Rc::clone) {
+            if let Some(infix) = self.expr_infix_parsers.get(&(token.data.get_type(), Cow::Borrowed(&*token.text))).map(Rc::clone) {
                 trace!("Parsing via infix parser!");
                 left = try!(infix.parse(self, left, token));
             }
@@ -255,7 +257,7 @@ impl<T: Tokenizer> Parser<T> {
     }
 
     pub fn statement(&mut self) -> Result<Statement, ParseError> {
-        
+
     }
 
     /// Parse a block of code.
@@ -312,29 +314,34 @@ impl<T: Tokenizer> Parser<T> {
         use parse::symbol::*;
         use lex::tokens;
         use lex::TokenType::*;
-        let infix_map: HashMap<(TokenType, CowStr), Rc<InfixSymbol<T> + 'static>> = hashmap![
-            (Symbol, tokens::Equals) => Rc::new(AssignmentParser { }) as Rc<InfixSymbol<T>>,
+        let expr_infix_map: HashMap<(TokenType, CowStr), Rc<InfixParser<Expression, T> + 'static>> =
+        hashmap![
+            (Symbol, tokens::Equals) => Rc::new(AssignmentParser { }) as Rc<InfixParser<Expression, T>>,
 
-            (Symbol, tokens::Plus) => BinOpSymbol::with_precedence(Precedence::AddSub),
-            (Symbol, tokens::Minus) => BinOpSymbol::with_precedence(Precedence::AddSub),
-            (Symbol, tokens::Star) => BinOpSymbol::with_precedence(Precedence::MulDiv),
-            (Symbol, tokens::Slash) => BinOpSymbol::with_precedence(Precedence::MulDiv),
+            (Symbol, tokens::Plus) => BinOpExprSymbol::with_precedence(Precedence::AddSub),
+            (Symbol, tokens::Minus) => BinOpExprSymbol::with_precedence(Precedence::AddSub),
+            (Symbol, tokens::Star) => BinOpExprSymbol::with_precedence(Precedence::MulDiv),
+            (Symbol, tokens::Slash) => BinOpExprSymbol::with_precedence(Precedence::MulDiv),
 
-            (Symbol, tokens::Percent) => BinOpSymbol::with_precedence(Precedence::Modulo),
+            (Symbol, tokens::Percent) => BinOpExprSymbol::with_precedence(Precedence::Modulo),
 
-            (Symbol, tokens::PlusEquals) => Rc::new(AssignOpParser { }) as Rc<InfixSymbol<T>>,
-            (Symbol, tokens::MinusEquals) => Rc::new(AssignOpParser { }) as Rc<InfixSymbol<T>>,
-            (Symbol, tokens::StarEquals) => Rc::new(AssignOpParser { }) as Rc<InfixSymbol<T>>,
-            (Symbol, tokens::PercentEquals) => Rc::new(AssignOpParser { }) as Rc<InfixSymbol<T>>,
-            (Symbol, tokens::SlashEquals) => Rc::new(AssignOpParser { }) as Rc<InfixSymbol<T>>
+            (Symbol, tokens::PlusEquals) => Rc::new(AssignOpParser { }) as Rc<InfixParser<Expression, T>>,
+            (Symbol, tokens::MinusEquals) => Rc::new(AssignOpParser { }) as Rc<InfixParser<Expression, T>>,
+            (Symbol, tokens::StarEquals) => Rc::new(AssignOpParser { }) as Rc<InfixParser<Expression, T>>,
+            (Symbol, tokens::PercentEquals) => Rc::new(AssignOpParser { }) as Rc<InfixParser<Expression, T>>,
+            (Symbol, tokens::SlashEquals) => Rc::new(AssignOpParser { }) as Rc<InfixParser<Expression, T>>
         ];
-        let prefix_map: HashMap<(TokenType, CowStr), Rc<PrefixSymbol<T> + 'static>> = hashmap![
-            (Keyword, tokens::Let) => Rc::new(DeclarationParser { }) as Rc<PrefixSymbol<T>>,
+        let expr_prefix_map: HashMap<(TokenType, CowStr), Rc<PrefixParser<Expression, T> + 'static>> =
+        hashmap![
+            (Keyword, tokens::Let) => Rc::new(DeclarationParser { }) as Rc<PrefixParser<Expression, T>>,
 
-            (Symbol, tokens::Minus) => UnaryOpSymbol::with_precedence(Precedence::NumericPrefix),
-            (Symbol, tokens::LeftParen) => Rc::new(ParensParser { }) as Rc<PrefixSymbol<T>>,
-
-            (Keyword, tokens::Return) => Rc::new(ReturnParser { }) as Rc<PrefixSymbol<T>>,
+            (Symbol, tokens::Minus) => UnaryOpExprSymbol::with_precedence(Precedence::NumericPrefix),
+            (Symbol, tokens::LeftParen) => Rc::new(ParensParser { }) as Rc<PrefixParser<Expression, T>>,
+        ];
+        let stmt_prefix_map: HashMap<(TokenType, CowStr), Rc<PrefixParser<Statement, T> + 'static>> =
+        hashmap![
+            (Keyword, tokens::Return) => Rc::new(ReturnParser { }) as Rc<PrefixParser<Statement, T>>,
+            (Keyword, tokens::Do) => Rc::new(DoBlockParser { }) as Rc<PrefixParser<Statement, T>>,
         ];
         let operator_map: HashMap<(TokenType, CowStr), Operator> = hashmap![
             (Symbol, tokens::Plus) => Operator::Addition,
@@ -352,8 +359,9 @@ impl<T: Tokenizer> Parser<T> {
         Parser {
             tokenizer: tokenizer,
             lookahead: VecDeque::new(),
-            infix_parsers: infix_map,
-            prefix_parsers: prefix_map,
+            stmt_prefix_parsers: stmt_prefix_map,
+            expr_prefix_parsers: expr_prefix_map,
+            expr_infix_parsers: expr_infix_map,
             token_operators: operator_map,
             indent_rules: Vec::new()
         }
@@ -380,7 +388,7 @@ impl<T: Tokenizer> Parser<T> {
             lookup = (looked_ahead.data.get_type(),
                       Cow::Owned(looked_ahead.text.deref().into()));
         }
-        if let Some(infix_parser) = self.infix_parsers.get(&lookup) {
+        if let Some(infix_parser) = self.expr_infix_parsers.get(&lookup) {
             infix_parser.get_precedence()
         } else {
             Precedence::Min

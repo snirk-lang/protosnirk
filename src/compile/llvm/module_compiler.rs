@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use parse::{Operator, ExpressionChecker, SymbolTable};
-use parse::expression::*;
+use parse::ast::*;
 use compile::llvm::{LLVMContext, ModuleProvider, LexicalScopeManager};
 
 use llvm_sys::{self, LLVMOpcode};

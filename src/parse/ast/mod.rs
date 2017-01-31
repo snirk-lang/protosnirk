@@ -36,4 +36,20 @@ impl Block {
     pub fn new(statements: Vec<Expression>) -> Block {
         Block { statements: statements }
     }
+    pub fn has_value(&self) -> bool {
+        if self.statements.len() == 0 {
+            return false
+        }
+        let last_ix = self.statements.len() - 1;
+        // TODO actual analysis
+        for (ix, statement) in self.statements.iter().enumerate() {
+            if ix == last_ix {
+                return statement.has_value()
+            }
+            // else if stmt == return {
+            //     return stmt.has_value()
+            // }
+        }
+        return false
+    }
 }

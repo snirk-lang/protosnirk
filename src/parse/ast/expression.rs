@@ -4,7 +4,8 @@
 //! They are usually emitted as asm instructions operating on variables.
 
 use lex::{Token, TokenType, TokenData};
-use parse::ast::Identifier;
+use parse::{ParseResult, ParseError, ExpectedNextType};
+use parse::ast::{Statement, Identifier};
 use parse::operator::Operator;
 
 /// Expression types
@@ -18,12 +19,48 @@ pub enum Expression {
     BinaryOp(BinaryOperation),
     /// Unary operation
     UnaryOp(UnaryOperation),
-    /// Assignment is parsed with expression parsers.
+
+    // "Non-value expressions"
+    // I _guess_ they could return `()`, but why?
+
+    /// Assignment - not considered value expression
     Assignment(Assignment),
+    /// Declaration - not considered value expression
+    Declaration(Declaration),
 }
 impl Expression {
+    /// Convert this expression to a `Statement::Expression`
+    #[inline]
     pub fn to_statement(self) -> Statement {
-
+        Statement::Expression(self)
+    }
+    /// Whether this expression has value.
+    ///
+    /// In typeless protosnirk, this revolves around
+    /// assignments and declarations being expressions
+    /// of type `()`. However, they will be disallowed
+    /// from being used to represent `()`.
+    pub fn has_value(&self) -> bool {
+        match *self {
+            Expression::Assignment(_) | Expression::Declaration(_) => false,
+            _ => true
+        }
+    }
+    pub fn expect_value(self) -> ParseResult<Expression> {
+        if !self.has_value() {
+            Err(ParseError::ExpectedExpression {
+                expected: ExpectedNextType::AnyExpression,
+                got: self
+            })
+        } else {
+            Ok(self)
+        }
+    }
+    pub fn expect_identifier(self) -> ParseResult<Identifier> {
+        match self {
+            Expression::VariableRef(ident) => Ok(ident),
+            other => Err(ParseError::ExpectedLValue(other))
+        }
     }
 }
 
@@ -86,5 +123,39 @@ impl UnaryOperation {
             op_token: op_token,
             expression: expression
         }
+    }
+}
+
+/// Variable declaration
+#[derive(Debug, PartialEq, Clone)]
+pub struct Declaration {
+    pub mutable: bool,
+    pub token: Token,
+    pub value: Box<Expression>
+}
+impl Declaration {
+    pub fn new(token: Token, mutable: bool, value: Box<Expression>) -> Self {
+        Declaration { token: token, mutable: mutable, value: value }
+    }
+    pub fn get_name(&self) -> &str {
+        &self.token.text
+    }
+    pub fn get_value(&self) -> &Expression {
+        &self.value
+    }
+    pub fn is_mut(&self) -> bool {
+        self.mutable
+    }
+}
+
+/// An identifier is assigned to a value
+#[derive(Debug, PartialEq, Clone)]
+pub struct Assignment {
+    pub lvalue: Identifier,
+    pub rvalue: Box<Expression>
+}
+impl Assignment {
+    pub fn new(name: Identifier, value: Box<Expression>) -> Assignment {
+        Assignment { lvalue: name, rvalue: value }
     }
 }

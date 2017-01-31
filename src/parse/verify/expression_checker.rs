@@ -4,8 +4,8 @@
 use std::collections::HashMap;
 
 use lex::Token;
-use parse::expression::*;
-use parse::expression::Expression as BaseExpression;
+use parse::ast::*;
+use parse::ast::Expression as BaseExpression;
 use super::{ErrorCollector, VerifyError};
 
 /// Trait for expression checkers: visitors on the expression tree.

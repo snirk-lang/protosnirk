@@ -69,7 +69,8 @@ declare_tokens! {
     keywords {
         Let: "let",
         Mut: "mut",
-        Return: "return"
+        Return: "return",
+        Do: "do"
     }
 
 }

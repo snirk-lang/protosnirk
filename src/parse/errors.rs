@@ -31,6 +31,7 @@ pub enum ParseError {
 }
 
 /// Information of what the parser was expecting to get
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum ExpectedNextType {
     AnyStatement,
     AnyExpression,

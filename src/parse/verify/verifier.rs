@@ -1,6 +1,4 @@
-use parse::expression::Expression;
-use parse::expression::Block;
-
+use parse::ast::{Expression, Block};
 use parse::build::{SymbolTable, Program};
 use parse::verify::{ExpressionChecker, ErrorCollector};
 use parse::verify::checker::*;

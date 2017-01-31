@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use lex::Token;
-use parse::expression::{Declaration, Identifier, Assignment};
+use parse::ast::{Declaration, Identifier, Assignment};
 use parse::verify::{ErrorCollector, ExpressionChecker, VerifyError};
 use parse::build::{SymbolTable, Symbol};
 

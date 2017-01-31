@@ -7,7 +7,7 @@
 //!
 
 use parse::build::SymbolTable;
-use parse::expression::Block;
+use parse::ast::Block;
 use parse::verify::ErrorCollector;
 use run::{Instruction, Value};
 

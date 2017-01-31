@@ -1,6 +1,6 @@
 use parse::{Operator, Program, SymbolTable, ExpressionChecker};
-use parse::expression::*;
-use parse::expression::Expression as BaseExpression;
+use parse::ast::*;
+use parse::ast::Expression as BaseExpression;
 use run::{Chunk, Value, Instruction, OpCode};
 use super::register_table::RegisterTable;
 use super::constant_table::ConstantTable;
