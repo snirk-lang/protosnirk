@@ -30,10 +30,10 @@ impl Into<Token> for Identifier {
 /// Collection of statements which may have an expression value
 #[derive(Debug, PartialEq, Clone)]
 pub struct Block {
-    pub statements: Vec<Expression>
+    pub statements: Vec<Statement>
 }
 impl Block {
-    pub fn new(statements: Vec<Expression>) -> Block {
+    pub fn new(statements: Vec<Statement>) -> Block {
         Block { statements: statements }
     }
     pub fn has_value(&self) -> bool {

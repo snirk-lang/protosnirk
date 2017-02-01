@@ -289,8 +289,8 @@ impl<T: Tokenizer> Parser<T> {
                 self.consume();
                 break
             }
-            let next_expr = try!(self.expression(Precedence::Min));
-            found.push(next_expr);
+            let next_stmt = try!(self.statement());
+            found.push(next_stmt);
         }
         return Ok(Block::new(found))
     }

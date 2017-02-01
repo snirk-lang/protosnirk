@@ -58,8 +58,11 @@ impl<T: Tokenizer> PrefixParser<Statement, T> for DoBlockParser {
             Ok(Statement::DoBlock(DoBlock::new(token, Box::new(block))))
         }
         else { // Allow for inline form `do <expr>`
-            let expr = try!(parser.expression(Precedence::Min));
-            let block = Block::new(vec![expr]);
+            // Parsing a statement here may be useless
+            // We might want only expressions.
+            // Also allows for do do do do x!
+            let stmt = try!(parser.statement());
+            let block = Block::new(vec![stmt]);
             Ok(Statement::DoBlock(DoBlock::new(token, Box::new(block))))
         }
     }

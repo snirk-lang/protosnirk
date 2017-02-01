@@ -48,8 +48,8 @@ pub trait ASTVisitor {
     }
 
     fn check_block(&mut self, block: &Block) {
-        for expr in &block.statements {
-            self.check_expression(expr);
+        for stmt in &block.statements {
+            self.check_statement(stmt);
         }
     }
 

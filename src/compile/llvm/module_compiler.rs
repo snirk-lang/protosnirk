@@ -151,8 +151,8 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
         trace!("Positioned IR builder at the end of entry block");
 
         self.scope_manager.new_scope();
-        for expr in &block.statements {
-            self.check_expression(expr)
+        for stmt in &block.statements {
+            self.check_statement(stmt)
         }
         self.scope_manager.pop();
 
