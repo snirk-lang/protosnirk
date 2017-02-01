@@ -34,7 +34,6 @@ pub struct Parser<T: Tokenizer> {
 }
 
 impl<T: Tokenizer> Parser<T> {
-
     /// Peeks at the next available token
     pub fn peek(&mut self) -> &Token {
         self.look_ahead(1usize)
@@ -89,31 +88,28 @@ impl<T: Tokenizer> Parser<T> {
         debug_assert!(count != 0, "Cannot look ahead 0");
         while count > self.lookahead.len() {
             let next = self.tokenizer.next();
-            if self.indent_rules.is_empty() {
-                self.lookahead.push_front(next);
-            }
-            else {
-                let indent_rule = self.indent_rules.last().cloned()
-                    .expect("checked expect");
+            if let Some(indent_rule) = self.indent_rules.last().cloned() {
                 match indent_rule {
                     // Ignore indentation until match found
-                    IndentationRule::UntilToken(_indent_type) => {
-                        unimplemented!()
+                    IndentationRule::DisableUntil(indent_data) => {
+                        // If match is found, disable this rule, return the match
+                        if next.data == indent_data {
+                            self.indent_rules.pop();
+                        }
+                        // If indentation is found, skip it
+                        else if next.data.get_type() == TokenType::BeginBlock
+                                || next.data.get_type() == TokenType::EndBlock {
+                            continue
+                        }
                     },
                     // Negate the next EndBlock
                     IndentationRule::NegateDeindent => {
                         if next.data.get_type() == TokenType::EndBlock {
+                            // Remove this rule so it won't trigger next time
+                            // and go onto the next token.
                             self.indent_rules.pop();
                             continue
                         }
-                    },
-                    // ????
-                    IndentationRule::ResetIndentation => {
-
-                    },
-                    // ????
-                    IndentationRule::ClearIndentation => {
-
                     },
                     // Negate all the indentation
                     IndentationRule::DisableIndentation => {
@@ -122,11 +118,9 @@ impl<T: Tokenizer> Parser<T> {
                             continue
                         }
                     },
-                    IndentationRule::None | IndentationRule::ExpectNoIndent => {
-                        unreachable!("Invalid IndentationRule found its way onto the stack")
-                    }
                 }
             }
+            self.lookahead.push_back(next)
         }
         &self.lookahead[count - 1]
     }
@@ -407,20 +401,13 @@ impl<T: Tokenizer> Parser<T> {
     }
 }
 
+/// Rules for handling indentation when parsing
 #[derive(Debug, Clone)]
 pub enum IndentationRule {
     /// Ignore indentation until a matching token is consumed
-    UntilToken(TokenData),
+    DisableUntil(TokenData),
     /// Remove the next indentation found
     NegateDeindent,
     /// Ignore all indent/deindent tokens
     DisableIndentation,
-    /// Push back any saved indentation
-    ResetIndentation,
-    /// Clear any indentation encountered
-    ClearIndentation,
-    /// Compiler should emit indentation errors
-    ExpectNoIndent,
-    /// Receive all whitespace tokens
-    None,
 }
