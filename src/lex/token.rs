@@ -21,7 +21,7 @@ pub struct Token {
     /// Additional data (type/literal) provided by the lexer
     pub data: TokenData
 }
-impl Eq for Token {}
+
 impl Token {
     #[inline]
     pub fn new_symbol<T: Into<CowStr>>(text: T, location: TextLocation) -> Token {
@@ -75,9 +75,19 @@ impl Token {
         }
     }
 }
+
 impl Display for Token {
     fn fmt(&self, f: &mut Formatter) -> FmtResult {
         write!(f, "({:?}, {:?})", self.data.get_type(), self.text)
+    }
+}
+
+impl Default for Token {
+    fn default() -> Token {
+        Token {
+            data: TokenData::EOF,
+            .. Default::default()
+        }
     }
 }
 
