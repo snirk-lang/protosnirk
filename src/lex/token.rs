@@ -12,7 +12,7 @@ use lex::{TextLocation, CowStr};
 /// A token returned by the tokenizer.
 ///
 /// Each token has a definite
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Default)]
 pub struct Token {
     /// Location of the token in a file
     pub location: TextLocation,
@@ -82,14 +82,7 @@ impl Display for Token {
     }
 }
 
-impl Default for Token {
-    fn default() -> Token {
-        Token {
-            data: TokenData::EOF,
-            .. Default::default()
-        }
-    }
-}
+impl Eq for Token { }
 
 /// Token enum - tokens are pretty simple, mostly dependent on string matching.
 #[derive(Debug, Clone, PartialEq)]
@@ -124,6 +117,12 @@ impl TokenData {
             EndBlock => TokenType::EndBlock,
             EOF => TokenType::EOF
         }
+    }
+}
+
+impl Default for TokenData {
+    fn default() -> TokenData {
+        TokenData::EOF
     }
 }
 
