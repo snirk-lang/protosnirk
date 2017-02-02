@@ -10,6 +10,10 @@ use super::{ErrorCollector, VerifyError};
 
 /// Trait for expression checkers: visitors on the expression tree.
 pub trait ASTVisitor {
+    fn check_unit(&mut self, unit: &Unit) {
+        self.check_block(&unit.block);
+    }
+
     fn check_expression(&mut self, expr: &BaseExpression) {
         match *expr {
             BaseExpression::Assignment(ref assign) => {
