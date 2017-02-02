@@ -128,6 +128,7 @@ fn it_parses_simple_addition_expression() {
     assert_eq!(expr, expected, "\nExpected: {:#?}\nGot: {:#?}", expected, expr);
 }
 
+/*
 #[test]
 fn it_parses_a_multi_statement_block() {
     let mut parser = parser("let x = 0 return x + 1");
@@ -204,7 +205,9 @@ fn it_parses_a_multi_statement_block() {
     ];
     assert_eq!(block.statements, expected, "Got {:#?}", block);
 }
+*/
 
+/*
 #[test]
 fn it_parses_pemdas() {
     let input =
@@ -312,3 +315,4 @@ fn it_parses_pemdas() {
     })];
     assert_eq!(block.unwrap().statements, expected);
 }
+*/

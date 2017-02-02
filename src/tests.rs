@@ -1,12 +1,12 @@
 //! Integration tests n stuff
 
-use parse::tests::make_parser;
+use parse::tests::parser;
 
 use compile::Compiler;
 use run::{VM, Value};
 
 fn run_program(program: &'static str) -> Value {
-    let program = make_parser(program).parse_program();
+    let program = parser(program).parse_unit();
     if !program.is_ok() {
         panic!("Error parsing program: {:#?}", program);
     }

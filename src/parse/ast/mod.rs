@@ -7,18 +7,24 @@ pub use self::item::*;
 pub use self::stmt::*;
 
 use lex::Token;
+use parse::scope::ScopeIndex;
 
 /// Basic identifier type
 #[derive(Debug, PartialEq, Clone)]
 pub struct Identifier {
-    pub token: Token
+    pub token: Token,
+    pub index: ScopeIndex
 }
 impl Identifier {
     pub fn new(token: Token) -> Self {
-        Identifier { token: token }
+        Identifier { token: token, index: ScopeIndex::default() }
     }
     pub fn get_name(&self) -> &str {
         &self.token.text
+    }
+
+    pub fn get_index(&self) -> &ScopeIndex {
+        &self.index
     }
 }
 impl Into<Token> for Identifier {
@@ -30,11 +36,12 @@ impl Into<Token> for Identifier {
 /// Collection of statements which may have an expression value
 #[derive(Debug, PartialEq, Clone)]
 pub struct Block {
-    pub statements: Vec<Statement>
+    pub statements: Vec<Statement>,
+    pub partial_index: ScopeIndex
 }
 impl Block {
     pub fn new(statements: Vec<Statement>) -> Block {
-        Block { statements: statements }
+        Block { statements: statements, partial_index: ScopeIndex::default() }
     }
     pub fn has_value(&self) -> bool {
         if self.statements.len() == 0 {
@@ -51,5 +58,8 @@ impl Block {
             // }
         }
         return false
+    }
+    pub fn get_index(&self) -> &ScopeIndex {
+        &self.partial_index
     }
 }

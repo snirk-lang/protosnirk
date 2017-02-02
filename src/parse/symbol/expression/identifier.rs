@@ -25,7 +25,7 @@ impl<T: Tokenizer> PrefixParser<Expression, T> for IdentifierParser {
 #[cfg(test)]
 mod tests {
     use std::borrow::Cow;
-    use lex::{Token, TokenData, TokenType};
+    use lex::{Token, TokenData, TokenType, TextLocation};
     use parse::ast::{Expression, Identifier};
     use parse::symbol::{PrefixParser, IdentifierParser};
     use parse::tests as parse_tests;
@@ -33,7 +33,9 @@ mod tests {
     const IDENT_TOKEN: Token = Token {
         data: TokenData::Ident,
         text: Cow::Borrowed("x"),
-        .. Default::default()
+        location: TextLocation {
+            line: 0, column: 0, index: 0
+        }
     };
 
     #[test]

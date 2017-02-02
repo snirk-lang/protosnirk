@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use lex::Token;
 use parse::ASTVisitor;
 use parse::ast::{Declaration, Identifier, Assignment};
+use parse::scope::{ScopeIndex, ScopedTable};
 use parse::verify::{ErrorCollector, VerifyError};
 use parse::build::{SymbolTable, Symbol};
 
@@ -10,7 +11,7 @@ use parse::build::{SymbolTable, Symbol};
 /// and reports variable declaration and mutability errors.
 #[derive(Debug, Default)]
 pub struct SymbolTableChecker {
-    symbol_table: SymbolTable,
+    symbol_table: ScopedTable<Symbol>,
     errors: ErrorCollector
 }
 impl SymbolTableChecker {
@@ -75,7 +76,7 @@ mod tests {
 
     #[test]
     fn it_finds_extra_declaration() {
-        let mut parser = make_parser("let x = 0 let x = 1");
+        let mut parser = parser("let x = 0 let x = 1");
         let block = parser.block().unwrap();
         let errors = ErrorCollector::new();
         let symbol_table = SymbolTable::new();
@@ -102,7 +103,7 @@ mod tests {
 
     #[test]
     fn it_finds_missing_declaration() {
-        let mut parser = make_parser("let mut y = 0 y = x + 1");
+        let mut parser = parser("let mut y = 0 y = x + 1");
         let block = parser.block().unwrap();
         let errors = ErrorCollector::new();
         let symbol_table = SymbolTable::new();
@@ -123,7 +124,7 @@ mod tests {
 
     #[test]
     fn it_finds_extra_declaration_of_different_type() {
-        let mut parser = make_parser("let x = 0 let mut x = 1");
+        let mut parser = parser("let x = 0 let mut x = 1");
         let block = parser.block().unwrap();
         let errors = ErrorCollector::new();
         let symbol_table = SymbolTable::new();
@@ -150,7 +151,7 @@ mod tests {
 
     #[test]
     fn it_finds_missing_declaration_in_return_stmt() {
-        let mut parser = make_parser("let x = 0 return y");
+        let mut parser = parser("let x = 0 return y");
         let block = parser.block().unwrap();
         let errors = ErrorCollector::new();
         let symbol_table = SymbolTable::new();
@@ -174,7 +175,7 @@ mod tests {
 
     #[test]
     fn it_finds_missing_declaration_in_binary_op() {
-        let mut parser = make_parser("let x = 0 x + y");
+        let mut parser = parser("let x = 0 x + y");
         let block = parser.block().unwrap();
         let errors = ErrorCollector::new();
         let symbol_table = SymbolTable::new();
@@ -196,7 +197,7 @@ mod tests {
 
     #[test]
     fn it_finds_missing_declaration_in_unary_op() {
-        let mut parser = make_parser("let x = 0 return -y");
+        let mut parser = parser("let x = 0 return -y");
         let block = parser.block().unwrap();
         let errors = ErrorCollector::new();
         let symbol_table = SymbolTable::new();
@@ -221,7 +222,7 @@ mod tests {
 
     #[test]
     fn it_finds_missing_declaration_in_var_ref_expr() {
-        let mut parser = make_parser("let x = 0 y");
+        let mut parser = parser("let x = 0 y");
         let block = parser.block().unwrap();
         let errors = ErrorCollector::new();
         let symbol_table = SymbolTable::new();
@@ -245,7 +246,7 @@ mod tests {
 
     #[test]
     fn it_finds_missing_declaration_in_assignment_lvalue() {
-        let mut parser = make_parser("let x = 0 y = x");
+        let mut parser = parser("let x = 0 y = x");
         let block = parser.block().unwrap();
         let errors = ErrorCollector::new();
         let symbol_table = SymbolTable::new();
@@ -269,7 +270,7 @@ mod tests {
 
     #[test]
     fn it_finds_missing_declaration_in_assignment_rvalue() {
-        let mut parser = make_parser("let mut x = 0 x = y");
+        let mut parser = parser("let mut x = 0 x = y");
         let block = parser.block().unwrap();
         let errors = ErrorCollector::new();
         let symbol_table = SymbolTable::new();
@@ -290,7 +291,7 @@ mod tests {
 
     #[test]
     fn it_finds_circular_declaration() {
-        let mut parser = make_parser("let x = x");
+        let mut parser = parser("let x = x");
         let block = parser.block().unwrap();
         let errors = ErrorCollector::new();
         let symbol_table = SymbolTable::new();
@@ -314,7 +315,7 @@ mod tests {
 
     #[test]
     fn it_finds_missing_declaration_in_assignop_expression() {
-        let mut parser = make_parser("let x = 0 \n\
+        let mut parser = parser("let x = 0 \n\
         let mut y = -x - 1 \n\
         let z = 2 \n\
         y += z \n\

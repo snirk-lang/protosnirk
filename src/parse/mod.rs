@@ -6,6 +6,7 @@ mod precedence;
 mod ast_visitor;
 mod build;
 mod verify;
+mod scope;
 pub mod symbol;
 
 #[cfg(test)]

@@ -41,7 +41,7 @@ impl<T: Tokenizer> PrefixParser<Expression, T> for DeclarationParser {
 #[cfg(test)]
 mod tests {
     use std::borrow::Cow;
-    use lex::{Token, TokenData, TokenType};
+    use lex::{Token, TokenData, TokenType, TextLocation};
     use parse::ast::{Declaration, Expression, Statement, Block, Literal};
     use parse::symbol::{PrefixParser, DeclarationParser};
     use parse::tests as parse_tests;
@@ -49,13 +49,18 @@ mod tests {
     const LET_TOKEN: Token = Token {
         data: TokenData::Keyword,
         text: Cow::Borrowed("let"),
-        .. Default::default()
+        location: TextLocation {
+            column: 0, line: 0, index: 0
+        }
     };
 
     const LITERAL_ZERO: Expression = Expression::Literal(Literal {
         token: Token {
             data: TokenData::NumberLiteral(0f64),
-            .. Default::default()
+            text: Cow::Borrowed("0"),
+            location: TextLocation {
+                column: 0, line: 0, index: 0
+            }
         }});
 
     #[test]

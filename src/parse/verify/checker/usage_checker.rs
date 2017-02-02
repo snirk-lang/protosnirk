@@ -27,14 +27,14 @@ mod tests {
 
     use lex::{Token, TokenData, TextLocation};
     use parse::ASTVisitor;
-    use parse::tests::make_parser;
+    use parse::tests::parser;
     use parse::build::SymbolTable;
     use parse::verify::{ErrorCollector, VerifyError};
     use parse::verify::checker::*;
 
     #[test]
     fn it_detects_unused_declared() {
-        let mut parser = make_parser("let x = 0");
+        let mut parser = parser("let x = 0");
         let block = parser.block().unwrap();
         let errors = ErrorCollector::new();
         let symbol_table = SymbolTable::new();
@@ -56,7 +56,7 @@ mod tests {
 
     #[test]
     fn it_detects_usage_in_assignment_rvalue() {
-        let mut parser = make_parser("let x = 0 let mut y = 0 y = x y");
+        let mut parser = parser("let x = 0 let mut y = 0 y = x y");
         let block = parser.block().unwrap();
         let errors = ErrorCollector::new();
         let symbol_table = SymbolTable::new();
@@ -69,7 +69,7 @@ mod tests {
 
     #[test]
     fn it_detects_usage_in_return_value() {
-        let mut parser = make_parser("let x = 0 return x");
+        let mut parser = parser("let x = 0 return x");
         let block = parser.block().unwrap();
         let errors = ErrorCollector::new();
         let symbol_table = SymbolTable::new();
@@ -82,7 +82,7 @@ mod tests {
 
     #[test]
     fn it_detects_usage_in_implicit_return_expr() {
-        let mut parser = make_parser("let x = 0 x");
+        let mut parser = parser("let x = 0 x");
         let block = parser.block().unwrap();
         let errors = ErrorCollector::new();
         let symbol_table = SymbolTable::new();
@@ -95,7 +95,7 @@ mod tests {
 
     #[test]
     fn it_detects_usage_in_binary_operator_expr() {
-        let mut parser = make_parser("let x = 0 x + 1");
+        let mut parser = parser("let x = 0 x + 1");
         let block = parser.block().unwrap();
         let errors = ErrorCollector::new();
         let symbol_table = SymbolTable::new();
@@ -108,7 +108,7 @@ mod tests {
 
     #[test]
     fn it_detects_usage_in_declaration_rvalue() {
-        let mut parser = make_parser("let x = 0 let y = x");
+        let mut parser = parser("let x = 0 let y = x");
         let block = parser.block().unwrap();
         let errors = ErrorCollector::new();
         let symbol_table = SymbolTable::new();
@@ -130,7 +130,7 @@ mod tests {
 
     #[test]
     fn it_detects_unused_declared_with_similar_variables_used() {
-        let mut parser = make_parser("let x = 0 let mut y = 0 let Y = 0 y += Y");
+        let mut parser = parser("let x = 0 let mut y = 0 let Y = 0 y += Y");
         let block = parser.block().unwrap();
         let errors = ErrorCollector::new();
         let symbol_table = SymbolTable::new();

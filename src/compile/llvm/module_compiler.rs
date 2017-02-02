@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
-use parse::{Operator, ASTVisitor, SymbolTable};
+use parse::{Operator, ASTVisitor, ScopeIndex, ScopedTable};
 use parse::ast::*;
-use compile::llvm::{LLVMContext, ModuleProvider, LexicalScopeManager};
+use compile::llvm::{LLVMContext, ModuleProvider};
 
 use llvm_sys::{self, LLVMOpcode};
 use llvm_sys::prelude::*;
@@ -17,9 +17,9 @@ pub struct ModuleCompiler<M: ModuleProvider> {
     module_provider: M,
     optimizations: bool,
     context: LLVMContext,
-    symbols: SymbolTable,
     ir_code: Vec<LLVMValueRef>,
-    scope_manager: LexicalScopeManager<LLVMValueRef>
+    scope_index: ScopeIndex,
+    scope_manager: ScopedTable<LLVMValueRef>
 }
 impl<M: ModuleProvider> ModuleCompiler<M> {
     pub fn new(symbols: SymbolTable, provider: M, optimizations: bool) -> ModuleCompiler<M> {
@@ -28,7 +28,7 @@ impl<M: ModuleProvider> ModuleCompiler<M> {
             context: LLVMContext::new(),
             symbols: symbols,
             ir_code: Vec::with_capacity(1),
-            scope_manager: LexicalScopeManager::new(),
+            scope_manager: ScopedMap::new(),
             optimizations: optimizations
         }
     }
@@ -51,11 +51,11 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
         trace!("Checking variable ref {}", ident_ref.get_name());
         let (var_alloca, ix) = self.scope_manager.get(ident_ref.get_name()).expect(
             "Attempted to check var ref but had no alloca");
-        let load_name = if ix == 1 {
+        let load_name = if ix == 0 {
             format!("load_{}", ident_ref.get_name())
         }
         else {
-            format!("load_{}_{}", ident_ref.get_name(), ix - 1)
+            format!("load_{}_{}", ident_ref.get_name(), ix)
         };
         let mut builder = self.context.get_ir_builder_mut();
         let var_load = builder.build_load(*var_alloca, &load_name);
