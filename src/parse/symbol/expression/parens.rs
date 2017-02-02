@@ -4,9 +4,9 @@
 // overloaded (tuple parsing vs expression recedence in expr prefix).
 
 use lex::{tokens, Token, Tokenizer, TokenType, TokenData};
-use parse::{Parser, ParseResult, ParseError, Precedence};
+use parse::{Parser, ParseResult, ParseError};
 use parse::ast::*;
-use parse::symbol::PrefixParser;
+use parse::symbol::{PrefixParser, Precedence};
 
 /// Parses expressions wrapped in parentheses
 ///

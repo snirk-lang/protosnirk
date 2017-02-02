@@ -1,23 +1,27 @@
 use std::collections::HashMap;
+use std::ops::Deref;
 
 use lex::Token;
 use parse::ASTVisitor;
-use parse::ast::{Declaration, Identifier, Assignment};
-use parse::scope::{ScopeIndex, ScopedTable};
-use parse::verify::{ErrorCollector, VerifyError};
-use parse::build::{SymbolTable, Symbol};
+use parse::ast::{Declaration, Identifier, Assignment, Block};
+use parse::verify::{ErrorCollector, VerifyError, Symbol};
+use parse::verify::scope::{ScopeIndex, SymbolTable, SymbolTableBuilder};
 
 /// Builds up the symbol table for a parse tree
 /// and reports variable declaration and mutability errors.
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct SymbolTableChecker {
-    symbol_table: ScopedTable<Symbol>,
+    symbol_table: SymbolTable,
+    table_builder: SymbolTableBuilder,
+    current_index: ScopeIndex,
     errors: ErrorCollector
 }
 impl SymbolTableChecker {
-    pub fn new(errors: ErrorCollector, symbol_table: SymbolTable) -> SymbolTableChecker {
+    pub fn new(errors: ErrorCollector) -> SymbolTableChecker {
         SymbolTableChecker {
-            symbol_table: symbol_table,
+            symbol_table: SymbolTable::new(),
+            table_builder: SymbolTableBuilder::new(),
+            current_index: ScopeIndex::new(vec![]),
             errors: errors
         }
     }
@@ -30,37 +34,58 @@ impl ASTVisitor for SymbolTableChecker {
         // Check rvalue first to prevent use-before-declare
         self.check_expression(&decl.value);
 
-        if let Some(declared_at) = self.symbol_table.get(decl.get_name()).map(|sym| sym.get_token().clone()) {
+        // Check for name conflicts
+        // TODO this prevents more shadowing than intended
+        if let Some(declared_at) = self.table_builder.get(decl.get_name())
+                .map(|sym| sym.get_declaration().clone()) {
             // Add previous declaration
             let references: Vec<Token> = vec![declared_at];
             let err_text = format!("Variable {} is already declared", decl.get_name());
             self.errors.add_error(VerifyError::new(decl.token.clone(), references, err_text));
         } else {
-            self.symbol_table.insert(decl.get_name().to_string(), Symbol::from_declaration(decl));
+            let var_index = self.current_index.clone();
+            self.current_index.increment();
+            decl.get_ident().set_index(var_index.clone());
+            self.table_builder.define_local(decl.get_name().to_string(), var_index);
+            self.symbol_table.insert(var_index.clone(), Symbol::from_declaration(decl, var_index));
         }
     }
     fn check_var_ref(&mut self, var_ref: &Identifier) {
-        if !self.symbol_table.contains_key(var_ref.get_name()) {
+        if !self.table_builder.get(var_ref.get_name()).is_some() {
             let err_text = format!("Variable {} was not declared", var_ref.get_name());
             self.errors.add_error(VerifyError::new(var_ref.token.clone(), vec![], err_text));
         } else {
-            self.symbol_table.get_mut(var_ref.get_name()).map(Symbol::set_used);
+            let index = self.table_builder.deref()[var_ref.get_name()].get_index();
+            var_ref.set_index(index);
+            self.symbol_table.get_mut(var_ref.get_index()).map(Symbol::set_used);
         }
     }
     fn check_assignment(&mut self, assign: &Assignment) {
-        if !self.symbol_table.contains_key(assign.lvalue.get_name()) {
+        if !self.table_builder.contains_key(assign.lvalue.get_name()) {
             let err_text = format!("Variable {} was not declared", assign.lvalue.get_name());
             self.errors.add_error(VerifyError::new(assign.lvalue.token.clone(), vec![], err_text));
         }
-        else if !self.symbol_table[assign.lvalue.get_name()].is_mutable() {
-            let err_text = format!("Variable {} was not declared mutable", assign.lvalue.get_name());
-            let references = vec![self.symbol_table[assign.lvalue.get_name()].get_token().clone()];
-            self.errors.add_error(VerifyError::new(assign.lvalue.token.clone(), references, err_text));
-        }
         else {
-            self.symbol_table.get_mut(assign.lvalue.get_name()).map(Symbol::set_mutated);
+            let index = self.table_builder[assign.lvalue.get_name()];
+            assign.lvalue.set_index(index.clone());
+            if !self.symbol_table[index.clone()].is_mutable() {
+                let err_text = format!("Variable {} was not declared mutable", assign.lvalue.get_name());
+                let references = vec![self.symbol_table[assign.lvalue.get_index()].get_token().clone()];
+                self.errors.add_error(VerifyError::new(assign.lvalue.token.clone(), references, err_text));
+            }
+            else {
+                self.symbol_table.get_mut(index).map(Symbol::set_mutated);
+            }
         }
         self.check_expression(&assign.rvalue);
+    }
+    fn check_block(&mut self, block: &Block) {
+        self.current_index.push();
+        for stmt in block.statements {
+            self.check_statement(&stmt);
+        }
+        self.current_index.pop();
+        self.current_index.increment();
     }
 }
 #[cfg(test)]

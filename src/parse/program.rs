@@ -6,9 +6,9 @@
 //! along with type information and unique IDs for said variables
 //!
 
-use parse::build::SymbolTable;
 use parse::ast::Unit;
 use parse::verify::ErrorCollector;
+use parse::verify::scope::SymbolTable;
 use run::{Instruction, Value};
 
 #[derive(Debug, PartialEq, Clone)]

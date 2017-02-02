@@ -1,30 +1,38 @@
 mod expression;
 mod item;
 mod stmt;
+mod operator;
 
 pub use self::expression::*;
 pub use self::item::*;
 pub use self::stmt::*;
+pub use self::operator::Operator;
+
+use std::cell::RefCell;
 
 use lex::Token;
-use parse::scope::ScopeIndex;
+use parse::verify::scope::ScopeIndex;
 
 /// Basic identifier type
 #[derive(Debug, PartialEq, Clone)]
 pub struct Identifier {
     pub token: Token,
-    pub index: ScopeIndex
+    pub index: RefCell<ScopeIndex>
 }
 impl Identifier {
     pub fn new(token: Token) -> Self {
-        Identifier { token: token, index: ScopeIndex::default() }
+        Identifier { token: token, index: RefCell::new(ScopeIndex::default()) }
     }
     pub fn get_name(&self) -> &str {
         &self.token.text
     }
 
     pub fn get_index(&self) -> &ScopeIndex {
-        &self.index
+        &self.index.borrow();
+    }
+
+    pub fn set_index(&self, index: ScopeIndex) {
+        *self.index.borrow_mut() = index;
     }
 }
 impl Into<Token> for Identifier {

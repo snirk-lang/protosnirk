@@ -1,9 +1,9 @@
 //! Return statement parser
 
 use lex::{tokens, Token, Tokenizer, TokenType};
-use parse::{Parser, ParseResult, ParseError, Precedence};
+use parse::{Parser, ParseResult, ParseError};
 use parse::ast::*;
-use parse::symbol::PrefixParser;
+use parse::symbol::{PrefixParser, Precedence};
 
 /// Parses return statements
 ///

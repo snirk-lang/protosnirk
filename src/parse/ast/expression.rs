@@ -5,8 +5,7 @@
 
 use lex::{Token, TokenType, TokenData};
 use parse::{ParseResult, ParseError, ExpectedNextType};
-use parse::ast::{Statement, Identifier};
-use parse::operator::Operator;
+use parse::ast::{Statement, Identifier, Operator};
 
 /// Expression types
 #[derive(Debug, PartialEq, Clone)]
@@ -131,11 +130,12 @@ impl UnaryOperation {
 pub struct Declaration {
     pub mutable: bool,
     pub token: Token,
+    pub ident: Identifier,
     pub value: Box<Expression>
 }
 impl Declaration {
-    pub fn new(token: Token, mutable: bool, value: Box<Expression>) -> Self {
-        Declaration { token: token, mutable: mutable, value: value }
+    pub fn new(token: Token, mutable: bool, ident: Identifier, value: Box<Expression>) -> Self {
+        Declaration { token: token, mutable: mutable, ident: ident, value: value }
     }
     pub fn get_name(&self) -> &str {
         &self.token.text
@@ -145,6 +145,9 @@ impl Declaration {
     }
     pub fn is_mut(&self) -> bool {
         self.mutable
+    }
+    pub fn get_ident(&self) -> &Identifier {
+        &self.ident
     }
 }
 

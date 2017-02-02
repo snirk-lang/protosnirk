@@ -2,8 +2,8 @@
 
 use lex::{Token, Tokenizer, TokenType, TokenData};
 use parse::ast::*;
-use parse::{Parser, ParseResult, ParseError, Precedence};
-use parse::symbol::InfixParser;
+use parse::{Parser, ParseResult, ParseError};
+use parse::symbol::{InfixParser, Precedence};
 
 /// Parses expresisons using the expr/assign style operators.
 ///

@@ -1,8 +1,7 @@
-use parse::ASTVisitor;
+use parse::{ASTVisitor, Program, ErrorCollector};
 use parse::ast::Unit;
-use parse::build::{SymbolTable, Program};
-use parse::ErrorCollector;
 use parse::verify::checker::*;
+use parse::verify::scope::SymbolTable;
 
 /// Runs verifications against code
 ///

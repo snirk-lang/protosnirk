@@ -68,10 +68,13 @@
 //! return y
 //! ```
 pub mod checker;
+pub mod scope;
+mod symbol;
 mod verification_result;
 mod collector;
 mod verifier;
 
+pub use self::symbol::*;
 pub use self::collector::ErrorCollector;
 pub use self::verifier::Verifier;
 pub use self::verification_result::VerifyError;

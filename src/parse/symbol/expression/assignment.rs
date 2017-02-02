@@ -1,9 +1,9 @@
 //! Assignment parser
 
 use lex::{tokens, Token, Tokenizer, TokenType, TokenData};
-use parse::{Parser, ParseResult, ParseError, Precedence};
+use parse::{Parser, ParseResult, ParseError};
 use parse::ast::*;
-use parse::symbol::InfixParser;
+use parse::symbol::{InfixParser, Precedence};
 
 /// Parses a declaration/// Parses an assignment expresion.
 ///

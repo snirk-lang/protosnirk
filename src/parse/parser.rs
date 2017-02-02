@@ -9,11 +9,10 @@ use std::rc::Rc;
 use std::cell::Cell;
 
 use lex::{CowStr, Token, TokenType, TokenData, Tokenizer};
-use parse::{Operator, Precedence, ParseError, ParseResult};
+use parse::{Program, ParseError, ParseResult};
 use parse::ast::*;
 use parse::symbol::*;
 use parse::verify::Verifier;
-use parse::build::Program;
 
 /// Parser object which parses things
 pub struct Parser<T: Tokenizer> {

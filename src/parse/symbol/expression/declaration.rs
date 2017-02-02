@@ -4,9 +4,9 @@
 // and other pattern declaration types.
 
 use lex::{tokens, Token, Tokenizer, TokenType, TokenData};
-use parse::{Parser, ParseResult, ParseError, Precedence};
+use parse::{Parser, ParseResult, ParseError};
 use parse::ast::*;
-use parse::symbol::PrefixParser;
+use parse::symbol::{PrefixParser, Precedence};
 
 ///
 /// # Examples
@@ -34,7 +34,7 @@ impl<T: Tokenizer> PrefixParser<Expression, T> for DeclarationParser {
         let value_expr = try!(parser.expression(Precedence::Min));
         let value = try!(value_expr.expect_value());
         println!("Got rvalue {:?}", value);
-        Ok(Expression::Declaration(Declaration::new(name.into(), is_mutable, Box::new(value))))
+        Ok(Expression::Declaration(Declaration::new(token, name, is_mutable, Box::new(value))))
     }
 }
 

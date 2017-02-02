@@ -1,12 +1,9 @@
 mod errors;
-mod operator;
+mod program;
 pub mod ast;
 mod parser;
-mod precedence;
 mod ast_visitor;
-mod build;
 mod verify;
-mod scope;
 pub mod symbol;
 
 #[cfg(test)]
@@ -14,9 +11,8 @@ pub mod tests;
 
 pub use self::errors::{ParseError, ParseResult, ExpectedNextType};
 pub use self::parser::{Parser, IndentationRule};
-pub use self::precedence::Precedence;
-pub use self::operator::Operator;
+pub use self::program::Program;
 pub use self::ast_visitor::ASTVisitor;
 
-pub use self::build::{Program, Symbol, SymbolTable};
 pub use self::verify::{VerifyError, ErrorCollector};
+pub use self::verify::scope::{ScopeIndex, SymbolTable};
