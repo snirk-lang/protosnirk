@@ -1,8 +1,6 @@
-mod block;
 mod expression;
 mod statement;
 
-pub use self::block::*;
 pub use self::expression::*;
 pub use self::statement::*;
 
