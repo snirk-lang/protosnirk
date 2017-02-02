@@ -49,9 +49,14 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
 
     fn check_var_ref(&mut self, ident_ref: &Identifier) {
         trace!("Checking variable ref {}", ident_ref.get_name());
-        let (var_alloca, _ix) = self.scope_manager.get(ident_ref.get_name()).expect(
+        let (var_alloca, ix) = self.scope_manager.get(ident_ref.get_name()).expect(
             "Attempted to check var ref but had no alloca");
-        let load_name = format!("load_{}", ident_ref.get_name());
+        let load_name = if ix == 1 {
+            format!("load_{}", ident_ref.get_name())
+        }
+        else {
+            format!("load_{}_{}", ident_ref.get_name(), ix - 1)
+        };
         let mut builder = self.context.get_ir_builder_mut();
         let var_load = builder.build_load(*var_alloca, &load_name);
         self.ir_code.push(var_load);
@@ -140,21 +145,18 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
         }
     }
 
-    fn check_block(&mut self, block: &Block) {
-        trace!("Checking block");
+    fn check_unit(&mut self, unit: &Unit) {
+        trace!("Checking unit");
         let fn_ret_double = RealTypeRef::get_float().to_ref();
         let block_fn_type = FunctionTypeRef::get(&fn_ret_double, &mut [], false);
-        trace!("Creating `main` defintion");
-        let mut fn_ref = FunctionRef::new(&mut self.module_provider.get_module_mut(), "main", &block_fn_type);
-        let mut basic_block = fn_ref.append_basic_block_in_context(self.context.get_global_context_mut(), "entry");
+        trace!("Creating `fn main` definition");
+        let mut fn_ref = FunctionRef::new(&mut self.module_provider.get_module_mut(),
+            "main", &block_fn_type);
+        let mut basic_block = fn_ref.append_basic_block_in_context(
+            self.context.get_global_context_mut(), "entry");
         self.context.get_ir_builder_mut().position_at_end(&mut basic_block);
-        trace!("Positioned IR builder at the end of entry block");
-
-        self.scope_manager.new_scope();
-        for stmt in &block.statements {
-            self.check_statement(stmt)
-        }
-        self.scope_manager.pop();
+        trace!("Positioned IR builder at the end of entry block, checking unit block");
+        self.check_block(&unit.block);
 
         let mut builder = self.context.get_ir_builder_mut();
         // We can auto-issue a return stmt if the ir_code hasn't been
@@ -174,8 +176,18 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
             trace!("Running optimizations");
             self.module_provider.get_pass_manager().run(&mut fn_ref);
         }
-        // The final ir_code value should be a reference tothe function
-        //self.ir_code.push(fn_ref.to_ref());
-        self.module_provider.get_module().verify(LLVMVerifierFailureAction::LLVMPrintMessageAction).unwrap();
+        // The final ir_code value should be a reference to the function
+        self.module_provider.get_module()
+            .verify(LLVMVerifierFailureAction::LLVMPrintMessageAction)
+            .unwrap();
+    }
+
+    fn check_block(&mut self, block: &Block) {
+        trace!("Checking block");
+        self.scope_manager.new_scope();
+        for stmt in &block.statements {
+            self.check_statement(stmt)
+        }
+        self.scope_manager.pop();
     }
 }
