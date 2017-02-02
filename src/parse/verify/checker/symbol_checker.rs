@@ -67,8 +67,9 @@ mod tests {
     use std::borrow::Cow;
 
     use lex::{Token, TokenData, TextLocation};
-    use parse::tests::make_parser;
-    use parse::verify::{ASTVisitor, ErrorCollector, VerifyError};
+    use parse::ASTVisitor;
+    use parse::tests::parser;
+    use parse::verify::{ErrorCollector, VerifyError};
     use parse::build::SymbolTable;
     use super::SymbolTableChecker;
 

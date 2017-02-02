@@ -5,26 +5,38 @@ use lex::{Token, TokenData, TextLocation, Tokenizer, IterTokenizer};
 use lex::tests::make_tokenizer;
 use parse::{Operator, Parser, Precedence};
 use parse::symbol;
-use parse::expression::*;
+use parse::ast::*;
 
-fn match_expr(got: Expression, expected: Expression) {
+pub fn expect_eq<T: ::std::fmt::Debug + PartialEq>(got: T, expected: T) {
     assert!(got == expected,
         "\nExpected: {:#?}\nActual: {:#?}", expected, got);
 }
 
-fn expect_eq<T: ::std::fmt::Debug + PartialEq>(got: T, expected: T) {
-    assert!(got == expected,
-        "\nExpected: {:#?}\nActual: {:#?}", expected, got);
-}
-
-pub fn make_parser(input: &'static str) -> Parser<IterTokenizer<Chars<'static>>> {
+/// Produces a parser that parses the given input
+pub fn parser(input: &'static str) -> Parser<IterTokenizer<Chars<'static>>> {
     let tokenizer = make_tokenizer(input);
     Parser::new(tokenizer)
 }
 
+/// Produces a parser that only returns new EOF tokens
+pub fn eof_parser() -> Parser<IterTokenizer<Chars<'static>>> {
+    parser("")
+}
+
+/// Ensure the values of two expressions match.
+///
+/// Ignores position information in tokens
+pub fn expression_eq(expected: Expression, got: Expression) {
+    assert_eq!(expected, got, "expression_eq implemented yet");
+}
+
+pub fn parse_fails() {
+
+}
+
 #[test]
 fn it_parses_an_assignment_to_constant() {
-    let mut parser = make_parser("let x = 0");
+    let mut parser = parser("let x = 0");
     let expr = parser.expression(Precedence::Max).unwrap();
     let expected = Expression::Declaration(Declaration {
         mutable: false,
@@ -54,7 +66,7 @@ fn it_parses_an_assignment_to_constant() {
 
 #[test]
 fn it_parses_simple_addition_expression() {
-    let mut parser = make_parser("x + 3/4");
+    let mut parser = parser("x + 3/4");
     let expr = parser.expression(Precedence::Min).unwrap();
     let expected = Expression::BinaryOp(BinaryOperation {
         operator: Operator::Addition,
@@ -118,7 +130,7 @@ fn it_parses_simple_addition_expression() {
 
 #[test]
 fn it_parses_a_multi_statement_block() {
-    let mut parser = make_parser("let x = 0 return x + 1");
+    let mut parser = parser("let x = 0 return x + 1");
     let block = parser.block().unwrap();
     let expected = vec![
         Expression::Declaration(Declaration {
@@ -197,7 +209,7 @@ fn it_parses_a_multi_statement_block() {
 fn it_parses_pemdas() {
     let input =
         "let x = 1 + 2 * 3 - 4 / 5 % 6 x";
-    let mut parser = make_parser(input);
+    let mut parser = parser(input);
     let block = parser.block();
     println!("{:#?}", block);
     let expected = vec![

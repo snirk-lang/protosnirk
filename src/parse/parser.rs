@@ -93,7 +93,7 @@ impl<T: Tokenizer> Parser<T> {
                     // Ignore indentation until match found
                     IndentationRule::DisableUntil(indent_data) => {
                         // If match is found, disable this rule, return the match
-                        if next.data == indent_data {
+                        if next.data.get_type() == indent_data {
                             self.indent_rules.pop();
                         }
                         // If indentation is found, skip it
@@ -139,19 +139,21 @@ impl<T: Tokenizer> Parser<T> {
         }
     }
 
+    /// Attempts to match the next token from the tokenizer with the given type.
+    /// If the next token is an indentation, applies the rule and returns `(true, ...)``
     pub fn consume_type_indented(&mut self, expected_type: TokenType, rule: IndentationRule)
-        -> Result<(bool, Token), ParseError> {
-            let (indented, token) = self.consume_indented(rule);
-            if token.data.get_type() != expected_type {
-                Err(ParseError::ExpectedToken {
-                    expected: expected_type,
-                    got: token.into()
-                })
-            }
-            else {
-                Ok((indented, token))
-            }
+                                 -> Result<(bool, Token), ParseError> {
+        let (indented, token) = self.consume_indented(rule);
+        if token.data.get_type() != expected_type {
+            Err(ParseError::ExpectedToken {
+                expected: expected_type,
+                got: token.into()
+            })
         }
+        else {
+            Ok((indented, token))
+        }
+    }
 
     /// Attempts to match the next token from the tokenizer with the given type and name.
     pub fn consume_name(&mut self, expected_type: TokenType, expected_name: CowStr)
@@ -250,6 +252,8 @@ impl<T: Tokenizer> Parser<T> {
         Ok(left)
     }
 
+    /// Parse a single statement.
+    ///
     pub fn statement(&mut self) -> Result<Statement, ParseError> {
         let mut found_parser: Option<Rc<PrefixParser<Statement, T> + 'static>> = None;
         let peek_data = (self.next_type(), Cow::Owned(self.peek().text.to_string()));
@@ -373,9 +377,10 @@ impl<T: Tokenizer> Parser<T> {
     }
 
     /// Parse a block and verify it for errors
-    pub fn parse_program(&mut self) -> Result<Program, ParseError> {
-        let block = try!(self.block());
-        let program = Verifier { }.verify_program(block);
+    pub fn parse_unit(&mut self) -> Result<Program, ParseError> {
+        // In the future the parser will hande items separately.
+        let block = Unit::new(try!(self.block()));
+        let program = Verifier { }.verify_unit(block);
         if let Err(errors) = program {
             Err(ParseError::VerifierError { collection: errors })
         }
@@ -405,7 +410,7 @@ impl<T: Tokenizer> Parser<T> {
 #[derive(Debug, Clone)]
 pub enum IndentationRule {
     /// Ignore indentation until a matching token is consumed
-    DisableUntil(TokenData),
+    DisableUntil(TokenType),
     /// Remove the next indentation found
     NegateDeindent,
     /// Ignore all indent/deindent tokens

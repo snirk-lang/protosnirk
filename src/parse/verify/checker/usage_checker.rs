@@ -26,9 +26,10 @@ mod tests {
     use std::borrow::Cow;
 
     use lex::{Token, TokenData, TextLocation};
+    use parse::ASTVisitor;
     use parse::tests::make_parser;
     use parse::build::SymbolTable;
-    use parse::verify::{ExpressionChecker, ErrorCollector, VerifyError};
+    use parse::verify::{ErrorCollector, VerifyError};
     use parse::verify::checker::*;
 
     #[test]

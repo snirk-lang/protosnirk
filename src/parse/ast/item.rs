@@ -13,7 +13,7 @@ use parse::ast::Block;
 ///
 /// In the future this should be an entire progam definition,
 /// complete with lists of defined types, functions, etc.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Unit {
     pub block: Block
 }

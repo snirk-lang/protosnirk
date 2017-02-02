@@ -1,5 +1,5 @@
 use parse::ASTVisitor;
-use parse::ast::{Expression, Block};
+use parse::ast::Unit;
 use parse::build::{SymbolTable, Program};
 use parse::ErrorCollector;
 use parse::verify::checker::*;
@@ -13,19 +13,19 @@ use parse::verify::checker::*;
 pub struct Verifier {
 }
 impl Verifier {
-    pub fn verify_program(&mut self, block: Block) -> Result<Program, ErrorCollector> {
+    pub fn verify_unit(&mut self, unit: Unit) -> Result<Program, ErrorCollector> {
         let errors = ErrorCollector::new();
         let symbol_table = SymbolTable::new();
         let mut symbol_builder = SymbolTableChecker::new(errors, symbol_table);
-        symbol_builder.check_block(&block);
+        symbol_builder.check_unit(&unit);
         let (symbol_table, mut errors) = symbol_builder.decompose();
         if !errors.get_errors().is_empty() {
             return Err(errors)
         }
         UsageChecker { }.warn_for_unsused(&mut errors, &symbol_table);
         let mut constant_assembler = ConstantAssembler::new();
-        constant_assembler.check_block(&block);
+        constant_assembler.check_unit(&unit);
         let constants = constant_assembler.into();
-        Ok(Program::new(block, symbol_table, constants, errors))
+        Ok(Program::new(unit, symbol_table, constants, errors))
     }
 }
