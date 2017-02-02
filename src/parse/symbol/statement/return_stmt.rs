@@ -36,4 +36,23 @@ mod tests {
     // - return <expr>
     // - return // no expr
     // - return // expr next line
+
+    #[test]
+    fn it_parses_empty_return_followed_by_statement() {
+
+    }
+
+    fn it_parses_empty_return_followed_by_endblock() {
+
+    }
+
+    #[test]
+    fn it_parses_return_expression() {
+
+    }
+
+    #[test]
+    fn it_denies_return_statement() {
+
+    }
 }

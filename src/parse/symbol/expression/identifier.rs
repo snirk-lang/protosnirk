@@ -24,5 +24,23 @@ impl<T: Tokenizer> PrefixParser<Expression, T> for IdentifierParser {
 
 #[cfg(test)]
 mod tests {
-    // TODO test 
+    use std::borrow::Cow;
+    use lex::{Token, TokenData, TokenType};
+    use parse::ast::{Expression, Identifier};
+    use parse::symbol::{PrefixParser, IdentifierParser};
+    use parse::tests as parse_tests;
+
+    const IDENT_TOKEN: Token = Token {
+        data: TokenData::Ident,
+        text: Cow::Borrowed("x"),
+        .. Default::default()
+    };
+
+    #[test]
+    fn it_parses_identifier() {
+        let mut parser = parse_tests::eof_parser();
+        let expected = Expression::VariableRef(Identifier::new(IDENT_TOKEN.clone()));
+        let parsed = IdentifierParser { }.parse(&mut parser, IDENT_TOKEN.clone()).unwrap();
+        parse_tests::expression_eq(parsed, expected);
+    }
 }

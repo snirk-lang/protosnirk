@@ -30,7 +30,7 @@ impl<T: Tokenizer> PrefixParser<Expression, T> for LiteralParser {
 mod tests {
     use lex::{Token, TokenData, TokenType};
     use parse::ast::{Expression, Literal};
-    use parse::symbol::LiteralParser;
+    use parse::symbol::{PrefixParser, LiteralParser};
     use parse::tests as parse_tests;
 
     #[cfg(test)]
@@ -42,12 +42,6 @@ mod tests {
         };
         let expected = Expression::Literal(Literal::new(expected_token.clone()));
         let parsed = LiteralParser { }.parse(&mut parser, expected_token).unwrap();
-        parse_tests::ensure_expression_eq(expected, parsed);
-    }
-
-    #[cfg(test)]
-    fn it_fails_non_number_token() {
-        let mut parser = parse_tests::eof_parser();
-        // TODO test
+        parse_tests::expression_eq(expected, parsed);
     }
 }

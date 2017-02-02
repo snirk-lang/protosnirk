@@ -11,8 +11,8 @@ use parse::symbol::PrefixParser;
 ///
 /// # Examples
 /// ```text
-/// mut            x          =         6 + 3
-///  ^:mutable  ->name:name (skip) ->value:expression
+/// let mut            x          =         6 + 3
+/// ^:.  ^:mutable  ->name:name (skip) ->value:expression
 /// ```
 #[derive(Debug)]
 pub struct DeclarationParser { }
@@ -36,4 +36,55 @@ impl<T: Tokenizer> PrefixParser<Expression, T> for DeclarationParser {
         println!("Got rvalue {:?}", value);
         Ok(Expression::Declaration(Declaration::new(name.into(), is_mutable, Box::new(value))))
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::borrow::Cow;
+    use lex::{Token, TokenData, TokenType};
+    use parse::ast::{Declaration, Expression, Statement, Block, Literal};
+    use parse::symbol::{PrefixParser, DeclarationParser};
+    use parse::tests as parse_tests;
+
+    const LET_TOKEN: Token = Token {
+        data: TokenData::Keyword,
+        text: Cow::Borrowed("let"),
+        .. Default::default()
+    };
+
+    const LITERAL_ZERO: Expression = Expression::Literal(Literal {
+        token: Token {
+            data: TokenData::NumberLiteral(0f64),
+            .. Default::default()
+        }});
+
+    #[test]
+    fn it_parses_let_var_eq_value() {
+        let mut parser = parse_tests::parser("x = 0");
+        let expected = Declaration::new(LET_TOKEN.clone(), false, Box::new(LITERAL_ZERO.clone()));
+        let parsed = DeclarationParser { }.parse(&mut parser, LET_TOKEN.clone()).unwrap();
+        parse_tests::expression_eq(Expression::Declaration(expected), parsed);
+    }
+
+    #[test]
+    fn it_parses_let_mut_var_eq_value() {
+        let mut parser = parse_tests::parser("mut x = 0");
+        let expected = Declaration::new(LET_TOKEN.clone(), true, Box::new(LITERAL_ZERO.clone()));
+        let parsed = DeclarationParser { }.parse(&mut parser, LET_TOKEN.clone()).unwrap();
+        parse_tests::expression_eq(Expression::Declaration(expected), parsed);
+
+    }
+
+    /* // TODO: design requires some thinking, not supported right now.
+    fn it_parses_let_var_eq_block() {
+        let mut parser = parse_tests::parser("x = do\n    0");
+        let block = Block::new(vec![Statement::Expression(LITERAL_ZERO.clone())]);
+        let expected = Declaration::new(LET_TOKEN.clone(),
+                                        true,
+                                        Box::new(Statement::DoBlock(block));
+        let parsed = DeclarationParser { }.parse(&mut parser, LET_TOKEN.clone()).unwrap();
+        parse_tests::expression_eq(Expression::Declaration(expected), parsed);
+
+    }
+    */
 }
