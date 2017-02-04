@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use parse::{Operator, ASTVisitor, ScopeIndex, ScopedTable};
+use parse::{ASTVisitor, ScopeIndex, SymbolTable};
 use parse::ast::*;
 use compile::llvm::{LLVMContext, ModuleProvider};
 
@@ -18,8 +18,8 @@ pub struct ModuleCompiler<M: ModuleProvider> {
     optimizations: bool,
     context: LLVMContext,
     ir_code: Vec<LLVMValueRef>,
-    scope_index: ScopeIndex,
-    scope_manager: ScopedTable<LLVMValueRef>
+    symbols: SymbolTable,
+    scope_manager: HashMap<ScopeIndex, LLVMValueRef>
 }
 impl<M: ModuleProvider> ModuleCompiler<M> {
     pub fn new(symbols: SymbolTable, provider: M, optimizations: bool) -> ModuleCompiler<M> {
@@ -28,7 +28,7 @@ impl<M: ModuleProvider> ModuleCompiler<M> {
             context: LLVMContext::new(),
             symbols: symbols,
             ir_code: Vec::with_capacity(1),
-            scope_manager: ScopedMap::new(),
+            scope_manager: HashMap::new(),
             optimizations: optimizations
         }
     }
@@ -49,14 +49,9 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
 
     fn check_var_ref(&mut self, ident_ref: &Identifier) {
         trace!("Checking variable ref {}", ident_ref.get_name());
-        let (var_alloca, ix) = self.scope_manager.get(ident_ref.get_name()).expect(
-            "Attempted to check var ref but had no alloca");
-        let load_name = if ix == 0 {
-            format!("load_{}", ident_ref.get_name())
-        }
-        else {
-            format!("load_{}_{}", ident_ref.get_name(), ix)
-        };
+        let var_alloca = self.scope_manager.get(&ident_ref.get_index())
+            .expect("Attempted to check var ref but had no alloca");
+        let load_name = format!("load_{}", ident_ref.get_name());
         let mut builder = self.context.get_ir_builder_mut();
         let var_load = builder.build_load(*var_alloca, &load_name);
         self.ir_code.push(var_load);
@@ -70,7 +65,7 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
         let mut builder = self.context.get_ir_builder_mut();
         let float_type = RealTypeRef::get_float();
         let alloca = builder.build_alloca(float_type.to_ref(), decl.get_name());
-        self.scope_manager.define_local(decl.get_name().to_string(), alloca.to_ref());
+        self.scope_manager.insert(decl.ident.get_index(), alloca.to_ref());
         builder.build_store(decl_value, alloca);
     }
 
@@ -79,7 +74,7 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
         self.check_expression(&*assign.rvalue);
         let rvalue = self.ir_code.pop()
             .expect("Could not generate rvalue of assignment");
-        let (var_alloca, _ix) = self.scope_manager.get(assign.lvalue.get_name())
+        let var_alloca = self.scope_manager.get(&assign.lvalue.get_index())
             .expect("Could not find existing var for assignment!");
         let mut builder = self.context.get_ir_builder_mut();
         builder.build_store(rvalue, *var_alloca);
@@ -184,10 +179,8 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
 
     fn check_block(&mut self, block: &Block) {
         trace!("Checking block");
-        self.scope_manager.new_scope();
         for stmt in &block.statements {
             self.check_statement(stmt)
         }
-        self.scope_manager.pop();
     }
 }

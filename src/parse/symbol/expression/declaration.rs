@@ -34,7 +34,7 @@ impl<T: Tokenizer> PrefixParser<Expression, T> for DeclarationParser {
         let value_expr = try!(parser.expression(Precedence::Min));
         let value = try!(value_expr.expect_value());
         println!("Got rvalue {:?}", value);
-        Ok(Expression::Declaration(Declaration::new(token, name, is_mutable, Box::new(value))))
+        Ok(Expression::Declaration(Declaration::new(token, is_mutable, name, Box::new(value))))
     }
 }
 

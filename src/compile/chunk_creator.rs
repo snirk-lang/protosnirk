@@ -1,4 +1,4 @@
-use parse::{Operator, Program, SymbolTable, ASTVisitor};
+use parse::{Program, ASTVisitor, SymbolTable};
 use parse::ast::*;
 use parse::ast::Expression as BaseExpression;
 use run::{Chunk, Value, Instruction, OpCode};

@@ -8,15 +8,20 @@ use parse::verify::scope::SymbolTable;
 pub struct UsageChecker { }
 impl UsageChecker {
     pub fn warn_for_unsused(&self, warns: &mut ErrorCollector, table: &SymbolTable) {
-        for (ref name, ref sym) in table {
-            debug_assert!(!(!sym.is_mutable() && sym.is_mutated()), "Did not expect immutable {:?} to be mutated", sym);
+        for (_name, sym) in table.iter() {
+            debug_assert!(!(!sym.is_mutable() && sym.is_mutated()),
+                "Did not expect immutable {:?} to be mutated", sym);
             if !sym.is_used() {
-                let err_message = format!("Variable {} is declared but never used", name);
-                warns.add_warning(VerifyError::new(sym.get_token().clone(), vec![], err_message));
+                let err_message = format!("Variable {} is declared but never used",
+                    sym.get_declaration().text);
+                warns.add_warning(
+                    VerifyError::new(sym.get_declaration().clone(), vec![], err_message));
             }
             if sym.is_mutable() && !sym.is_mutated() {
-                let err_message = format!("Variable {} is declared mutable but never mutated", name);
-                warns.add_warning(VerifyError::new(sym.get_token().clone(), vec![], err_message));
+                let err_message = format!("Variable {} is declared mutable but never mutated",
+                    sym.get_declaration().text);
+                warns.add_warning(
+                    VerifyError::new(sym.get_declaration().clone(), vec![], err_message));
             }
         }
     }

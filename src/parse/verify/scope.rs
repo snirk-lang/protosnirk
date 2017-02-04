@@ -11,11 +11,13 @@ pub struct ScopeIndex {
 impl ScopeIndex {
     #[inline]
     pub fn increment(&mut self) {
-        self.indices[self.indices.len() - 1] += 1;
+        let len = self.indices.len() - 1;
+        self.indices[len] += 1;
     }
     #[inline]
     pub fn decrement(&mut self) {
-        self.indices[self.indices.len() - 1] -= 1;
+        let len = self.indices.len() - 1;
+        self.indices[len] -= 1;
     }
     #[inline]
     pub fn push(&mut self) {
@@ -89,7 +91,7 @@ impl DerefMut for SymbolTable {
 /// AST in order to identify where a variable came from.
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct SymbolTableBuilder {
-    scopes: Vec<HashMap<String, Symbol>>
+    scopes: Vec<HashMap<String, ScopeIndex>>
 }
 
 impl SymbolTableBuilder {
@@ -104,12 +106,12 @@ impl SymbolTableBuilder {
     }
 
     // Pop the topmost scope from the stack
-    pub fn pop(&mut self) -> Option<HashMap<String, Symbol>> {
+    pub fn pop(&mut self) -> Option<HashMap<String, ScopeIndex>> {
         self.scopes.pop()
     }
 
     /// Define a new variable in the local scope
-    pub fn define_local(&mut self, name: String, value: Symbol) {
+    pub fn define_local(&mut self, name: String, value: ScopeIndex) {
         debug_assert!(!self.scopes.is_empty(),
             "Attempted to define variable {} with no scopes", name);
         let last_ix = self.scopes.len() - 1usize;
@@ -118,7 +120,7 @@ impl SymbolTableBuilder {
     }
 
     /// Get a variable from any scope
-    pub fn get(&self, name: &str) -> Option<&Symbol> {
+    pub fn get(&self, name: &str) -> Option<&ScopeIndex> {
         trace!("Searching for {} in {:#?}", name, self);
         debug_assert!(!self.scopes.is_empty(),
             "Attempted to search for a variable {} with no scopes", name);
@@ -133,7 +135,7 @@ impl SymbolTableBuilder {
     }
 
     /// Get a variable defined in local scopeh
-    pub fn get_local(&self, name: &str) -> Option<&Symbol> {
+    pub fn get_local(&self, name: &str) -> Option<&ScopeIndex> {
         debug_assert!(!self.scopes.is_empty(),
             "Attempted to get local var {} with no scopes", name);
         let local_scope_ix = self.scopes.len() - 1usize;
@@ -141,7 +143,7 @@ impl SymbolTableBuilder {
     }
 
     /// Get a variable, starting from the given scope
-    pub fn get_in_scope(&self, name: &str, scope_level: usize) -> Option<&Symbol> {
+    pub fn get_in_scope(&self, name: &str, scope_level: usize) -> Option<&ScopeIndex> {
         debug_assert!(self.scopes.len() >= scope_level,
             "Do not have {} scopes to search, only have {}", scope_level, self.scopes.len());
         for scope in self.scopes[0..scope_level].iter().rev() {

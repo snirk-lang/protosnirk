@@ -27,8 +27,8 @@ impl Identifier {
         &self.token.text
     }
 
-    pub fn get_index(&self) -> &ScopeIndex {
-        &self.index.borrow();
+    pub fn get_index(&self) -> ScopeIndex {
+        self.index.borrow().clone()
     }
 
     pub fn set_index(&self, index: ScopeIndex) {

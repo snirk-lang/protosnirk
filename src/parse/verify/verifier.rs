@@ -14,8 +14,7 @@ pub struct Verifier {
 impl Verifier {
     pub fn verify_unit(&mut self, unit: Unit) -> Result<Program, ErrorCollector> {
         let errors = ErrorCollector::new();
-        let symbol_table = SymbolTable::new();
-        let mut symbol_builder = SymbolTableChecker::new(errors, symbol_table);
+        let mut symbol_builder = SymbolTableChecker::new(errors);
         symbol_builder.check_unit(&unit);
         let (symbol_table, mut errors) = symbol_builder.decompose();
         if !errors.get_errors().is_empty() {
