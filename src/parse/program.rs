@@ -9,21 +9,18 @@
 use parse::ast::Unit;
 use parse::verify::ErrorCollector;
 use parse::verify::scope::SymbolTable;
-use run::{Instruction, Value};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Program {
     unit: Unit,
     symbol_table: SymbolTable,
-    constants: Vec<Value>,
     errors: ErrorCollector
 }
 impl Program {
-    pub fn new(unit: Unit, symbol_table: SymbolTable, constants: Vec<Value>, errors: ErrorCollector) -> Program {
+    pub fn new(unit: Unit, symbol_table: SymbolTable, errors: ErrorCollector) -> Program {
         Program {
             unit: unit,
             symbol_table: symbol_table,
-            constants: constants,
             errors: errors
         }
     }
@@ -33,13 +30,10 @@ impl Program {
     pub fn get_symbol_table(&self) -> &SymbolTable {
         &self.symbol_table
     }
-    pub fn get_constants(&self) -> &Vec<Value> {
-        &self.constants
-    }
     pub fn get_unit(&self) -> &Unit {
         &self.unit
     }
-    pub fn decompose(self) -> (Unit, SymbolTable, Vec<Value>, ErrorCollector) {
-        (self.unit, self.symbol_table, self.constants, self.errors)
+    pub fn decompose(self) -> (Unit, SymbolTable, ErrorCollector) {
+        (self.unit, self.symbol_table, self.errors)
     }
 }
