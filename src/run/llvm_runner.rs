@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::mem;
 use std::rc::Rc;
 
-use compile::llvm::ModuleProvider;
+use compile::ModuleProvider;
 use super::llvm_state::LLVMState;
 
 use llvm_sys::prelude::LLVMValueRef;

@@ -1,7 +1,10 @@
-mod chunk_creator;
-mod compiler;
-mod register_table;
-mod constant_table;
-pub mod llvm;
+mod context;
+mod module_compiler;
+mod module_provider;
 
-pub use self::compiler::Compiler;
+#[cfg(test)]
+mod tests;
+
+pub use self::module_provider::{ModuleProvider, SimpleModuleProvider};
+pub use self::module_compiler::ModuleCompiler;
+pub use self::context::LLVMContext;

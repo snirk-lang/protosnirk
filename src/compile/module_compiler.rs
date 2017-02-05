@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use parse::{ASTVisitor, ScopeIndex, SymbolTable};
 use parse::ast::*;
-use compile::llvm::{LLVMContext, ModuleProvider};
+use compile::{LLVMContext, ModuleProvider};
 
 use llvm_sys::{self, LLVMOpcode};
 use llvm_sys::prelude::*;
