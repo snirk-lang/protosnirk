@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
-use parse::{Operator, ExpressionChecker, SymbolTable};
-use parse::expression::*;
-use compile::llvm::{LLVMContext, ModuleProvider, LexicalScopeManager};
+use parse::{ASTVisitor, ScopeIndex, SymbolTable};
+use parse::ast::*;
+use compile::llvm::{LLVMContext, ModuleProvider};
 
 use llvm_sys::{self, LLVMOpcode};
 use llvm_sys::prelude::*;
@@ -17,9 +17,9 @@ pub struct ModuleCompiler<M: ModuleProvider> {
     module_provider: M,
     optimizations: bool,
     context: LLVMContext,
-    symbols: SymbolTable,
     ir_code: Vec<LLVMValueRef>,
-    scope_manager: LexicalScopeManager<LLVMValueRef>
+    symbols: SymbolTable,
+    scope_manager: HashMap<ScopeIndex, LLVMValueRef>
 }
 impl<M: ModuleProvider> ModuleCompiler<M> {
     pub fn new(symbols: SymbolTable, provider: M, optimizations: bool) -> ModuleCompiler<M> {
@@ -28,7 +28,7 @@ impl<M: ModuleProvider> ModuleCompiler<M> {
             context: LLVMContext::new(),
             symbols: symbols,
             ir_code: Vec::with_capacity(1),
-            scope_manager: LexicalScopeManager::new(),
+            scope_manager: HashMap::new(),
             optimizations: optimizations
         }
     }
@@ -36,7 +36,7 @@ impl<M: ModuleProvider> ModuleCompiler<M> {
         (self.module_provider, self.context, self.symbols)
     }
 }
-impl<M:ModuleProvider> ExpressionChecker for ModuleCompiler<M> {
+impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
     fn check_literal(&mut self, literal: &Literal) {
         trace!("Checking literal {}", literal.token);
         let float_type = RealTypeRef::get_float();
@@ -49,8 +49,8 @@ impl<M:ModuleProvider> ExpressionChecker for ModuleCompiler<M> {
 
     fn check_var_ref(&mut self, ident_ref: &Identifier) {
         trace!("Checking variable ref {}", ident_ref.get_name());
-        let (var_alloca, _ix) = self.scope_manager.get(ident_ref.get_name()).expect(
-            "Attempted to check var ref but had no alloca");
+        let var_alloca = self.scope_manager.get(&ident_ref.get_index())
+            .expect("Attempted to check var ref but had no alloca");
         let load_name = format!("load_{}", ident_ref.get_name());
         let mut builder = self.context.get_ir_builder_mut();
         let var_load = builder.build_load(*var_alloca, &load_name);
@@ -65,7 +65,7 @@ impl<M:ModuleProvider> ExpressionChecker for ModuleCompiler<M> {
         let mut builder = self.context.get_ir_builder_mut();
         let float_type = RealTypeRef::get_float();
         let alloca = builder.build_alloca(float_type.to_ref(), decl.get_name());
-        self.scope_manager.define_local(decl.get_name().to_string(), alloca.to_ref());
+        self.scope_manager.insert(decl.ident.get_index(), alloca.to_ref());
         builder.build_store(decl_value, alloca);
     }
 
@@ -74,7 +74,7 @@ impl<M:ModuleProvider> ExpressionChecker for ModuleCompiler<M> {
         self.check_expression(&*assign.rvalue);
         let rvalue = self.ir_code.pop()
             .expect("Could not generate rvalue of assignment");
-        let (var_alloca, _ix) = self.scope_manager.get(assign.lvalue.get_name())
+        let var_alloca = self.scope_manager.get(&assign.lvalue.get_index())
             .expect("Could not find existing var for assignment!");
         let mut builder = self.context.get_ir_builder_mut();
         builder.build_store(rvalue, *var_alloca);
@@ -140,21 +140,18 @@ impl<M:ModuleProvider> ExpressionChecker for ModuleCompiler<M> {
         }
     }
 
-    fn check_block(&mut self, block: &Vec<Expression>) {
-        trace!("Checking block");
+    fn check_unit(&mut self, unit: &Unit) {
+        trace!("Checking unit");
         let fn_ret_double = RealTypeRef::get_float().to_ref();
         let block_fn_type = FunctionTypeRef::get(&fn_ret_double, &mut [], false);
-        trace!("Creating `main` defintion");
-        let mut fn_ref = FunctionRef::new(&mut self.module_provider.get_module_mut(), "main", &block_fn_type);
-        let mut basic_block = fn_ref.append_basic_block_in_context(self.context.get_global_context_mut(), "entry");
+        trace!("Creating `fn main` definition");
+        let mut fn_ref = FunctionRef::new(&mut self.module_provider.get_module_mut(),
+            "main", &block_fn_type);
+        let mut basic_block = fn_ref.append_basic_block_in_context(
+            self.context.get_global_context_mut(), "entry");
         self.context.get_ir_builder_mut().position_at_end(&mut basic_block);
-        trace!("Positioned IR builder at the end of entry block");
-
-        self.scope_manager.new_scope();
-        for expr in block {
-            self.check_expression(expr)
-        }
-        self.scope_manager.pop();
+        trace!("Positioned IR builder at the end of entry block, checking unit block");
+        self.check_block(&unit.block);
 
         let mut builder = self.context.get_ir_builder_mut();
         // We can auto-issue a return stmt if the ir_code hasn't been
@@ -174,8 +171,16 @@ impl<M:ModuleProvider> ExpressionChecker for ModuleCompiler<M> {
             trace!("Running optimizations");
             self.module_provider.get_pass_manager().run(&mut fn_ref);
         }
-        // The final ir_code value should be a reference tothe function
-        //self.ir_code.push(fn_ref.to_ref());
-        self.module_provider.get_module().verify(LLVMVerifierFailureAction::LLVMPrintMessageAction).unwrap();
+        // The final ir_code value should be a reference to the function
+        self.module_provider.get_module()
+            .verify(LLVMVerifierFailureAction::LLVMPrintMessageAction)
+            .unwrap();
+    }
+
+    fn check_block(&mut self, block: &Block) {
+        trace!("Checking block");
+        for stmt in &block.statements {
+            self.check_statement(stmt)
+        }
     }
 }

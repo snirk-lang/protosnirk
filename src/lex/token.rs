@@ -12,7 +12,7 @@ use lex::{TextLocation, CowStr};
 /// A token returned by the tokenizer.
 ///
 /// Each token has a definite
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Default)]
 pub struct Token {
     /// Location of the token in a file
     pub location: TextLocation,
@@ -21,7 +21,7 @@ pub struct Token {
     /// Additional data (type/literal) provided by the lexer
     pub data: TokenData
 }
-impl Eq for Token {}
+
 impl Token {
     #[inline]
     pub fn new_symbol<T: Into<CowStr>>(text: T, location: TextLocation) -> Token {
@@ -49,6 +49,24 @@ impl Token {
     }
 
     #[inline]
+    pub fn new_indent(location: TextLocation) -> Token {
+        Token {
+            text: Cow::Borrowed(""),
+            data: TokenData::BeginBock,
+            location: location
+        }
+    }
+
+    #[inline]
+    pub fn new_outdent(location: TextLocation) -> Token {
+        Token {
+            text: Cow::Borrowed(""),
+            data: TokenData::EndBlock,
+            location: location
+        }
+    }
+
+    #[inline]
     pub fn new_eof(location: TextLocation) -> Token {
         Token {
             text: Cow::Borrowed(""),
@@ -57,11 +75,14 @@ impl Token {
         }
     }
 }
+
 impl Display for Token {
     fn fmt(&self, f: &mut Formatter) -> FmtResult {
         write!(f, "({:?}, {:?})", self.data.get_type(), self.text)
     }
 }
+
+impl Eq for Token { }
 
 /// Token enum - tokens are pretty simple, mostly dependent on string matching.
 #[derive(Debug, Clone, PartialEq)]
@@ -75,8 +96,9 @@ pub enum TokenData {
     Keyword,
     /// Token is some symbol
     Symbol,
-
+    /// Indendation of block
     BeginBock,
+    /// Outdendation of block
     EndBlock,
     /// Token is an EOF
     EOF
@@ -91,9 +113,16 @@ impl TokenData {
             Ident => TokenType::Ident,
             Keyword => TokenType::Keyword,
             Symbol => TokenType::Symbol,
-            BeginBock | EndBlock => TokenType::Block,
+            BeginBock => TokenType::BeginBlock,
+            EndBlock => TokenType::EndBlock,
             EOF => TokenType::EOF
         }
+    }
+}
+
+impl Default for TokenData {
+    fn default() -> TokenData {
+        TokenData::EOF
     }
 }
 
@@ -112,7 +141,8 @@ pub enum TokenType {
     /// Token is a registered symbol
     Symbol,
     /// Token is a begin/end block
-    Block,
+    BeginBlock,
+    EndBlock,
     /// Token is an EOF
     EOF
 }

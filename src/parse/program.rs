@@ -6,22 +6,22 @@
 //! along with type information and unique IDs for said variables
 //!
 
-use parse::build::SymbolTable;
-use parse::expression::Expression;
+use parse::ast::Unit;
 use parse::verify::ErrorCollector;
+use parse::verify::scope::SymbolTable;
 use run::{Instruction, Value};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Program {
-    block: Vec<Expression>,
+    unit: Unit,
     symbol_table: SymbolTable,
     constants: Vec<Value>,
     errors: ErrorCollector
 }
 impl Program {
-    pub fn new(block: Vec<Expression>, symbol_table: SymbolTable, constants: Vec<Value>, errors: ErrorCollector) -> Program {
+    pub fn new(unit: Unit, symbol_table: SymbolTable, constants: Vec<Value>, errors: ErrorCollector) -> Program {
         Program {
-            block: block,
+            unit: unit,
             symbol_table: symbol_table,
             constants: constants,
             errors: errors
@@ -36,10 +36,10 @@ impl Program {
     pub fn get_constants(&self) -> &Vec<Value> {
         &self.constants
     }
-    pub fn get_block(&self) -> &Vec<Expression> {
-        &self.block
+    pub fn get_unit(&self) -> &Unit {
+        &self.unit
     }
-    pub fn decompose(self) -> (Vec<Expression>, SymbolTable, Vec<Value>, ErrorCollector) {
-        (self.block, self.symbol_table, self.constants, self.errors)
+    pub fn decompose(self) -> (Unit, SymbolTable, Vec<Value>, ErrorCollector) {
+        (self.unit, self.symbol_table, self.constants, self.errors)
     }
 }

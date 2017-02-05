@@ -1,6 +1,6 @@
-use parse::{Operator, Program, SymbolTable, ExpressionChecker};
-use parse::expression::*;
-use parse::expression::Expression as BaseExpression;
+use parse::{Program, ASTVisitor, SymbolTable};
+use parse::ast::*;
+use parse::ast::Expression as BaseExpression;
 use run::{Chunk, Value, Instruction, OpCode};
 use super::register_table::RegisterTable;
 use super::constant_table::ConstantTable;
@@ -43,7 +43,7 @@ impl ChunkCreator {
         (self.constants, self.instructions, self.registers.len() as u8)
     }
 }
-impl ExpressionChecker for ChunkCreator {
+impl ASTVisitor for ChunkCreator {
     fn check_literal(&mut self, literal: &Literal) {
         let src_register_ix: u8;
         let literal_value = Value(literal.get_value());

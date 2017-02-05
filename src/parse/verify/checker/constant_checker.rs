@@ -1,7 +1,7 @@
 //! Assembles constants from a parse tree into a list.
 
-use parse::expression::Literal;
-use parse::verify::{ExpressionChecker};
+use parse::ast::Literal;
+use parse::ASTVisitor;
 use run::Value;
 
 /// Assembles constants from parse tree into a list
@@ -20,7 +20,7 @@ impl Into<Vec<Value>> for ConstantAssembler {
         self.constants
     }
 }
-impl ExpressionChecker for ConstantAssembler {
+impl ASTVisitor for ConstantAssembler {
     fn check_literal(&mut self, literal: &Literal) {
         let literal_value = Value(literal.get_value());
         if let Some(_known_ix) = self.constants.iter()
