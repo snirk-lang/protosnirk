@@ -212,7 +212,7 @@ impl<T: Tokenizer> Parser<T> {
         let prefix: Rc<PrefixParser<Expression, T> + 'static>;
         if token.data.get_type() == TokenType::EOF {
             trace!("Parsing received EOF!");
-            return Err(ParseError::LazyString(format!("got eof?")));
+            return Err(ParseError::EOF);
         }
         else if token.data.get_type() == TokenType::EndBlock {
             trace!("Received end block mid-parse");

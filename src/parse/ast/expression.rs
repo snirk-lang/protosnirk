@@ -138,7 +138,7 @@ impl Declaration {
         Declaration { token: token, mutable: mutable, ident: ident, value: value }
     }
     pub fn get_name(&self) -> &str {
-        &self.token.text
+        &self.ident.get_name()
     }
     pub fn get_value(&self) -> &Expression {
         &self.value

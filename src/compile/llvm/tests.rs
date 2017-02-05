@@ -35,17 +35,19 @@ fn compile_basic_programs() {
         a = a * 2 \n\
         return a",
 
-        "let mut b = 0\n\
-        b += 1\n\
-        do \n\
+        "let mut b = 0
+        b += 1
+        do
             let mut c = 0
             c = c + 1
-        ",
+            b *= c
+        return b",
     ];
     for (ix, input) in inputs.into_iter().enumerate() {
-        println!("Checking program {}", ix);
+        trace!("Checking program {} - {:?}", ix, input);
         let name = format!("dump_basic_definitions_{}", ix);
         let compiler = create_module_compiler(input, &name, false);
-        let (_provider, _context, _symbols) = compiler.decompose();
+        let (provider, _context, _symbols) = compiler.decompose();
+        provider.get_module().dump();
     }
 }

@@ -21,7 +21,7 @@ impl SymbolTableChecker {
         SymbolTableChecker {
             symbol_table: SymbolTable::new(),
             table_builder: SymbolTableBuilder::new(),
-            current_index: ScopeIndex::new(vec![]),
+            current_index: ScopeIndex::default(),
             errors: errors
         }
     }
@@ -45,13 +45,17 @@ impl ASTVisitor for SymbolTableChecker {
         } else {
             let var_index = self.current_index.clone();
             self.current_index.increment();
+            trace!("Created index {:?} for declared var {}", var_index, decl.get_name());
             decl.get_ident().set_index(var_index.clone());
             self.table_builder.define_local(decl.get_name().to_string(), var_index.clone());
-            self.symbol_table.insert(var_index.clone(), Symbol::from_declaration(decl, var_index));
+            self.symbol_table.insert(var_index.clone(),
+                Symbol::from_declaration(decl, var_index));
         }
     }
     fn check_var_ref(&mut self, var_ref: &Identifier) {
+        trace!("Checking reference to {}", var_ref.get_name());
         if let Some(index) = self.table_builder.get(var_ref.get_name()) {
+            trace!("Found reference to {} at {:?}", var_ref.get_name(), index);
             var_ref.set_index(index.clone());
             self.symbol_table.get_mut(&var_ref.get_index())
                 .map(Symbol::set_used);
@@ -62,7 +66,9 @@ impl ASTVisitor for SymbolTableChecker {
         }
     }
     fn check_assignment(&mut self, assign: &Assignment) {
+        println!("Checking assignment to {}", assign.lvalue.get_name());
         if let Some(index) = self.table_builder.get(assign.lvalue.get_name()) {
+            trace!("Found reference to {} at {:?}", assign.lvalue.get_name(), index);
             assign.lvalue.set_index(index.clone());
             if !self.symbol_table[index].is_mutable() {
                 let err_text = format!("Variable {} was not declared mutable", assign.lvalue.get_name());
@@ -83,10 +89,13 @@ impl ASTVisitor for SymbolTableChecker {
         self.check_expression(&assign.rvalue);
     }
     fn check_block(&mut self, block: &Block) {
+        trace!("Checking a block");
         self.current_index.push();
+        self.table_builder.new_scope();
         for stmt in &block.statements {
             self.check_statement(&stmt);
         }
+        self.table_builder.pop();
         self.current_index.pop();
         self.current_index.increment();
     }
@@ -99,7 +108,6 @@ mod tests {
     use parse::ASTVisitor;
     use parse::tests::parser;
     use parse::verify::{ErrorCollector, VerifyError};
-    use parse::build::SymbolTable;
     use super::SymbolTableChecker;
 
     #[test]
@@ -107,8 +115,7 @@ mod tests {
         let mut parser = parser("let x = 0 let x = 1");
         let block = parser.block().unwrap();
         let errors = ErrorCollector::new();
-        let symbol_table = SymbolTable::new();
-        let mut sym_checker = SymbolTableChecker::new(errors, symbol_table);
+        let mut sym_checker = SymbolTableChecker::new(errors);
         sym_checker.check_block(&block);
         let (_table, verifier) = sym_checker.decompose();
         let expected = vec![
@@ -134,8 +141,7 @@ mod tests {
         let mut parser = parser("let mut y = 0 y = x + 1");
         let block = parser.block().unwrap();
         let errors = ErrorCollector::new();
-        let symbol_table = SymbolTable::new();
-        let mut sym_checker = SymbolTableChecker::new(errors, symbol_table);
+        let mut sym_checker = SymbolTableChecker::new(errors);
         sym_checker.check_block(&block);
         let (_table, verifier) = sym_checker.decompose();
         let expected = vec![
@@ -155,8 +161,7 @@ mod tests {
         let mut parser = parser("let x = 0 let mut x = 1");
         let block = parser.block().unwrap();
         let errors = ErrorCollector::new();
-        let symbol_table = SymbolTable::new();
-        let mut sym_checker = SymbolTableChecker::new(errors, symbol_table);
+        let mut sym_checker = SymbolTableChecker::new(errors);
         sym_checker.check_block(&block);
         let (_table, verifier) = sym_checker.decompose();
         let expected = vec![
@@ -182,8 +187,7 @@ mod tests {
         let mut parser = parser("let x = 0 return y");
         let block = parser.block().unwrap();
         let errors = ErrorCollector::new();
-        let symbol_table = SymbolTable::new();
-        let mut sym_checker = SymbolTableChecker::new(errors, symbol_table);
+        let mut sym_checker = SymbolTableChecker::new(errors);
         sym_checker.check_block(&block);
         let (_table, verifier) = sym_checker.decompose();
         let expected: Vec<VerifyError> = vec![
@@ -206,8 +210,7 @@ mod tests {
         let mut parser = parser("let x = 0 x + y");
         let block = parser.block().unwrap();
         let errors = ErrorCollector::new();
-        let symbol_table = SymbolTable::new();
-        let mut sym_checker = SymbolTableChecker::new(errors, symbol_table);
+        let mut sym_checker = SymbolTableChecker::new(errors);
         sym_checker.check_block(&block);
         let (_table, verifier) = sym_checker.decompose();
         let expected = vec![
@@ -228,8 +231,7 @@ mod tests {
         let mut parser = parser("let x = 0 return -y");
         let block = parser.block().unwrap();
         let errors = ErrorCollector::new();
-        let symbol_table = SymbolTable::new();
-        let mut sym_checker = SymbolTableChecker::new(errors, symbol_table);
+        let mut sym_checker = SymbolTableChecker::new(errors);
         sym_checker.check_block(&block);
         let (_table, verifier) = sym_checker.decompose();
         let expected: Vec<VerifyError> = vec![
@@ -253,8 +255,7 @@ mod tests {
         let mut parser = parser("let x = 0 y");
         let block = parser.block().unwrap();
         let errors = ErrorCollector::new();
-        let symbol_table = SymbolTable::new();
-        let mut sym_checker = SymbolTableChecker::new(errors, symbol_table);
+        let mut sym_checker = SymbolTableChecker::new(errors);
         sym_checker.check_block(&block);
         let (_table, verifier) = sym_checker.decompose();
         let expected: Vec<VerifyError> = vec![
@@ -277,8 +278,7 @@ mod tests {
         let mut parser = parser("let x = 0 y = x");
         let block = parser.block().unwrap();
         let errors = ErrorCollector::new();
-        let symbol_table = SymbolTable::new();
-        let mut sym_checker = SymbolTableChecker::new(errors, symbol_table);
+        let mut sym_checker = SymbolTableChecker::new(errors);
         sym_checker.check_block(&block);
         let (_table, verifier) = sym_checker.decompose();
         let expected: Vec<VerifyError> = vec![
@@ -301,8 +301,7 @@ mod tests {
         let mut parser = parser("let mut x = 0 x = y");
         let block = parser.block().unwrap();
         let errors = ErrorCollector::new();
-        let symbol_table = SymbolTable::new();
-        let mut sym_checker = SymbolTableChecker::new(errors, symbol_table);
+        let mut sym_checker = SymbolTableChecker::new(errors);
         sym_checker.check_block(&block);
         let (_table, verifier) = sym_checker.decompose();
         let expected = vec![
@@ -322,8 +321,7 @@ mod tests {
         let mut parser = parser("let x = x");
         let block = parser.block().unwrap();
         let errors = ErrorCollector::new();
-        let symbol_table = SymbolTable::new();
-        let mut sym_checker = SymbolTableChecker::new(errors, symbol_table);
+        let mut sym_checker = SymbolTableChecker::new(errors);
         sym_checker.check_block(&block);
         let (_table, verifier) = sym_checker.decompose();
         let expected: Vec<VerifyError> = vec![
@@ -351,8 +349,7 @@ mod tests {
         return y - 2");
         let block = parser.block().unwrap();
         let errors = ErrorCollector::new();
-        let symbol_table = SymbolTable::new();
-        let mut sym_checker = SymbolTableChecker::new(errors, symbol_table);
+        let mut sym_checker = SymbolTableChecker::new(errors);
         sym_checker.check_block(&block);
         let (_table, verifier) = sym_checker.decompose();
         let expected: Vec<VerifyError> = vec![

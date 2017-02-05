@@ -27,6 +27,7 @@ pub enum ParseError {
         text: CowStr,
         token_type: TokenType
     },
+    EOF,
     LazyString(String)
 }
 

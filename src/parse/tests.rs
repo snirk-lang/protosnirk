@@ -3,8 +3,8 @@ use std::str::Chars;
 
 use lex::{Token, TokenData, TextLocation, Tokenizer, IterTokenizer};
 use lex::tests::make_tokenizer;
-use parse::{Operator, Parser, Precedence};
-use parse::symbol;
+use parse::{Parser};
+use parse::symbol::{self, Precedence};
 use parse::ast::*;
 
 pub fn expect_eq<T: ::std::fmt::Debug + PartialEq>(got: T, expected: T) {
@@ -34,6 +34,7 @@ pub fn parse_fails() {
 
 }
 
+/*
 #[test]
 fn it_parses_an_assignment_to_constant() {
     let mut parser = parser("let x = 0");
@@ -42,12 +43,15 @@ fn it_parses_an_assignment_to_constant() {
         mutable: false,
         token: Token {
             location: TextLocation {
-                index: 4,
+                index: 0,
                 line: 0,
-                column: 4
+                column: 0
             },
-            text: Cow::Borrowed("x"),
-            data: TokenData::Ident
+            text: Cow::Borrowed("let"),
+            data: TokenData::Keyword
+        },
+        ident: Identifier {
+            index: ScopeIndex
         },
         value: Box::new(Expression::Literal(Literal {
             token: Token {
@@ -128,7 +132,6 @@ fn it_parses_simple_addition_expression() {
     assert_eq!(expr, expected, "\nExpected: {:#?}\nGot: {:#?}", expected, expr);
 }
 
-/*
 #[test]
 fn it_parses_a_multi_statement_block() {
     let mut parser = parser("let x = 0 return x + 1");

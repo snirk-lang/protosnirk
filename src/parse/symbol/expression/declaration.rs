@@ -41,9 +41,12 @@ impl<T: Tokenizer> PrefixParser<Expression, T> for DeclarationParser {
 #[cfg(test)]
 mod tests {
     use std::borrow::Cow;
+    use std::cell::RefCell;
+
     use lex::{Token, TokenData, TokenType, TextLocation};
-    use parse::ast::{Declaration, Expression, Statement, Block, Literal};
+    use parse::ast::{Declaration, Expression, Statement, Block, Literal, Identifier};
     use parse::symbol::{PrefixParser, DeclarationParser};
+    use parse::ScopeIndex;
     use parse::tests as parse_tests;
 
     const LET_TOKEN: Token = Token {
@@ -54,6 +57,15 @@ mod tests {
         }
     };
 
+    const X_TOKEN: Token = Token {
+        data: TokenData::Ident,
+        text: Cow::Borrowed("x"),
+        location: TextLocation {
+            column: 0, line: 0, index: 0
+        }
+    };
+
+
     const LITERAL_ZERO: Expression = Expression::Literal(Literal {
         token: Token {
             data: TokenData::NumberLiteral(0f64),
@@ -61,12 +73,17 @@ mod tests {
             location: TextLocation {
                 column: 0, line: 0, index: 0
             }
-        }});
+        }
+    });
 
     #[test]
     fn it_parses_let_var_eq_value() {
         let mut parser = parse_tests::parser("x = 0");
-        let expected = Declaration::new(LET_TOKEN.clone(), false, Box::new(LITERAL_ZERO.clone()));
+        let ident = Identifier {
+            index: RefCell::new(ScopeIndex::default()),
+            token: LET_TOKEN.clone() // Not looking at token here?
+        };
+        let expected = Declaration::new(LET_TOKEN.clone(), false, ident, Box::new(LITERAL_ZERO.clone()));
         let parsed = DeclarationParser { }.parse(&mut parser, LET_TOKEN.clone()).unwrap();
         parse_tests::expression_eq(Expression::Declaration(expected), parsed);
     }
@@ -74,7 +91,11 @@ mod tests {
     #[test]
     fn it_parses_let_mut_var_eq_value() {
         let mut parser = parse_tests::parser("mut x = 0");
-        let expected = Declaration::new(LET_TOKEN.clone(), true, Box::new(LITERAL_ZERO.clone()));
+        let ident = Identifier {
+            index: RefCell::new(ScopeIndex::default()),
+            token: LET_TOKEN.clone() // Not looking at token here?
+        };
+        let expected = Declaration::new(LET_TOKEN.clone(), true, ident, Box::new(LITERAL_ZERO.clone()));
         let parsed = DeclarationParser { }.parse(&mut parser, LET_TOKEN.clone()).unwrap();
         parse_tests::expression_eq(Expression::Declaration(expected), parsed);
 

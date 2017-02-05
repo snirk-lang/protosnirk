@@ -33,7 +33,7 @@ mod tests {
     use lex::{Token, TokenData, TextLocation};
     use parse::ASTVisitor;
     use parse::tests::parser;
-    use parse::build::SymbolTable;
+    use parse::verify::scope::SymbolTable;
     use parse::verify::{ErrorCollector, VerifyError};
     use parse::verify::checker::*;
 
@@ -42,8 +42,7 @@ mod tests {
         let mut parser = parser("let x = 0");
         let block = parser.block().unwrap();
         let errors = ErrorCollector::new();
-        let symbol_table = SymbolTable::new();
-        let mut sym_checker = SymbolTableChecker::new(errors, symbol_table);
+        let mut sym_checker = SymbolTableChecker::new(errors);
         sym_checker.check_block(&block);
         let (sym_table, mut errors) = sym_checker.decompose();
         UsageChecker { }.warn_for_unsused(&mut errors, &sym_table);
@@ -64,8 +63,7 @@ mod tests {
         let mut parser = parser("let x = 0 let mut y = 0 y = x y");
         let block = parser.block().unwrap();
         let errors = ErrorCollector::new();
-        let symbol_table = SymbolTable::new();
-        let mut sym_checker = SymbolTableChecker::new(errors, symbol_table);
+        let mut sym_checker = SymbolTableChecker::new(errors);
         sym_checker.check_block(&block);
         let (sym_table, mut errors) = sym_checker.decompose();
         UsageChecker { }.warn_for_unsused(&mut errors, &sym_table);
@@ -77,8 +75,7 @@ mod tests {
         let mut parser = parser("let x = 0 return x");
         let block = parser.block().unwrap();
         let errors = ErrorCollector::new();
-        let symbol_table = SymbolTable::new();
-        let mut sym_checker = SymbolTableChecker::new(errors, symbol_table);
+        let mut sym_checker = SymbolTableChecker::new(errors);
         sym_checker.check_block(&block);
         let (sym_table, mut errors) = sym_checker.decompose();
         UsageChecker { }.warn_for_unsused(&mut errors, &sym_table);
@@ -90,8 +87,7 @@ mod tests {
         let mut parser = parser("let x = 0 x");
         let block = parser.block().unwrap();
         let errors = ErrorCollector::new();
-        let symbol_table = SymbolTable::new();
-        let mut sym_checker = SymbolTableChecker::new(errors, symbol_table);
+        let mut sym_checker = SymbolTableChecker::new(errors);
         sym_checker.check_block(&block);
         let (sym_table, mut errors) = sym_checker.decompose();
         UsageChecker { }.warn_for_unsused(&mut errors, &sym_table);
@@ -103,8 +99,7 @@ mod tests {
         let mut parser = parser("let x = 0 x + 1");
         let block = parser.block().unwrap();
         let errors = ErrorCollector::new();
-        let symbol_table = SymbolTable::new();
-        let mut sym_checker = SymbolTableChecker::new(errors, symbol_table);
+        let mut sym_checker = SymbolTableChecker::new(errors);
         sym_checker.check_block(&block);
         let (sym_table, mut errors) = sym_checker.decompose();
         UsageChecker { }.warn_for_unsused(&mut errors, &sym_table);
@@ -116,8 +111,7 @@ mod tests {
         let mut parser = parser("let x = 0 let y = x");
         let block = parser.block().unwrap();
         let errors = ErrorCollector::new();
-        let symbol_table = SymbolTable::new();
-        let mut sym_checker = SymbolTableChecker::new(errors, symbol_table);
+        let mut sym_checker = SymbolTableChecker::new(errors);
         sym_checker.check_block(&block);
         let (sym_table, mut errors) = sym_checker.decompose();
         UsageChecker { }.warn_for_unsused(&mut errors, &sym_table);
@@ -138,8 +132,7 @@ mod tests {
         let mut parser = parser("let x = 0 let mut y = 0 let Y = 0 y += Y");
         let block = parser.block().unwrap();
         let errors = ErrorCollector::new();
-        let symbol_table = SymbolTable::new();
-        let mut sym_checker = SymbolTableChecker::new(errors, symbol_table);
+        let mut sym_checker = SymbolTableChecker::new(errors);
         sym_checker.check_block(&block);
         let (sym_table, mut errors) = sym_checker.decompose();
         UsageChecker { }.warn_for_unsused(&mut errors, &sym_table);
