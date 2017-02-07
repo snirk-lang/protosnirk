@@ -23,11 +23,64 @@ pub fn eof_parser() -> Parser<IterTokenizer<Chars<'static>>> {
     parser("")
 }
 
+/// Check that two tokens are equal, without looking at locatoin
+pub fn token_eq(expected: Token, got: Token) {
+    assert_eq!(expected.data, got.data,
+        "token_eq: {:?} != {:?}", expected, got);
+    assert_eq!(expected.text, got.text,
+        "token_eq: {:?} != {:?}", expected, got);
+}
+
 /// Ensure the values of two expressions match.
 ///
 /// Ignores position information in tokens
-pub fn expression_eq(expected: Expression, got: Expression) {
-    assert_eq!(expected, got, "expression_eq implemented yet");
+pub fn expression_eq(expected: &Expression, got: &Expression) {
+    match (expected, got) {
+        (&Expression::Literal(ref lit), &Expression::Literal(ref lit2)) => {
+            assert_eq!(lit.get_value(), lit2.get_value(),
+                "Expression mismatch in literals: expected {}, got {}",
+                lit.get_value(), lit2.get_value());
+        },
+        (&Expression::VariableRef(ref var), &Expression::VariableRef(ref var2)) => {
+            assert_eq!(var.get_name(), var2.get_name(),
+                "Variable reference mismatch: expected {:?}, got {:?}",
+                var.get_name(), var2.get_name());
+        },
+        (&Expression::BinaryOp(ref bin), &Expression::BinaryOp(ref bin2)) => {
+            assert_eq!(bin.get_operator(), bin2.get_operator(),
+                "Binary expression mismatch:\nExpected {:#?}\nGot: {:#?}",
+                bin, bin2);
+            println!("Checking {:?} lhs equality", bin.get_operator());
+            expression_eq(bin.get_left(), bin2.get_left());
+            println!("Checking {:?} rhs equality", bin.get_operator());
+            expression_eq(bin.get_right(), bin2.get_right());
+        },
+        (&Expression::UnaryOp(ref un), &Expression::UnaryOp(ref un2)) => {
+            assert_eq!(un.get_operator(), un2.get_operator(),
+                "Unary expression mismatch:\nExpected {:#?}\nGot: {:#?}",
+                un, un2);
+            println!("Checking {:?} equality", un.get_operator());
+            expression_eq(un.get_inner(), un2.get_inner());
+        },
+        (&Expression::Assignment(ref assign), &Expression::Assignment(ref assign2)) => {
+            assert_eq!(assign.get_lvalue(), assign2.get_lvalue(),
+                "Assignment mismatch:\nExpected: {:#?}\nGot: {:#?}",
+                assign.get_lvalue(), assign2.get_lvalue());
+            println!("Checking assignment to {}", assign.get_lvalue().get_name());
+            expression_eq(assign.get_rvalue(), assign2.get_rvalue());
+        },
+        (&Expression::Declaration(ref dec), &Expression::Declaration(ref dec2)) => {
+            assert!(dec.get_name() == dec2.get_name() && dec.is_mut() == dec2.is_mut(),
+                "Declaration mismatch:\nExpected: {:#?}\nGot: {:#?}",
+                dec, dec2);
+            println!("Checking declaration of {}", dec.get_name());
+            expression_eq(dec.get_value(), dec2.get_value());
+        },
+        (ref other, ref other2) => {
+            panic!("Expressions did not match:\nExpected {:#?}\nGot {:#?}",
+                other, other2);
+        }
+    }
 }
 
 pub fn parse_fails() {

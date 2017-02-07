@@ -42,6 +42,6 @@ mod tests {
         };
         let expected = Expression::Literal(Literal::new(expected_token.clone()));
         let parsed = LiteralParser { }.parse(&mut parser, expected_token).unwrap();
-        parse_tests::expression_eq(expected, parsed);
+        parse_tests::expression_eq(&expected, &parsed);
     }
 }

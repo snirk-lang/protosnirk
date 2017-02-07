@@ -43,6 +43,6 @@ mod tests {
         let mut parser = parse_tests::eof_parser();
         let expected = Expression::VariableRef(Identifier::new(IDENT_TOKEN.clone()));
         let parsed = IdentifierParser { }.parse(&mut parser, IDENT_TOKEN.clone()).unwrap();
-        parse_tests::expression_eq(parsed, expected);
+        parse_tests::expression_eq(&parsed, &expected);
     }
 }

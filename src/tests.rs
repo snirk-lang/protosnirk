@@ -2,16 +2,13 @@
 
 use parse::tests::parser;
 
-use compile::Compiler;
-use run::{VM, Value};
-
+/*
 fn run_program(program: &'static str) -> Value {
     let program = parser(program).parse_unit();
     if !program.is_ok() {
         panic!("Error parsing program: {:#?}", program);
     }
     let chunk = Compiler { }.compile(program.unwrap());
-    VM { }.eval_chunk(chunk)
 }
 
 #[test]
@@ -41,3 +38,4 @@ fn all_math_operators() {
         return y - 2";
     assert_eq!(run_program(program), Value(0f64));
 }
+*/

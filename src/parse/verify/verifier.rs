@@ -9,8 +9,8 @@ use parse::verify::scope::SymbolTable;
 /// checkers in this module and it produces a complete program,
 /// with a symbol table and possible compilation errrors.
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
-pub struct Verifier {
-}
+pub struct Verifier { }
+
 impl Verifier {
     pub fn verify_unit(&mut self, unit: Unit) -> Result<Program, ErrorCollector> {
         let errors = ErrorCollector::new();
@@ -21,9 +21,6 @@ impl Verifier {
             return Err(errors)
         }
         UsageChecker { }.warn_for_unsused(&mut errors, &symbol_table);
-        let mut constant_assembler = ConstantAssembler::new();
-        constant_assembler.check_unit(&unit);
-        let constants = constant_assembler.into();
-        Ok(Program::new(unit, symbol_table, constants, errors))
+        Ok(Program::new(unit, symbol_table, errors))
     }
 }

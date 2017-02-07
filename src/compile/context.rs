@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use compile::llvm::ModuleProvider;
+use compile::ModuleProvider;
 
 use iron_llvm::LLVMRef;
 use iron_llvm::core::{Context, Builder, Function};

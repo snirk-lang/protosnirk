@@ -8,6 +8,7 @@ use parse::verify::scope::SymbolTable;
 pub struct UsageChecker { }
 impl UsageChecker {
     pub fn warn_for_unsused(&self, warns: &mut ErrorCollector, table: &SymbolTable) {
+        trace!("Found symbol table {:#?}", table);
         for (_name, sym) in table.iter() {
             debug_assert!(!(!sym.is_mutable() && sym.is_mutated()),
                 "Did not expect immutable {:?} to be mutated", sym);

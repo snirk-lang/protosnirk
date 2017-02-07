@@ -1,13 +1,13 @@
 use parse::tests::parser;
 use parse::{ErrorCollector, SymbolTable, ASTVisitor};
-use compile::llvm::{ModuleProvider, ModuleCompiler, SimpleModuleProvider};
+use compile::{ModuleProvider, ModuleCompiler, SimpleModuleProvider};
 
 pub fn create_module_compiler(input: &'static str, name: &str, optimize: bool)
         -> ModuleCompiler<SimpleModuleProvider> {
     let mut parser = parser(input);
     let program = parser.parse_unit()
         .expect("Could not parse program");
-    let (block, table, _consts, _errors) = program.decompose();
+    let (block, table, _errors) = program.decompose();
     let module_provider = SimpleModuleProvider::new(name);
     let mut compiler = ModuleCompiler::new(table, module_provider, optimize);
     compiler.check_unit(&block);
