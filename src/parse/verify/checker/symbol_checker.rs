@@ -33,7 +33,7 @@ impl ASTVisitor for SymbolTableChecker {
     fn check_declaration(&mut self, decl: &Declaration) {
         // Check rvalue first to prevent use-before-declare
         self.check_expression(&decl.value);
-
+        trace!("Checking declaration of {}", decl.get_name());
         // Check for name conflicts
         // TODO this prevents more shadowing than intended
         if let Some(declared_index) = self.table_builder.get(decl.get_name()).cloned() {
@@ -41,7 +41,7 @@ impl ASTVisitor for SymbolTableChecker {
             // Add previous declaration
             let references: Vec<Token> = vec![declared_at];
             let err_text = format!("Variable {} is already declared", decl.get_name());
-            self.errors.add_error(VerifyError::new(decl.token.clone(), references, err_text));
+            self.errors.add_error(VerifyError::new(decl.get_ident().get_token().clone(), references, err_text));
         } else {
             let var_index = self.current_index.clone();
             self.current_index.increment();

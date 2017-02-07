@@ -33,7 +33,7 @@ impl<T: Tokenizer> InfixParser<Expression, T> for AssignmentParser {
 mod tests {
     use std::borrow::Cow;
     use lex::{Token, TokenData, TokenType};
-    use parse::ast::{Expression, Literal, Identifier};
+    use parse::ast::{Expression, Assignment, Literal, Identifier};
     use parse::symbol::{InfixParser, AssignmentParser};
     use parse::tests as parse_tests;
 
@@ -45,18 +45,25 @@ mod tests {
     #[test]
     fn it_parses_lvalue_eq_expr() {
         let mut parser = parse_tests::parser("5");
-        let lvalue = Expression::VariableRef(Identifier::new(Token {
+        let lvalue_ident = Identifier::new(Token {
             data: TokenData::Ident,
             text: Cow::Borrowed("x"),
             .. Default::default()
-        }));
+        });
         let assign_token = Token {
             data: TokenData::Symbol,
             text: Cow::Borrowed("="),
             .. Default::default()
         };
+        let five_token = Token {
+            data: TokenData::NumberLiteral(5f64),
+            .. Default::default()
+        };
+        let lvalue = Expression::VariableRef(lvalue_ident.clone());
         let expr = AssignmentParser { }.parse(&mut parser, lvalue, assign_token);
-        assert!(expr.is_err());
+        let expected = Expression::Assignment(Assignment::new(lvalue_ident,
+            Box::new(Expression::Literal(Literal::new(five_token)))));
+        parse_tests::expression_eq(&expected, &expr.unwrap());
     }
 
     #[test]

@@ -46,7 +46,6 @@ mod tests {
     use parse::tests as parse_tests;
 
     // TODO test assign ident, assign non-ident
-    #[test]
     fn it_parses_lvalue_eq_expr() {
         let mut parser = parse_tests::parser("5");
         let lvalue = Expression::VariableRef(Identifier::new(Token {
@@ -60,7 +59,6 @@ mod tests {
             .. Default::default()
         };
         let expr = AssignOpParser { }.parse(&mut parser, lvalue, assign_token);
-        assert!(expr.is_err());
     }
 
     #[test]

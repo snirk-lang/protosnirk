@@ -105,6 +105,12 @@ impl BinaryOperation {
     pub fn get_operator(&self) -> Operator {
         self.operator
     }
+    pub fn get_left(&self) -> &Expression {
+        &self.left
+    }
+    pub fn get_right(&self) -> &Expression {
+        &self.right
+    }
 }
 
 /// Unary operation
@@ -122,6 +128,12 @@ impl UnaryOperation {
             op_token: op_token,
             expression: expression
         }
+    }
+    pub fn get_operator(&self) -> &Operator {
+        &self.operator
+    }
+    pub fn get_inner(&self) -> &Expression {
+        &self.expression
     }
 }
 
@@ -149,6 +161,9 @@ impl Declaration {
     pub fn get_ident(&self) -> &Identifier {
         &self.ident
     }
+    pub fn get_token(&self) -> &Token {
+        &self.token
+    }
 }
 
 /// An identifier is assigned to a value
@@ -160,5 +175,11 @@ pub struct Assignment {
 impl Assignment {
     pub fn new(name: Identifier, value: Box<Expression>) -> Assignment {
         Assignment { lvalue: name, rvalue: value }
+    }
+    pub fn get_lvalue(&self) -> &Identifier {
+        &self.lvalue
+    }
+    pub fn get_rvalue(&self) -> &Expression {
+        &self.rvalue
     }
 }

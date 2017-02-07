@@ -28,7 +28,7 @@ impl Symbol {
     }
     pub fn from_declaration(decl: &Declaration, index: ScopeIndex) -> Symbol {
         Symbol {
-            decl_token: decl.token.clone(),
+            decl_token: decl.get_ident().get_token().clone(),
             index: index,
             mutable: decl.mutable,
             used: false,

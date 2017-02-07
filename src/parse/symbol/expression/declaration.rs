@@ -81,11 +81,11 @@ mod tests {
         let mut parser = parse_tests::parser("x = 0");
         let ident = Identifier {
             index: RefCell::new(ScopeIndex::default()),
-            token: LET_TOKEN.clone() // Not looking at token here?
+            token: X_TOKEN.clone() // Not looking at token here?
         };
         let expected = Declaration::new(LET_TOKEN.clone(), false, ident, Box::new(LITERAL_ZERO.clone()));
         let parsed = DeclarationParser { }.parse(&mut parser, LET_TOKEN.clone()).unwrap();
-        parse_tests::expression_eq(Expression::Declaration(expected), parsed);
+        parse_tests::expression_eq(&Expression::Declaration(expected), &parsed);
     }
 
     #[test]
@@ -93,12 +93,11 @@ mod tests {
         let mut parser = parse_tests::parser("mut x = 0");
         let ident = Identifier {
             index: RefCell::new(ScopeIndex::default()),
-            token: LET_TOKEN.clone() // Not looking at token here?
+            token: X_TOKEN.clone() // Not looking at token here?
         };
         let expected = Declaration::new(LET_TOKEN.clone(), true, ident, Box::new(LITERAL_ZERO.clone()));
         let parsed = DeclarationParser { }.parse(&mut parser, LET_TOKEN.clone()).unwrap();
-        parse_tests::expression_eq(Expression::Declaration(expected), parsed);
-
+        parse_tests::expression_eq(&Expression::Declaration(expected), &parsed);
     }
 
     /* // TODO: design requires some thinking, not supported right now.

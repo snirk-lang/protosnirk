@@ -26,6 +26,9 @@ impl Identifier {
     pub fn get_name(&self) -> &str {
         &self.token.text
     }
+    pub fn get_token(&self) -> &Token {
+        &self.token
+    }
 
     pub fn get_index(&self) -> ScopeIndex {
         self.index.borrow().clone()
