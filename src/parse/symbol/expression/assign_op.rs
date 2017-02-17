@@ -58,7 +58,7 @@ mod tests {
             text: Cow::Borrowed("+="),
             .. Default::default()
         };
-        let expr = AssignOpParser { }.parse(&mut parser, lvalue, assign_token);
+        let _expr = AssignOpParser { }.parse(&mut parser, lvalue, assign_token);
     }
 
     #[test]

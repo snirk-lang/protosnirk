@@ -70,7 +70,8 @@ declare_tokens! {
         Let: "let",
         Mut: "mut",
         Return: "return",
-        Do: "do"
+        Do: "do",
+        If: "if"
     }
 
 }
