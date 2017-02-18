@@ -34,6 +34,9 @@ pub trait ASTVisitor {
             BaseExpression::VariableRef(ref var_ref) => {
                 self.check_var_ref(var_ref)
             }
+            BaseExpression::If(ref if_expr) => {
+                self.check_if(if_expr)
+            }
         }
     }
 
@@ -100,5 +103,15 @@ pub trait ASTVisitor {
     #[allow(unused_variables)]
     fn check_declaration(&mut self, decl: &Declaration) {
         self.check_expression(&*decl.value);
+    }
+
+    fn check_if(&mut self, if_expr: &If) {
+        for conditional in if_expr.get_conditionals() {
+            self.check_expression(&conditional.get_condition());
+            self.check_block(&conditional.get_block());
+        }
+        if let Some(else_info) = if_expr.get_else() {
+            self.check_block(&else_info.1);
+        }
     }
 }

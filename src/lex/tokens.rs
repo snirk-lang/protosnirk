@@ -44,7 +44,7 @@ declare_tokens! {
         Minus: "-"; CompletePrefix,
         Star: "*"; CompletePrefix,
         Slash: "/"; CompletePrefix,
-        Equals: "="; Complete,
+        Equals: "="; CompletePrefix,
         Percent: "%"; CompletePrefix,
 
         PlusEquals: "+="; Complete,
@@ -57,7 +57,8 @@ declare_tokens! {
         RightParen: ")"; Complete,
         LeftAngle: "<"; CompletePrefix,
         RightAngle: ">"; Complete,
-        GitMarker: "<<<<<<<"; Complete
+        GitMarker: "<<<<<<<"; Complete,
+        InlineArrow: "=>"; Complete
     }
     symparts {
         "//"; CompletePrefix, // Comments hack, allows // and /// to be parsed.
@@ -73,5 +74,4 @@ declare_tokens! {
         Do: "do",
         If: "if"
     }
-
 }

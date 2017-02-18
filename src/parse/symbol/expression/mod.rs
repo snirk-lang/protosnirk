@@ -4,6 +4,7 @@ mod parens;
 mod assignment;
 mod assign_op;
 mod declaration;
+mod if_expr;
 
 pub use self::literal::LiteralParser;
 pub use self::identifier::IdentifierParser;

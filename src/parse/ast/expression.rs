@@ -5,7 +5,7 @@
 
 use lex::{Token, TokenType, TokenData};
 use parse::{ParseResult, ParseError, ExpectedNextType};
-use parse::ast::{Statement, Identifier, Operator};
+use parse::ast::{Statement, Identifier, Operator, Block};
 
 /// Expression types
 #[derive(Debug, PartialEq, Clone)]
@@ -18,6 +18,8 @@ pub enum Expression {
     BinaryOp(BinaryOperation),
     /// Unary operation
     UnaryOp(UnaryOperation),
+    /// If expression
+    If(If),
 
     // "Non-value expressions"
     // I _guess_ they could return `()`, but why?
@@ -181,5 +183,37 @@ impl Assignment {
     }
     pub fn get_rvalue(&self) -> &Expression {
         &self.rvalue
+    }
+}
+
+/// Inline if expression using `=>`
+#[derive(Debug, PartialEq, Clone)]
+pub struct IfExpression {
+    if_token: Token,
+    condition: Expression,
+    true_expr: Expression,
+    else_expr: Expression
+}
+impl IfExpression {
+    pub fn new(if_token: Token, condition: Expression,
+               true_expr: Expression, else_expr: Expression) -> IfExpression {
+        IfExpression {
+            if_token: if_token,
+            condition: condition,
+            true_expr: true_expr,
+            else_expr: else_expr
+        }
+    }
+    pub fn get_token(&self) -> &Token {
+        &self.if_token
+    }
+    pub fn get_condition(&self) -> &Expression {
+        &self.condition
+    }
+    pub fn get_true_expr(&self) -> &Expression {
+        &self.true_expr
+    }
+    pub fn get_else(&self) -> &Expression {
+        &self.else_expr
     }
 }
