@@ -19,7 +19,7 @@ pub enum Expression {
     /// Unary operation
     UnaryOp(UnaryOperation),
     /// If expression
-    If(If),
+    IfExpression(IfExpression),
 
     // "Non-value expressions"
     // I _guess_ they could return `()`, but why?
@@ -190,13 +190,13 @@ impl Assignment {
 #[derive(Debug, PartialEq, Clone)]
 pub struct IfExpression {
     if_token: Token,
-    condition: Expression,
-    true_expr: Expression,
-    else_expr: Expression
+    condition: Box<Expression>,
+    true_expr: Box<Expression>,
+    else_expr: Box<Expression>
 }
 impl IfExpression {
-    pub fn new(if_token: Token, condition: Expression,
-               true_expr: Expression, else_expr: Expression) -> IfExpression {
+    pub fn new(if_token: Token, condition: Box<Expression>,
+               true_expr: Box<Expression>, else_expr: Box<Expression>) -> IfExpression {
         IfExpression {
             if_token: if_token,
             condition: condition,
