@@ -90,25 +90,31 @@ pub fn parse_fails() {
 #[test]
 fn parse_examples() {
     let inputs = &[
-r#"let mut x = 0
+/*r#"let mut x = 0
 if x + 0
     x += 1
 x"#,
-
-r#"1 > 2 => 1 else 2"#,
-
-r#"let x = 1 > 2 => 1 else 2"#,
+*/
+r#"if 1 + 2 => 1 else 2"#,
+/*
+r#"let x = if 1 + 2 => 1 else 2"#,
 
 r#"let mut x = 5
 if x + 5
     x + 1
+
 else if x - 5
     x - 1
 else
-    x"#
+    x"#*/
 ];
+    ::env_logger::LogBuilder::new()
+        .parse("TRACE")
+        .init()
+        .unwrap();
     for input in inputs {
         let mut parser = parser(input);
+        trace!("Parsing input {:?}", input);
         println!("{:#?}", parser.parse_unit());
     }
     panic!("Test needs to fail");

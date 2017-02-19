@@ -24,15 +24,21 @@ impl<T: Tokenizer> PrefixParser<Statement, T> for IfBlockParser {
     fn parse(&self, parser: &mut Parser<T>, token: Token) -> ParseResult<Statement> {
         debug_assert!(token.get_text() == "if",
             "Invalid token {:?} in IfBlockParser", token);
+        trace!("Parsing conditional of if statement");
         let condition = try!(parser.expression(Precedence::Min));
+        trace!("Parsed conditional");
         if parser.peek().get_text() == tokens::InlineArrow {
+            trace!("Next char is =>, doing infix expr");
+            parser.consume();
             let true_expr = try!(parser.expression(Precedence::Min));
+            trace!("Parsed infix if true expr");
             try!(parser.consume_name(TokenType::Keyword, tokens::Else));
             if parser.peek().get_text() == tokens::If {
                 let error = "Cannot have an `else if` via inline if expression";
                 return Err(ParseError::LazyString(error.to_string()))
             }
             let else_expr = try!(parser.expression(Precedence::Min));
+            println!("Parsed infix if false expr");
             let if_expr = IfExpression::new(token,
                                             Box::new(condition),
                                             Box::new(true_expr),

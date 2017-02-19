@@ -16,10 +16,6 @@ pub fn create_module_compiler(input: &'static str, name: &str, optimize: bool)
 
 #[test]
 fn compile_basic_programs() {
-    ::env_logger::LogBuilder::new()
-        .parse("TRACE")
-        .init()
-        .unwrap();
     let inputs = &[
         "1",
         "let a = 0 a",

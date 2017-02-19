@@ -246,6 +246,9 @@ impl<T: Tokenizer> Parser<T> {
                 trace!("Parsing via infix parser!");
                 left = try!(infix.parse(self, left, token));
             }
+            //else {
+            //    break
+            //}
         }
         trace!("Done parsing expression");
         Ok(left)
