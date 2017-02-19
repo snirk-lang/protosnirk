@@ -13,6 +13,7 @@ pub enum Statement {
     Expression(Expression),
     Return(Return),
     DoBlock(DoBlock),
+    IfBlock(IfBlock)
     // match, loop, while, for
 }
 impl Statement {
@@ -20,7 +21,8 @@ impl Statement {
         match *self {
             Statement::Expression(ref inner) => inner.has_value(),
             Statement::DoBlock(ref inner) => inner.has_value(),
-            Statement::Return(ref return_) => return_.has_value()
+            Statement::Return(ref return_) => return_.has_value(),
+            Statement::IfBlock(ref if_) => if_.has_value()
         }
     }
 }

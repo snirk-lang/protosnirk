@@ -23,11 +23,18 @@ impl<T: Tokenizer> PrefixParser<Expression, T> for IfExpressionParser {
         debug_assert!(token.text == "if",
             "Invlaid token {:?} in IfExpressionParser", token);
         let condition = try!(parser.expression(Precedence::Min));
-        if parser.peek().get_text() == tokens::InlineArrow {
-            // Inline if:
-            // no else ifs
-            // else required
-            parser.consume();
+        try!(parser.consume_name(TokenType::Symbol, tokens::InlineArrow));
+        let true_expr = try!(parser.expression(Precedence::Min));
+        try!(parser.consume_name(TokenType::Keyword, tokens::Else));
+        if parser.peek().get_text() == tokens::If {
+            let error = "Cannot have an `else if` via inline if expression";
+            return Err(ParseError::LazyString(error.to_string()))
         }
+        let else_expr = try!(parser.expression(Precedence::Min));
+        let if_expr = IfExpression::new(token,
+                                        Box::new(condition),
+                                        Box::new(true_expr),
+                                        Box::new(else_expr));
+        Ok(Expression::IfExpression(if_expr))
     }
 }
