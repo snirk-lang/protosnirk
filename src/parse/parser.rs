@@ -342,6 +342,7 @@ impl<T: Tokenizer> Parser<T> {
         let expr_prefix_map: HashMap<(TokenType, CowStr), Rc<PrefixParser<Expression, T> + 'static>> =
         hashmap![
             (Keyword, tokens::Let) => Rc::new(DeclarationParser { }) as Rc<PrefixParser<Expression, T>>,
+            (Keyword, tokens::If) => Rc::new(IfExpressionParser { }) as Rc<PrefixParser<Expression, T>>,
 
             (Symbol, tokens::Minus) => UnaryOpExprSymbol::with_precedence(Precedence::NumericPrefix),
             (Symbol, tokens::LeftParen) => Rc::new(ParensParser { }) as Rc<PrefixParser<Expression, T>>,
@@ -350,6 +351,7 @@ impl<T: Tokenizer> Parser<T> {
         hashmap![
             (Keyword, tokens::Return) => Rc::new(ReturnParser { }) as Rc<PrefixParser<Statement, T>>,
             (Keyword, tokens::Do) => Rc::new(DoBlockParser { }) as Rc<PrefixParser<Statement, T>>,
+            (Keyword, tokens::If) => Rc::new(IfBlockParser { }) as Rc<PrefixParser<Statement, T>>,
         ];
         let operator_map: HashMap<(TokenType, CowStr), Operator> = hashmap![
             (Symbol, tokens::Plus) => Operator::Addition,
