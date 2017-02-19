@@ -72,6 +72,7 @@ declare_tokens! {
         Mut: "mut",
         Return: "return",
         Do: "do",
-        If: "if"
+        If: "if",
+        Else: "else"
     }
 }
