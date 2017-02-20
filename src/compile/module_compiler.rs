@@ -7,6 +7,7 @@ use compile::{LLVMContext, ModuleProvider};
 use llvm_sys::{self, LLVMOpcode, LLVMRealPredicate};
 use llvm_sys::prelude::*;
 use llvm_sys::analysis::LLVMVerifierFailureAction;
+use llvm_sys::core::LLVMFloatType;
 use iron_llvm::LLVMRef;
 use iron_llvm::core::{Function, Builder};
 use iron_llvm::core::value::{RealConstRef, FunctionRef, Value};
@@ -115,18 +116,32 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
                 builder.build_binop(LLVMOpcode::LLVMFDiv, left_register, right_register, "div"),
             Operator::Modulus =>
                 builder.build_frem(left_register, right_register, "rem"),
-            Operator::Equality =>
-                builder.build_fcmp(LLVMRealOEQ, left_register, right_register, "eqtmp"),
-            Operator::NonEquality =>
-                builder.build_fcmp(LLVMRealONE, left_register, right_register, "neqtmp"),
-            Operator::LessThan =>
-                builder.build_fcmp(LLVMRealOLT, left_register, right_register, "lttmp"),
-            Operator::LessThanEquals =>
-                builder.build_fcmp(LLVMRealOLE, left_register, right_register, "letmp"),
-            Operator::GreaterThan =>
-                builder.build_fcmp(LLVMRealOGT, left_register, right_register, "gttmp"),
-            Operator::GreaterThanEquals =>
-                builder.build_fcmp(LLVMRealOGE, left_register, right_register, "getmp"),
+            // TODO binary operations should be handled seperately
+            // when types are added
+            Operator::Equality => {
+                let eq = builder.build_fcmp(LLVMRealOEQ, left_register, right_register, "eqtmp");
+                builder.build_ui_to_fp(eq, unsafe { LLVMFloatType() }, "eqcast")
+            },
+            Operator::NonEquality => {
+                let neq = builder.build_fcmp(LLVMRealONE, left_register, right_register, "neqtmp");
+                builder.build_ui_to_fp(neq, unsafe { LLVMFloatType() }, "neqcast")
+            },
+            Operator::LessThan => {
+                let lt = builder.build_fcmp(LLVMRealOLT, left_register, right_register, "lttmp");
+                builder.build_ui_to_fp(lt, unsafe { LLVMFloatType() }, "ltcast")
+            },
+            Operator::LessThanEquals => {
+                let le = builder.build_fcmp(LLVMRealOLE, left_register, right_register, "letmp");
+                builder.build_ui_to_fp(le, unsafe { LLVMFloatType() }, "lecast")
+            },
+            Operator::GreaterThan => {
+                let gt = builder.build_fcmp(LLVMRealOGT, left_register, right_register, "gttmp");
+                builder.build_ui_to_fp(gt, unsafe { LLVMFloatType() }, "gtcast")
+            },
+            Operator::GreaterThanEquals => {
+                let ge = builder.build_fcmp(LLVMRealOGE, left_register, right_register, "getmp");
+                builder.build_ui_to_fp(ge, unsafe { LLVMFloatType() }, "gecast")
+            }
             Operator::Custom => panic!("Cannot handle custom operator")
         };
         self.ir_code.push(bin_op_value);
