@@ -336,6 +336,14 @@ impl<T: Tokenizer> Parser<T> {
 
             (Symbol, tokens::Percent) => BinOpExprSymbol::with_precedence(Precedence::Modulo),
 
+            (Symbol, tokens::LeftAngle) => BinOpExprSymbol::with_precedence(Precedence::EqualityCompare),
+            (Symbol, tokens::RightAngle) => BinOpExprSymbol::with_precedence(Precedence::EqualityCompare),
+            (Symbol, tokens::LessThanEquals) => BinOpExprSymbol::with_precedence(Precedence::EqualityCompare),
+            (Symbol, tokens::GreaterThanEquals) => BinOpExprSymbol::with_precedence(Precedence::EqualityCompare),
+
+            (Symbol, tokens::DoubleEquals) => BinOpExprSymbol::with_precedence(Precedence::Equality),
+            (Symbol, tokens::NotEquals) => BinOpExprSymbol::with_precedence(Precedence::Equality),
+
             (Symbol, tokens::PlusEquals) => Rc::new(AssignOpParser { }) as Rc<InfixParser<Expression, T>>,
             (Symbol, tokens::MinusEquals) => Rc::new(AssignOpParser { }) as Rc<InfixParser<Expression, T>>,
             (Symbol, tokens::StarEquals) => Rc::new(AssignOpParser { }) as Rc<InfixParser<Expression, T>>,
@@ -367,6 +375,12 @@ impl<T: Tokenizer> Parser<T> {
             (Symbol, tokens::SlashEquals) => Operator::Division,
             (Symbol, tokens::Percent) => Operator::Modulus,
             (Symbol, tokens::PercentEquals) => Operator::Modulus,
+            (Symbol, tokens::LeftAngle) => Operator::LessThan,
+            (Symbol, tokens::LessThanEquals) => Operator::LessThanEquals,
+            (Symbol, tokens::RightAngle) => Operator::GreaterThan,
+            (Symbol, tokens::GreaterThanEquals) => Operator::GreaterThan,
+            (Symbol, tokens::DoubleEquals) => Operator::Equality,
+            (Symbol, tokens::NotEquals) => Operator::NonEquality
         ];
 
         Parser {

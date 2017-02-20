@@ -46,17 +46,21 @@ declare_tokens! {
         Slash: "/"; CompletePrefix,
         Equals: "="; CompletePrefix,
         Percent: "%"; CompletePrefix,
+        LeftAngle: "<"; CompletePrefix,
+        RightAngle: ">"; CompletePrefix,
 
+        DoubleEquals: "=="; Complete,
+        NotEquals: "!="; Complete,
         PlusEquals: "+="; Complete,
         MinusEquals: "-="; Complete,
         StarEquals: "*="; Complete,
         SlashEquals: "/="; Complete,
         PercentEquals: "%="; Complete,
+        LessThanEquals: "<="; Complete,
+        GreaterThanEquals: ">="; Complete,
 
         LeftParen: "("; Complete,
         RightParen: ")"; Complete,
-        LeftAngle: "<"; CompletePrefix,
-        RightAngle: ">"; Complete,
         GitMarker: "<<<<<<<"; Complete,
         InlineArrow: "=>"; Complete
     }
@@ -65,7 +69,8 @@ declare_tokens! {
         "<<"; Partial,
         "<<<"; Partial,
         "<<<<"; Partial,
-        "<<<<<"; Partial
+        "<<<<<"; Partial,
+        "!"; Partial
     }
     keywords {
         Let: "let",

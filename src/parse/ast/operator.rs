@@ -14,6 +14,18 @@ pub enum Operator {
     Division,
     /// Modulus
     Modulus,
+    /// Equality test
+    Equality,
+    /// Non-equality test
+    NonEquality,
+    // Less than test
+    LessThan,
+    /// Greater than test
+    GreaterThan,
+    /// Less than equals test
+    LessThanEquals,
+    /// Greater than equals test
+    GreaterThanEquals,
     /// Custom operator
     Custom
 }

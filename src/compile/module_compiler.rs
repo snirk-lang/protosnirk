@@ -4,7 +4,7 @@ use parse::{ASTVisitor, ScopeIndex, SymbolTable};
 use parse::ast::*;
 use compile::{LLVMContext, ModuleProvider};
 
-use llvm_sys::{self, LLVMOpcode};
+use llvm_sys::{self, LLVMOpcode, LLVMRealPredicate};
 use llvm_sys::prelude::*;
 use llvm_sys::analysis::LLVMVerifierFailureAction;
 use iron_llvm::LLVMRef;
@@ -103,6 +103,7 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
             .expect("Could not generate rvalue of binary op");
         let mut builder = self.context.get_ir_builder_mut();
         trace!("Appending binary operation");
+        use llvm_sys::LLVMRealPredicate::*;
         let bin_op_value = match binary_op.get_operator() {
             Operator::Addition =>
                 builder.build_fadd(left_register, right_register, "add"),
@@ -111,13 +112,21 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
             Operator::Multiplication =>
                 builder.build_fmul(left_register, right_register, "mul"),
             Operator::Division =>
-                // build_fdiv is missing...
-                // this code needs to be redone (get llvm op from op, etc.)
-                // and also deal with casting/etc.
                 builder.build_binop(LLVMOpcode::LLVMFDiv, left_register, right_register, "div"),
-            Operator::Modulus => {
-                builder.build_frem(left_register, right_register, "rem")
-            },
+            Operator::Modulus =>
+                builder.build_frem(left_register, right_register, "rem"),
+            Operator::Equality =>
+                builder.build_fcmp(LLVMRealOEQ, left_register, right_register, "eqtmp"),
+            Operator::NonEquality =>
+                builder.build_fcmp(LLVMRealONE, left_register, right_register, "neqtmp"),
+            Operator::LessThan =>
+                builder.build_fcmp(LLVMRealOLT, left_register, right_register, "lttmp"),
+            Operator::LessThanEquals =>
+                builder.build_fcmp(LLVMRealOLE, left_register, right_register, "letmp"),
+            Operator::GreaterThan =>
+                builder.build_fcmp(LLVMRealOGT, left_register, right_register, "gttmp"),
+            Operator::GreaterThanEquals =>
+                builder.build_fcmp(LLVMRealOGE, left_register, right_register, "getmp"),
             Operator::Custom => panic!("Cannot handle custom operator")
         };
         self.ir_code.push(bin_op_value);
