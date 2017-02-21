@@ -8,8 +8,10 @@ use llvm_sys::{self, LLVMOpcode, LLVMRealPredicate};
 use llvm_sys::prelude::*;
 use llvm_sys::analysis::LLVMVerifierFailureAction;
 use llvm_sys::core::LLVMFloatType;
-use iron_llvm::LLVMRef;
+use iron_llvm::{LLVMRef, LLVMRefCtor};
 use iron_llvm::core::{Function, Builder};
+use iron_llvm::core::basic_block::BasicBlock;
+use iron_llvm::core::instruction::{PHINode, PHINodeRef};
 use iron_llvm::core::value::{RealConstRef, FunctionRef, Value};
 use iron_llvm::core::types::{RealTypeRef, FunctionTypeRef, FunctionTypeCtor, RealTypeCtor};
 use iron_llvm::core::value::{RealConstCtor, ConstCtor, FunctionCtor};
@@ -53,7 +55,7 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
         let var_alloca = self.scope_manager.get(&ident_ref.get_index())
             .expect("Attempted to check var ref but had no alloca");
         let load_name = format!("load_{}", ident_ref.get_name());
-        let mut builder = self.context.get_ir_builder_mut();
+        let mut builder = self.context.builder_mut();
         let var_load = builder.build_load(*var_alloca, &load_name);
         self.ir_code.push(var_load);
     }
@@ -63,7 +65,7 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
         self.check_expression(decl.get_value());
         let decl_value = self.ir_code.pop()
             .expect("Did not have rvalue of declaration");
-        let mut builder = self.context.get_ir_builder_mut();
+        let mut builder = self.context.builder_mut();
         let float_type = RealTypeRef::get_float();
         let alloca = builder.build_alloca(float_type.to_ref(), decl.get_name());
         self.scope_manager.insert(decl.ident.get_index(), alloca.to_ref());
@@ -77,7 +79,7 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
             .expect("Could not generate rvalue of assignment");
         let var_alloca = self.scope_manager.get(&assign.lvalue.get_index())
             .expect("Could not find existing var for assignment!");
-        let mut builder = self.context.get_ir_builder_mut();
+        let mut builder = self.context.builder_mut();
         builder.build_store(rvalue, *var_alloca);
     }
 
@@ -87,9 +89,13 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
         self.check_expression(&*unary_op.expression);
         let inner_value = self.ir_code.pop()
             .expect("Did not generate value inside unary op");
-        let mut builder = self.context.get_ir_builder_mut();
-        let ref_value = builder.build_neg(inner_value, "negate");
-        self.ir_code.push(ref_value);
+        let mut builder = self.context.builder_mut();
+        let value = match unary_op.operator {
+            Operator::Subtraction =>
+                builder.build_neg(inner_value, "negate"),
+            other => panic!("Invalid unary operator {:?}", other)
+        };
+        self.ir_code.push(value);
     }
 
     fn check_binary_op(&mut self, binary_op: &BinaryOperation) {
@@ -102,7 +108,7 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
         self.check_expression(&*binary_op.right);
         let right_register = self.ir_code.pop()
             .expect("Could not generate rvalue of binary op");
-        let mut builder = self.context.get_ir_builder_mut();
+        let mut builder = self.context.builder_mut();
         trace!("Appending binary operation");
         use llvm_sys::LLVMRealPredicate::*;
         let bin_op_value = match binary_op.get_operator() {
@@ -153,12 +159,12 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
             self.check_expression(&*return_expr);
             let return_val = self.ir_code.pop()
                 .expect("Could not generate value of return");
-            let mut builder = self.context.get_ir_builder_mut();
+            let mut builder = self.context.builder_mut();
             builder.build_ret(&return_val);
         }
         else {
             warn!("Empty return statement, appending ret void");
-            let mut builder = self.context.get_ir_builder_mut();
+            let mut builder = self.context.builder_mut();
             // Hopefully doesn't happen, protosnirk doesn't support void types
             builder.build_ret_void();
         }
@@ -173,11 +179,11 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
             "main", &block_fn_type);
         let mut basic_block = fn_ref.append_basic_block_in_context(
             self.context.get_global_context_mut(), "entry");
-        self.context.get_ir_builder_mut().position_at_end(&mut basic_block);
+        self.context.builder_mut().position_at_end(&mut basic_block);
         trace!("Positioned IR builder at the end of entry block, checking unit block");
         self.check_block(&unit.block);
 
-        let mut builder = self.context.get_ir_builder_mut();
+        let mut builder = self.context.builder_mut();
         // We can auto-issue a return stmt if the ir_code hasn't been
         // consumed. Otherwise, we return 0f64.
         // If the last statement _was_ a return, it's just a redundant
@@ -199,6 +205,48 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
         self.module_provider.get_module()
             .verify(LLVMVerifierFailureAction::LLVMPrintMessageAction)
             .unwrap();
+    }
+
+    fn check_if_expr(&mut self, if_expr: &IfExpression) {
+        self.check_expression(if_expr.get_condition());
+        let condition_expr = self.ir_code.pop()
+            .expect("Did not get value from if conditional");
+        let const_zero = RealConstRef::get(&unsafe { RealTypeRef::from_ref(LLVMFloatType()) }, 0.0);
+        let condition = self.context.builder_mut().build_fcmp(LLVMRealPredicate::LLVMRealOEQ, condition_expr, const_zero.to_ref(), "ife_cond");
+        let mut function = self.context.builder().get_insert_block().get_parent();
+        let mut then_block =
+            function.append_basic_block_in_context(self.context.get_global_context_mut(), "ife_then");
+        let mut else_block =
+            function.append_basic_block_in_context(self.context.get_global_context_mut(), "ife_else");
+        let mut end_block =
+            function.append_basic_block_in_context(self.context.get_global_context_mut(), "ife_end");
+        self.context.builder_mut().build_cond_br(condition, &then_block, &else_block);
+
+        // Emit the then code
+        self.context.builder_mut().position_at_end(&mut then_block);
+        self.check_expression(if_expr.get_true_expr());
+        let then_value = self.ir_code.pop()
+            .expect("Did not get IR value from visiting `then` clause of if expression");
+        self.context.builder_mut().build_br(&end_block);
+        let then_end_block = self.context.builder_mut().get_insert_block();
+
+        // Emit the else code
+        self.context.builder_mut().position_at_end(&mut else_block);
+        self.check_expression(if_expr.get_else());
+        let mut builder = self.context.builder_mut();
+        let else_value = self.ir_code.pop()
+            .expect("Did not get IR value from visiting `else` clause of if expression");
+        builder.build_br(&end_block);
+        let else_end_block = builder.get_insert_block();
+
+        builder.position_at_end(&mut end_block);
+        let mut phi = unsafe {
+            PHINodeRef::from_ref(builder.build_phi(LLVMFloatType(), "ifephi"))
+        };
+
+        phi.add_incoming(vec![then_value].as_mut_slice(), vec![then_end_block].as_mut_slice());
+        phi.add_incoming(vec![else_value].as_mut_slice(), vec![else_end_block].as_mut_slice());
+        self.ir_code.push(phi.to_ref());
     }
 
     fn check_block(&mut self, block: &Block) {
