@@ -39,11 +39,11 @@ impl LLVMContext {
         &mut self.context
     }
     /// Gets the IR builder of this context
-    pub fn get_ir_builder(&self) -> &Builder {
+    pub fn builder(&self) -> &Builder {
         &self.builder
     }
 
-    pub fn get_ir_builder_mut(&mut self) -> &mut Builder {
+    pub fn builder_mut(&mut self) -> &mut Builder {
         &mut self.builder
     }
 
