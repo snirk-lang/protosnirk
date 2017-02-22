@@ -116,14 +116,15 @@ impl IfBlock {
         self.else_block.as_ref()
     }
     pub fn has_value(&self) -> bool {
+        if !self.has_else() {
+            return false
+        }
         for ref cond in (&self.conditionals).iter() {
             if !cond.has_value() {
                 return false
             }
         }
-        self.else_block.as_ref()
-            .map(|&(_, ref block)| block.has_value())
-            .unwrap_or(false) // else block required for has_value()
+        self.else_block.as_ref().unwrap().1.has_value()
     }
 }
 
