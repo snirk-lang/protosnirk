@@ -17,7 +17,7 @@ pub fn create_module_compiler(input: &'static str, name: &str, optimize: bool)
 #[test]
 fn compile_basic_programs() {
     let inputs = &[
-        "1",
+        /*"1",
         "let a = 0 a",
         "let a = 0 return a",
         "let a = 0 a + 1",
@@ -37,12 +37,16 @@ fn compile_basic_programs() {
             let mut c = 0
             c = c + 1
             b *= c
-        return b",
+        return b",*/
+        "let a = 0 \n\
+        let b = if a => 1 else 2\n\
+        let c = b + 1 \n\
+        return c"
     ];
     for (ix, input) in inputs.into_iter().enumerate() {
         trace!("Checking program {} - {:?}", ix, input);
         let name = format!("dump_basic_definitions_{}", ix);
-        let compiler = create_module_compiler(input, &name, false);
+        let compiler = create_module_compiler(input, &name, true);
         let (provider, _context, _symbols) = compiler.decompose();
         provider.get_module().dump();
     }
