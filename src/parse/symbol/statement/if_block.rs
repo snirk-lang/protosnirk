@@ -38,7 +38,7 @@ impl<T: Tokenizer> PrefixParser<Statement, T> for IfBlockParser {
                 return Err(ParseError::LazyString(error.to_string()))
             }
             let else_expr = try!(parser.expression(Precedence::Min));
-            println!("Parsed infix if false expr");
+            trace!("Parsed infix if false expr");
             let if_expr = IfExpression::new(token,
                                             Box::new(condition),
                                             Box::new(true_expr),
