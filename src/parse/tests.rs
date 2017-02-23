@@ -107,18 +107,19 @@ if x + 5
     x + 1
 else if x - 5
     x + 1
+else if x * 5
+    x - 1
 else
     x - 1
 "#
 ];
-    ::env_logger::LogBuilder::new()
-        .parse("TRACE")
-        .init()
-        .unwrap();
+    //::env_logger::LogBuilder::new()
+    //    .parse("TRACE")
+    //    .init()
+    //    .unwrap();
     for input in inputs {
         let mut parser = parser(input);
         trace!("Parsing input {:?}", input);
-        println!("{:#?}", parser.parse_unit());
+        println!("{:#?}", parser.parse_unit().unwrap());
     }
-    panic!("Test needs to fail");
 }
