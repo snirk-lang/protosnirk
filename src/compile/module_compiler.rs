@@ -38,56 +38,6 @@ impl<M: ModuleProvider> ModuleCompiler<M> {
     pub fn decompose(self) -> (M, LLVMContext, SymbolTable) {
         (self.module_provider, self.context, self.symbols)
     }
-
-    // Extensions to the ASTVisitor
-
-    fn check_if_block_valued(&mut self, if_block: &IfBlock) {
-        debug_assert!(if_block.has_value(),
-            "Valueless if block passed to `check_if_block_valued`: {:?}", if_block);
-        let conditions_count = if_block.get_conditionals().len();
-        let incoming_values = Vec::with_capacity(conditions_count);
-        let incoming_edges = Vec::with_capacity(conditions_count);
-        let mut else_if_blocks = Vec::with_capacity(conditions_count);
-
-        // Create basic blocks to branch to in the if
-        let mut function = self.context.builder().get_insert_block().get_parent();
-        let mut end_block =
-            function.append_basic_block_in_context(self.context.get_global_context_mut(), "ifv_end");
-        // Optionally create else block
-        let else_block = if if_block.has_else() {
-            Some(function.append_basic_block_in_context(self.context.get_global_context_mut(), "ifv_else"))
-        }
-        else { None };
-
-        let const_zero = RealConstRef::get(&unsafe { RealTypeRef::from_ref(LLVMFloatType())}, 0.0);
-
-        for (ix, conditional) in if_block.get_conditionals().iter().enumerate() {
-            debug_assert!(conditional.has_value(),
-                "Valueless conditional passed to `check_if_block_valued`: {:?}", conditional);
-            self.check_expression(conditional.get_condition());
-            let then_block_name = format!("iv_then{}", ix);
-            let mut then_block =
-                function.append_basic_block_in_context(self.context.get_global_context_mut(), &then_block_name);
-            let cond_expr = self.ir_code.pop()
-                .expect("Did not get value from conditional");
-            let cond_name = format!("iv_cond{}", ix);
-            let cond_value = self.context.builder_mut()
-                .build_fcmp(LLVMRealPredicate::LLVMRealOEQ, cond_expr, const_zero.to_ref(), &cond_name);
-
-            // Last `else if` branches to else, if present
-            if conditions_count > ix + 1 {
-
-            }
-            // There are more else ifs
-            else {
-
-            }
-        }
-    }
-
-    fn check_if_block_unvalued(&mut self, if_block: &IfBlock) {
-
-    }
 }
 impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
     fn check_literal(&mut self, literal: &Literal) {
@@ -228,11 +178,11 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
         let mut fn_ref = FunctionRef::new(&mut self.module_provider.get_module_mut(),
             "main", &block_fn_type);
         let mut basic_block = fn_ref.append_basic_block_in_context(
-            self.context.get_global_context_mut(), "entry");
+            self.context.global_context_mut(), "entry");
         self.context.builder_mut().position_at_end(&mut basic_block);
         trace!("Positioned IR builder at the end of entry block, checking unit block");
         self.check_block(&unit.block);
-
+        self.module_provider.get_module().dump();
         let mut builder = self.context.builder_mut();
         // We can auto-issue a return stmt if the ir_code hasn't been
         // consumed. Otherwise, we return 0f64.
@@ -243,6 +193,7 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
         if let Some(remaining_expr) = self.ir_code.pop() {
             trace!("Found final expression, appending a return");
             builder.build_ret(&remaining_expr);
+            self.module_provider.get_module().dump();
         }
 
         // Returns true if verification failed
@@ -251,6 +202,7 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
             trace!("Running optimizations");
             self.module_provider.get_pass_manager().run(&mut fn_ref);
         }
+        self.module_provider.get_module().dump();
         // The final ir_code value should be a reference to the function
         self.module_provider.get_module()
             .verify(LLVMVerifierFailureAction::LLVMPrintMessageAction)
@@ -262,18 +214,18 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
         self.check_expression(if_expr.get_condition());
         let condition_expr = self.ir_code.pop()
             .expect("Did not get value from if conditional");
-        let const_zero = RealConstRef::get(&unsafe { RealTypeRef::from_ref(LLVMFloatType()) }, 0.0);
+        let const_zero = RealConstRef::get(&unsafe {RealTypeRef::from_ref(LLVMFloatType())}, 0.0);
         // hack: compare it to 0, due to lack of booleans right now
         let condition = self.context.builder_mut()
             .build_fcmp(LLVMRealPredicate::LLVMRealOEQ, condition_expr, const_zero.to_ref(), "ife_cond");
         // Create basic blocks in the function
         let mut function = self.context.builder().get_insert_block().get_parent();
         let mut then_block =
-            function.append_basic_block_in_context(self.context.get_global_context_mut(), "ife_then");
+            function.append_basic_block_in_context(self.context.global_context_mut(), "ife_then");
         let mut else_block =
-            function.append_basic_block_in_context(self.context.get_global_context_mut(), "ife_else");
+            function.append_basic_block_in_context(self.context.global_context_mut(), "ife_else");
         let mut end_block =
-            function.append_basic_block_in_context(self.context.get_global_context_mut(), "ife_end");
+            function.append_basic_block_in_context(self.context.global_context_mut(), "ife_end");
         // Branch off of the `== 0` comparison
         self.context.builder_mut().build_cond_br(condition, &then_block, &else_block);
 
@@ -304,42 +256,123 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
     }
 
     fn check_if_block(&mut self, if_block: &IfBlock) {
-        // if cond
-        //     block
-        // else
-        //     block
-        // if cond
-        //     block
-        // else if otherCond
-        //     otherBlock
-        // else
-        //     otherBlock
-        // - `else if`s are stored in a list instead of a tree
-        // - `if` may or may not have value
-        // - `else` may or may not be present
-        // - the else if conditionals all have outgoing edges to either the last else or end if.
+        trace!("Checking if block: has_value={}", if_block.has_value());
+        // Create some lists of values to use later
+        let condition_count = if_block.get_conditionals().len();
+        let valued_if = if_block.has_value();
+        let mut function = self.context.builder().get_insert_block().get_parent();
 
-        // It's important to differentiate between valued and unvalued conditionals
-        // because valued if needs to use SSA and phi but unvalued should just be a jump.
-        // There will need to be a higher level pass for determining return types. That pass will
-        // determine if the last value in a function is the return value, given the function's
-        // prototype. It will be determining that all code paths produce a value. It's unlikely
-        // that we'll need to differentiate if blocks with value VS if blocks without value
-        // at the AST level, it'll probably be encoded during that pass in the symbol table/with
-        // type info in typecheck.
+        let mut condition_blocks = Vec::with_capacity(condition_count);
+        let mut incoming_values =
+            Vec::with_capacity(if if_block.has_value() { condition_count} else {0});
 
-        if if_block.has_value() {
-            self.check_if_block_valued(if_block)
+        trace!("Preparing to emit {} conditionals", condition_count);
+        // Populate a list of the future blocks to have
+        for (ix, _conditional) in if_block.get_conditionals().iter().enumerate() {
+            trace!("Creating condition block {}", ix);
+            if ix != 0usize {
+                let name = format!("if_{}_cond", ix + 1);
+                condition_blocks.push(
+                    function.append_basic_block_in_context(self.context.global_context_mut(), &name)
+                )
+            }
+            let name = format!("if_{}_then", ix + 1);
+            condition_blocks.push(
+                function.append_basic_block_in_context(self.context.global_context_mut(), &name));
         }
-        else {
-            self.check_if_block_unvalued(if_block)
+        // If there's an else it needs a block
+        if if_block.has_else() {
+            trace!("Creating else block");
+            condition_blocks.push(
+                function.append_basic_block_in_context(self.context.global_context_mut(), "else_block"));
+        }
+
+        let const_zero = RealConstRef::get(&unsafe { RealTypeRef::from_ref(LLVMFloatType())}, 0.0);
+
+        trace!("Creating end block");
+        condition_blocks.push(function.append_basic_block_in_context(self.context.global_context_mut(),
+                                                                     "if_end"));
+
+        let mut ix = 0;
+        for conditional in if_block.get_conditionals() {
+            trace!("Checking expr for condition {}", ix);
+            self.check_expression(conditional.get_condition());
+            let cond_value = self.ir_code.pop()
+                .expect("Did not get IR value from if block condition");
+            let cond_cmp_name = format!("if_{}_cmp", ix);
+            let cond_cmp = self.context.builder_mut()
+                .build_fcmp(LLVMRealPredicate::LLVMRealOEQ, cond_value, const_zero.to_ref(), &cond_cmp_name);
+
+            trace!("Building a break to next blocks {} -> {}, {}", cond_cmp_name, ix, ix + 1);
+            self.context.builder_mut().build_cond_br(cond_cmp,
+                                                     &condition_blocks[ix],
+                                                     &condition_blocks[ix + 1]);
+
+            // Go to the `if_true` block of this conditional
+            trace!("Positioning at end of cond block {}", ix);
+            self.context.builder_mut().position_at_end(&mut condition_blocks[ix]);
+            trace!("Checking conditional block");
+            self.check_block(conditional.get_block());
+            // If this is a valued if, save the value ref for this branch of the condition
+            if valued_if {
+                let value = self.ir_code.pop()
+                    .expect("Did not get value from valued if block");
+                incoming_values.push(value);
+            }
+
+            // After block, go to done
+            trace!("Adding branch to cond end block");
+            let last_ix = condition_blocks.len() - 1;
+            self.context.builder_mut().build_br(&mut condition_blocks[last_ix]);
+
+            // Position at the beginning of the next block
+            trace!("Moving onto block {}", ix + 1);
+            self.context.builder_mut().position_at_end(&mut condition_blocks[ix + 1]);
+            ix += 2;
+        }
+
+        trace!("Finished checking conditions");
+        // If there's an else, check that too
+        if let Some(&(_, ref else_block)) = if_block.get_else() {
+            trace!("Checking else block");
+            self.check_block(else_block);
+            if valued_if {
+                let value = self.ir_code.pop()
+                    .expect("Did not get value from else of valued if block");
+                incoming_values.push(value);
+            }
+            // Branch to end after else
+            let last_ix = condition_blocks.len() - 1;
+            self.context.builder_mut().build_br(&mut condition_blocks[last_ix]);
+        }
+
+        // Remove the end block from condition blocks for borrowck + phi reasons
+        let mut cond_end_block = condition_blocks.pop()
+            .expect("Somehow there were 0 conditional blocks");
+        // Position at end block - this lets us get on with the function
+        self.context.builder_mut().position_at_end(&mut cond_end_block);
+
+        // If we need to push a value, create a phi
+        if valued_if {
+            let mut incoming_conditions = condition_blocks
+                .chunks(2)
+                .map(|c| c[0])
+                .collect::<Vec<_>>();
+            incoming_conditions.push(*condition_blocks.last().expect("No condition blocks"));
+            self.module_provider.get_module().dump();
+            trace!("Generating phi node with {} values and {} edges",
+                incoming_values.len(), incoming_conditions.len());
+            let mut phi = unsafe {
+                PHINodeRef::from_ref(self.context.builder_mut().build_phi(LLVMFloatType(), "if_phi"))
+            };
+            phi.add_incoming(incoming_values.as_mut_slice(), incoming_conditions.as_mut_slice());
+            self.ir_code.push(phi.to_ref());
         }
     }
 
-
     fn check_block(&mut self, block: &Block) {
         trace!("Checking block");
-        for stmt in &block.statements {
+        for stmt in block.statements.iter() {
             self.check_statement(stmt)
         }
     }
