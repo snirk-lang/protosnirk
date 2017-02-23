@@ -32,10 +32,10 @@ impl LLVMContext {
         }
     }
     /// Gets the LLVM context object
-    pub fn get_global_context(&self) -> &Context {
+    pub fn global_context(&self) -> &Context {
         &self.context
     }
-    pub fn get_global_context_mut(&mut self) -> &mut Context {
+    pub fn global_context_mut(&mut self) -> &mut Context {
         &mut self.context
     }
     /// Gets the IR builder of this context
