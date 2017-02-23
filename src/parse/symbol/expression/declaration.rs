@@ -33,7 +33,7 @@ impl<T: Tokenizer> PrefixParser<Expression, T> for DeclarationParser {
         // TODO allow for block here
         let value_expr = try!(parser.expression(Precedence::Min));
         let value = try!(value_expr.expect_value());
-        println!("Got rvalue {:?}", value);
+        trace!("Got rvalue {:?}", value);
         Ok(Expression::Declaration(Declaration::new(token, is_mutable, name, Box::new(value))))
     }
 }
