@@ -246,6 +246,9 @@ impl<T: Tokenizer> Parser<T> {
                 trace!("Parsing via infix parser!");
                 left = try!(infix.parse(self, left, token));
             }
+            //else {
+            //    break
+            //}
         }
         trace!("Done parsing expression");
         Ok(left)
@@ -333,6 +336,14 @@ impl<T: Tokenizer> Parser<T> {
 
             (Symbol, tokens::Percent) => BinOpExprSymbol::with_precedence(Precedence::Modulo),
 
+            (Symbol, tokens::LeftAngle) => BinOpExprSymbol::with_precedence(Precedence::EqualityCompare),
+            (Symbol, tokens::RightAngle) => BinOpExprSymbol::with_precedence(Precedence::EqualityCompare),
+            (Symbol, tokens::LessThanEquals) => BinOpExprSymbol::with_precedence(Precedence::EqualityCompare),
+            (Symbol, tokens::GreaterThanEquals) => BinOpExprSymbol::with_precedence(Precedence::EqualityCompare),
+
+            (Symbol, tokens::DoubleEquals) => BinOpExprSymbol::with_precedence(Precedence::Equality),
+            (Symbol, tokens::NotEquals) => BinOpExprSymbol::with_precedence(Precedence::Equality),
+
             (Symbol, tokens::PlusEquals) => Rc::new(AssignOpParser { }) as Rc<InfixParser<Expression, T>>,
             (Symbol, tokens::MinusEquals) => Rc::new(AssignOpParser { }) as Rc<InfixParser<Expression, T>>,
             (Symbol, tokens::StarEquals) => Rc::new(AssignOpParser { }) as Rc<InfixParser<Expression, T>>,
@@ -342,6 +353,7 @@ impl<T: Tokenizer> Parser<T> {
         let expr_prefix_map: HashMap<(TokenType, CowStr), Rc<PrefixParser<Expression, T> + 'static>> =
         hashmap![
             (Keyword, tokens::Let) => Rc::new(DeclarationParser { }) as Rc<PrefixParser<Expression, T>>,
+            (Keyword, tokens::If) => Rc::new(IfExpressionParser { }) as Rc<PrefixParser<Expression, T>>,
 
             (Symbol, tokens::Minus) => UnaryOpExprSymbol::with_precedence(Precedence::NumericPrefix),
             (Symbol, tokens::LeftParen) => Rc::new(ParensParser { }) as Rc<PrefixParser<Expression, T>>,
@@ -350,6 +362,7 @@ impl<T: Tokenizer> Parser<T> {
         hashmap![
             (Keyword, tokens::Return) => Rc::new(ReturnParser { }) as Rc<PrefixParser<Statement, T>>,
             (Keyword, tokens::Do) => Rc::new(DoBlockParser { }) as Rc<PrefixParser<Statement, T>>,
+            (Keyword, tokens::If) => Rc::new(IfBlockParser { }) as Rc<PrefixParser<Statement, T>>,
         ];
         let operator_map: HashMap<(TokenType, CowStr), Operator> = hashmap![
             (Symbol, tokens::Plus) => Operator::Addition,
@@ -362,6 +375,12 @@ impl<T: Tokenizer> Parser<T> {
             (Symbol, tokens::SlashEquals) => Operator::Division,
             (Symbol, tokens::Percent) => Operator::Modulus,
             (Symbol, tokens::PercentEquals) => Operator::Modulus,
+            (Symbol, tokens::LeftAngle) => Operator::LessThan,
+            (Symbol, tokens::LessThanEquals) => Operator::LessThanEquals,
+            (Symbol, tokens::RightAngle) => Operator::GreaterThan,
+            (Symbol, tokens::GreaterThanEquals) => Operator::GreaterThan,
+            (Symbol, tokens::DoubleEquals) => Operator::Equality,
+            (Symbol, tokens::NotEquals) => Operator::NonEquality
         ];
 
         Parser {

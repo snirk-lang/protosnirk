@@ -23,6 +23,9 @@ pub struct Token {
 }
 
 impl Token {
+    pub fn get_text(&self) -> &str {
+        &self.text
+    }
     #[inline]
     pub fn new_symbol<T: Into<CowStr>>(text: T, location: TextLocation) -> Token {
         Token {

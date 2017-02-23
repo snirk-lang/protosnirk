@@ -4,11 +4,14 @@ use parse::{ASTVisitor, ScopeIndex, SymbolTable};
 use parse::ast::*;
 use compile::{LLVMContext, ModuleProvider};
 
-use llvm_sys::{self, LLVMOpcode};
+use llvm_sys::{self, LLVMOpcode, LLVMRealPredicate};
 use llvm_sys::prelude::*;
 use llvm_sys::analysis::LLVMVerifierFailureAction;
-use iron_llvm::LLVMRef;
+use llvm_sys::core::LLVMFloatType;
+use iron_llvm::{LLVMRef, LLVMRefCtor};
 use iron_llvm::core::{Function, Builder};
+use iron_llvm::core::basic_block::BasicBlock;
+use iron_llvm::core::instruction::{PHINode, PHINodeRef};
 use iron_llvm::core::value::{RealConstRef, FunctionRef, Value};
 use iron_llvm::core::types::{RealTypeRef, FunctionTypeRef, FunctionTypeCtor, RealTypeCtor};
 use iron_llvm::core::value::{RealConstCtor, ConstCtor, FunctionCtor};
@@ -52,7 +55,7 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
         let var_alloca = self.scope_manager.get(&ident_ref.get_index())
             .expect("Attempted to check var ref but had no alloca");
         let load_name = format!("load_{}", ident_ref.get_name());
-        let mut builder = self.context.get_ir_builder_mut();
+        let mut builder = self.context.builder_mut();
         let var_load = builder.build_load(*var_alloca, &load_name);
         self.ir_code.push(var_load);
     }
@@ -62,7 +65,7 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
         self.check_expression(decl.get_value());
         let decl_value = self.ir_code.pop()
             .expect("Did not have rvalue of declaration");
-        let mut builder = self.context.get_ir_builder_mut();
+        let mut builder = self.context.builder_mut();
         let float_type = RealTypeRef::get_float();
         let alloca = builder.build_alloca(float_type.to_ref(), decl.get_name());
         self.scope_manager.insert(decl.ident.get_index(), alloca.to_ref());
@@ -76,7 +79,7 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
             .expect("Could not generate rvalue of assignment");
         let var_alloca = self.scope_manager.get(&assign.lvalue.get_index())
             .expect("Could not find existing var for assignment!");
-        let mut builder = self.context.get_ir_builder_mut();
+        let mut builder = self.context.builder_mut();
         builder.build_store(rvalue, *var_alloca);
     }
 
@@ -86,9 +89,13 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
         self.check_expression(&*unary_op.expression);
         let inner_value = self.ir_code.pop()
             .expect("Did not generate value inside unary op");
-        let mut builder = self.context.get_ir_builder_mut();
-        let ref_value = builder.build_neg(inner_value, "negate");
-        self.ir_code.push(ref_value);
+        let mut builder = self.context.builder_mut();
+        let value = match unary_op.operator {
+            Operator::Subtraction =>
+                builder.build_neg(inner_value, "negate"),
+            other => panic!("Invalid unary operator {:?}", other)
+        };
+        self.ir_code.push(value);
     }
 
     fn check_binary_op(&mut self, binary_op: &BinaryOperation) {
@@ -101,8 +108,9 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
         self.check_expression(&*binary_op.right);
         let right_register = self.ir_code.pop()
             .expect("Could not generate rvalue of binary op");
-        let mut builder = self.context.get_ir_builder_mut();
+        let mut builder = self.context.builder_mut();
         trace!("Appending binary operation");
+        use llvm_sys::LLVMRealPredicate::*;
         let bin_op_value = match binary_op.get_operator() {
             Operator::Addition =>
                 builder.build_fadd(left_register, right_register, "add"),
@@ -111,13 +119,35 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
             Operator::Multiplication =>
                 builder.build_fmul(left_register, right_register, "mul"),
             Operator::Division =>
-                // build_fdiv is missing...
-                // this code needs to be redone (get llvm op from op, etc.)
-                // and also deal with casting/etc.
                 builder.build_binop(LLVMOpcode::LLVMFDiv, left_register, right_register, "div"),
-            Operator::Modulus => {
-                builder.build_frem(left_register, right_register, "rem")
+            Operator::Modulus =>
+                builder.build_frem(left_register, right_register, "rem"),
+            // TODO binary operations should be handled seperately
+            // when types are added
+            Operator::Equality => {
+                let eq = builder.build_fcmp(LLVMRealOEQ, left_register, right_register, "eqtmp");
+                builder.build_ui_to_fp(eq, unsafe { LLVMFloatType() }, "eqcast")
             },
+            Operator::NonEquality => {
+                let neq = builder.build_fcmp(LLVMRealONE, left_register, right_register, "neqtmp");
+                builder.build_ui_to_fp(neq, unsafe { LLVMFloatType() }, "neqcast")
+            },
+            Operator::LessThan => {
+                let lt = builder.build_fcmp(LLVMRealOLT, left_register, right_register, "lttmp");
+                builder.build_ui_to_fp(lt, unsafe { LLVMFloatType() }, "ltcast")
+            },
+            Operator::LessThanEquals => {
+                let le = builder.build_fcmp(LLVMRealOLE, left_register, right_register, "letmp");
+                builder.build_ui_to_fp(le, unsafe { LLVMFloatType() }, "lecast")
+            },
+            Operator::GreaterThan => {
+                let gt = builder.build_fcmp(LLVMRealOGT, left_register, right_register, "gttmp");
+                builder.build_ui_to_fp(gt, unsafe { LLVMFloatType() }, "gtcast")
+            },
+            Operator::GreaterThanEquals => {
+                let ge = builder.build_fcmp(LLVMRealOGE, left_register, right_register, "getmp");
+                builder.build_ui_to_fp(ge, unsafe { LLVMFloatType() }, "gecast")
+            }
             Operator::Custom => panic!("Cannot handle custom operator")
         };
         self.ir_code.push(bin_op_value);
@@ -129,12 +159,12 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
             self.check_expression(&*return_expr);
             let return_val = self.ir_code.pop()
                 .expect("Could not generate value of return");
-            let mut builder = self.context.get_ir_builder_mut();
+            let mut builder = self.context.builder_mut();
             builder.build_ret(&return_val);
         }
         else {
             warn!("Empty return statement, appending ret void");
-            let mut builder = self.context.get_ir_builder_mut();
+            let mut builder = self.context.builder_mut();
             // Hopefully doesn't happen, protosnirk doesn't support void types
             builder.build_ret_void();
         }
@@ -148,12 +178,12 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
         let mut fn_ref = FunctionRef::new(&mut self.module_provider.get_module_mut(),
             "main", &block_fn_type);
         let mut basic_block = fn_ref.append_basic_block_in_context(
-            self.context.get_global_context_mut(), "entry");
-        self.context.get_ir_builder_mut().position_at_end(&mut basic_block);
+            self.context.global_context_mut(), "entry");
+        self.context.builder_mut().position_at_end(&mut basic_block);
         trace!("Positioned IR builder at the end of entry block, checking unit block");
         self.check_block(&unit.block);
-
-        let mut builder = self.context.get_ir_builder_mut();
+        self.module_provider.get_module().dump();
+        let mut builder = self.context.builder_mut();
         // We can auto-issue a return stmt if the ir_code hasn't been
         // consumed. Otherwise, we return 0f64.
         // If the last statement _was_ a return, it's just a redundant
@@ -163,6 +193,7 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
         if let Some(remaining_expr) = self.ir_code.pop() {
             trace!("Found final expression, appending a return");
             builder.build_ret(&remaining_expr);
+            self.module_provider.get_module().dump();
         }
 
         // Returns true if verification failed
@@ -171,15 +202,177 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
             trace!("Running optimizations");
             self.module_provider.get_pass_manager().run(&mut fn_ref);
         }
+        self.module_provider.get_module().dump();
         // The final ir_code value should be a reference to the function
         self.module_provider.get_module()
             .verify(LLVMVerifierFailureAction::LLVMPrintMessageAction)
             .unwrap();
     }
 
+    fn check_if_expr(&mut self, if_expr: &IfExpression) {
+        // Build conditional expr
+        self.check_expression(if_expr.get_condition());
+        let condition_expr = self.ir_code.pop()
+            .expect("Did not get value from if conditional");
+        let const_zero = RealConstRef::get(&unsafe {RealTypeRef::from_ref(LLVMFloatType())}, 0.0);
+        // hack: compare it to 0, due to lack of booleans right now
+        let condition = self.context.builder_mut()
+            .build_fcmp(LLVMRealPredicate::LLVMRealOEQ, condition_expr, const_zero.to_ref(), "ife_cond");
+        // Create basic blocks in the function
+        let mut function = self.context.builder().get_insert_block().get_parent();
+        let mut then_block =
+            function.append_basic_block_in_context(self.context.global_context_mut(), "ife_then");
+        let mut else_block =
+            function.append_basic_block_in_context(self.context.global_context_mut(), "ife_else");
+        let mut end_block =
+            function.append_basic_block_in_context(self.context.global_context_mut(), "ife_end");
+        // Branch off of the `== 0` comparison
+        self.context.builder_mut().build_cond_br(condition, &then_block, &else_block);
+
+        // Emit the then code
+        self.context.builder_mut().position_at_end(&mut then_block);
+        self.check_expression(if_expr.get_true_expr());
+        let then_value = self.ir_code.pop()
+            .expect("Did not get IR value from visiting `then` clause of if expression");
+        self.context.builder_mut().build_br(&end_block);
+        let then_end_block = self.context.builder_mut().get_insert_block();
+
+        // Emit the else code
+        self.context.builder_mut().position_at_end(&mut else_block);
+        self.check_expression(if_expr.get_else());
+        let else_value = self.ir_code.pop()
+            .expect("Did not get IR value from visiting `else` clause of if expression");
+        self.context.builder_mut().build_br(&end_block);
+        let else_end_block = self.context.builder_mut().get_insert_block();
+
+        self.context.builder_mut().position_at_end(&mut end_block);
+        let mut phi = unsafe {
+            PHINodeRef::from_ref(self.context.builder_mut().build_phi(LLVMFloatType(), "ifephi"))
+        };
+
+        phi.add_incoming(vec![then_value].as_mut_slice(), vec![then_end_block].as_mut_slice());
+        phi.add_incoming(vec![else_value].as_mut_slice(), vec![else_end_block].as_mut_slice());
+        self.ir_code.push(phi.to_ref());
+    }
+
+    fn check_if_block(&mut self, if_block: &IfBlock) {
+        trace!("Checking if block: has_value={}", if_block.has_value());
+        // Create some lists of values to use later
+        let condition_count = if_block.get_conditionals().len();
+        let valued_if = if_block.has_value();
+        let mut function = self.context.builder().get_insert_block().get_parent();
+
+        let mut condition_blocks = Vec::with_capacity(condition_count);
+        let mut incoming_values =
+            Vec::with_capacity(if if_block.has_value() { condition_count} else {0});
+
+        trace!("Preparing to emit {} conditionals", condition_count);
+        // Populate a list of the future blocks to have
+        for (ix, _conditional) in if_block.get_conditionals().iter().enumerate() {
+            trace!("Creating condition block {}", ix);
+            if ix != 0usize {
+                let name = format!("if_{}_cond", ix + 1);
+                condition_blocks.push(
+                    function.append_basic_block_in_context(self.context.global_context_mut(), &name)
+                )
+            }
+            let name = format!("if_{}_then", ix + 1);
+            condition_blocks.push(
+                function.append_basic_block_in_context(self.context.global_context_mut(), &name));
+        }
+        // If there's an else it needs a block
+        if if_block.has_else() {
+            trace!("Creating else block");
+            condition_blocks.push(
+                function.append_basic_block_in_context(self.context.global_context_mut(), "else_block"));
+        }
+
+        let const_zero = RealConstRef::get(&unsafe { RealTypeRef::from_ref(LLVMFloatType())}, 0.0);
+
+        trace!("Creating end block");
+        condition_blocks.push(function.append_basic_block_in_context(self.context.global_context_mut(),
+                                                                     "if_end"));
+
+        let mut ix = 0;
+        for conditional in if_block.get_conditionals() {
+            trace!("Checking expr for condition {}", ix);
+            self.check_expression(conditional.get_condition());
+            let cond_value = self.ir_code.pop()
+                .expect("Did not get IR value from if block condition");
+            let cond_cmp_name = format!("if_{}_cmp", ix);
+            let cond_cmp = self.context.builder_mut()
+                .build_fcmp(LLVMRealPredicate::LLVMRealOEQ, cond_value, const_zero.to_ref(), &cond_cmp_name);
+
+            trace!("Building a break to next blocks {} -> {}, {}", cond_cmp_name, ix, ix + 1);
+            self.context.builder_mut().build_cond_br(cond_cmp,
+                                                     &condition_blocks[ix],
+                                                     &condition_blocks[ix + 1]);
+
+            // Go to the `if_true` block of this conditional
+            trace!("Positioning at end of cond block {}", ix);
+            self.context.builder_mut().position_at_end(&mut condition_blocks[ix]);
+            trace!("Checking conditional block");
+            self.check_block(conditional.get_block());
+            // If this is a valued if, save the value ref for this branch of the condition
+            if valued_if {
+                let value = self.ir_code.pop()
+                    .expect("Did not get value from valued if block");
+                incoming_values.push(value);
+            }
+
+            // After block, go to done
+            trace!("Adding branch to cond end block");
+            let last_ix = condition_blocks.len() - 1;
+            self.context.builder_mut().build_br(&mut condition_blocks[last_ix]);
+
+            // Position at the beginning of the next block
+            trace!("Moving onto block {}", ix + 1);
+            self.context.builder_mut().position_at_end(&mut condition_blocks[ix + 1]);
+            ix += 2;
+        }
+
+        trace!("Finished checking conditions");
+        // If there's an else, check that too
+        if let Some(&(_, ref else_block)) = if_block.get_else() {
+            trace!("Checking else block");
+            self.check_block(else_block);
+            if valued_if {
+                let value = self.ir_code.pop()
+                    .expect("Did not get value from else of valued if block");
+                incoming_values.push(value);
+            }
+            // Branch to end after else
+            let last_ix = condition_blocks.len() - 1;
+            self.context.builder_mut().build_br(&mut condition_blocks[last_ix]);
+        }
+
+        // Remove the end block from condition blocks for borrowck + phi reasons
+        let mut cond_end_block = condition_blocks.pop()
+            .expect("Somehow there were 0 conditional blocks");
+        // Position at end block - this lets us get on with the function
+        self.context.builder_mut().position_at_end(&mut cond_end_block);
+
+        // If we need to push a value, create a phi
+        if valued_if {
+            let mut incoming_conditions = condition_blocks
+                .chunks(2)
+                .map(|c| c[0])
+                .collect::<Vec<_>>();
+            incoming_conditions.push(*condition_blocks.last().expect("No condition blocks"));
+            self.module_provider.get_module().dump();
+            trace!("Generating phi node with {} values and {} edges",
+                incoming_values.len(), incoming_conditions.len());
+            let mut phi = unsafe {
+                PHINodeRef::from_ref(self.context.builder_mut().build_phi(LLVMFloatType(), "if_phi"))
+            };
+            phi.add_incoming(incoming_values.as_mut_slice(), incoming_conditions.as_mut_slice());
+            self.ir_code.push(phi.to_ref());
+        }
+    }
+
     fn check_block(&mut self, block: &Block) {
         trace!("Checking block");
-        for stmt in &block.statements {
+        for stmt in block.statements.iter() {
             self.check_statement(stmt)
         }
     }

@@ -44,33 +44,40 @@ declare_tokens! {
         Minus: "-"; CompletePrefix,
         Star: "*"; CompletePrefix,
         Slash: "/"; CompletePrefix,
-        Equals: "="; Complete,
+        Equals: "="; CompletePrefix,
         Percent: "%"; CompletePrefix,
+        LeftAngle: "<"; CompletePrefix,
+        RightAngle: ">"; CompletePrefix,
 
+        DoubleEquals: "=="; Complete,
+        NotEquals: "!="; Complete,
         PlusEquals: "+="; Complete,
         MinusEquals: "-="; Complete,
         StarEquals: "*="; Complete,
         SlashEquals: "/="; Complete,
         PercentEquals: "%="; Complete,
+        LessThanEquals: "<="; Complete,
+        GreaterThanEquals: ">="; Complete,
 
         LeftParen: "("; Complete,
         RightParen: ")"; Complete,
-        LeftAngle: "<"; CompletePrefix,
-        RightAngle: ">"; Complete,
-        GitMarker: "<<<<<<<"; Complete
+        GitMarker: "<<<<<<<"; Complete,
+        InlineArrow: "=>"; Complete
     }
     symparts {
         "//"; CompletePrefix, // Comments hack, allows // and /// to be parsed.
         "<<"; Partial,
         "<<<"; Partial,
         "<<<<"; Partial,
-        "<<<<<"; Partial
+        "<<<<<"; Partial,
+        "!"; Partial
     }
     keywords {
         Let: "let",
         Mut: "mut",
         Return: "return",
-        Do: "do"
+        Do: "do",
+        If: "if",
+        Else: "else"
     }
-
 }

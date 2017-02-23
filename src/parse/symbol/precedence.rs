@@ -11,6 +11,10 @@ pub enum Precedence {
     Return,
     /// Assignment and declaration statements
     Assign,
+    ///  The `==` and `!=` operators
+    Equality,
+    /// Less than and greater than
+    EqualityCompare,
     /// Add and subtract infix expressions
     AddSub,
     /// Multiply and divide infix expressions
@@ -19,6 +23,8 @@ pub enum Precedence {
     Modulo,
     /// Negate or positive operator
     NumericPrefix,
+    /// The `not` keyword
+    NotKeyword,
     /// Parens binder
     Paren,
     /// Extra value on the end
