@@ -66,7 +66,7 @@ impl ASTVisitor for SymbolTableChecker {
         }
     }
     fn check_assignment(&mut self, assign: &Assignment) {
-        println!("Checking assignment to {}", assign.lvalue.get_name());
+        trace!("Checking assignment to {}", assign.lvalue.get_name());
         if let Some(index) = self.table_builder.get(assign.lvalue.get_name()) {
             trace!("Found reference to {} at {:?}", assign.lvalue.get_name(), index);
             assign.lvalue.set_index(index.clone());
