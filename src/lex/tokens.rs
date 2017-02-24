@@ -62,7 +62,8 @@ declare_tokens! {
         LeftParen: "("; Complete,
         RightParen: ")"; Complete,
         GitMarker: "<<<<<<<"; Complete,
-        InlineArrow: "=>"; Complete
+        InlineArrow: "=>"; Complete,
+        Arrow: "->"; Complete
     }
     symparts {
         "//"; CompletePrefix, // Comments hack, allows // and /// to be parsed.
@@ -78,6 +79,7 @@ declare_tokens! {
         Return: "return",
         Do: "do",
         If: "if",
-        Else: "else"
+        Else: "else",
+        Fn: "fn"
     }
 }
