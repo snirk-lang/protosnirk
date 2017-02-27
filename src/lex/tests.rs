@@ -112,6 +112,7 @@ fn it_grabs_prefix_symbol_at_end_of_file() {
         }
     });
 }
+
 #[test]
 fn it_grabs_adjacent_prefix_symbols() {
     let input = "+-";
@@ -550,4 +551,73 @@ fn it_tokenizes_complex_input() {
             }
         }
     });
+}
+
+fn print_parses(input: &'static str) {
+    println!("Input: {}", input);
+    println!("-------------------");
+    let mut tokenizer = make_tokenizer(input);
+    let mut tokens = Vec::new();
+    let mut next = tokenizer.next();
+    while next.get_type() != TokenType::EOF {
+        tokens.push(next);
+        next = tokenizer.next();
+    }
+    for token in tokens {
+        println!("{} ({:?})", token.get_text(), token.get_type());
+    }
+    println!("===================\n");
+}
+
+#[test]
+fn tokens_experiment() {
+    println!("test");
+    let inputs = &[
+r#"
+do
+    do
+        bar
+        do
+            baz
+"#,
+r#"
+fn
+        args
+        args
+    inner
+"#,
+r#"
+fn otherName arg
+             arg
+"#,
+r#"
+fn otherName arg
+             arg
+    stmt
+"#,
+r#"
+fn commented arg,
+            arg
+    // not implemented
+"#,
+r#"
+fn indented arg
+            arg
+    fn indented arg
+                arg
+        stmt
+    fn indented2 arg
+                 arg
+
+
+"#,
+    ];
+    ::env_logger::LogBuilder::new()
+        .parse("TRACE")
+        .init().ok();
+
+    for input in inputs {
+        print_parses(input);
+    }
+    panic!("");
 }
