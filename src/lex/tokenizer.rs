@@ -10,7 +10,7 @@ use std::str::Chars;
 
 use unicode_categories::UnicodeCategories;
 
-use lex::{tokens,
+use lex::{tokens, TextLocation,
           TokenizerSymbolRule, CowStr,
           Token, TokenData, TokenType,
           TextIter, PeekTextIter};
@@ -25,6 +25,7 @@ pub fn char_is_symbol(ch: char) -> bool {
     ch == '%' || ch == '/' ||
     ch == '(' || ch == ')' ||
     ch == '-' || ch == '*' ||
+    ch == ',' || ch == ':' ||
     ch.is_symbol()
 }
 
@@ -40,6 +41,8 @@ enum TokenizerState {
     LookingForIndent,
     /// Tokenized all indents, getting keywords, symbols, and idents until
     LookingForNewline,
+    /// Tokenizer has been tabbed in, may need to emit 1 or more outdents
+    EmittingOutdents,
     /// Tokenizer reached EOF, only EOF tokens from here
     ReachedEOF
 }
@@ -95,20 +98,25 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
 
     /// Gets the next token from the tokenizer
     pub fn next(&mut self) -> Token {
+        trace!("Calling next on {:?}", self.tokenizer_state);
         match self.tokenizer_state {
             TokenizerState::LookingForIndent =>
                 self.next_indent(),
             TokenizerState::LookingForNewline =>
                 self.next_line(),
             TokenizerState::ReachedEOF =>
-                self.next_eof()
+                self.next_eof(),
+            TokenizerState::EmittingOutdents =>
+                self.next_outdent()
         }
     }
 
     /// Emit remaining `BlockEnd` and `EOF` tokens
     fn next_eof(&mut self) -> Token {
-        if self.indent_size_stack.len() > 1usize {
+        trace!("Calling next_eof, have {} indents left", self.indent_size_stack.len());
+        if self.indent_size_stack.len() > 1 {
             self.indent_size_stack.pop();
+            trace!("Returning an outdent");
             return Token::new_outdent(self.iter.get_location())
         }
         return Token::new_eof(self.iter.get_location())
@@ -116,6 +124,7 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
 
     /// Get the next `BlockBegin` token(s)
     fn next_indent(&mut self) -> Token {
+        trace!("Calling next_indent");
         let peek_attempt = self.iter.peek();
         if peek_attempt.is_none() {
             self.tokenizer_state = TokenizerState::ReachedEOF;
@@ -124,6 +133,7 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
         let mut space_count = 0usize;
         let mut peeked = peek_attempt.expect("Checked expect");
         // Take all consecutive spaces
+        trace!("Taking consecutive spaces starting with {:?}", peeked);
         while char_is_spacing(peeked) {
             self.iter.next();
             space_count += 1;
@@ -131,9 +141,10 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
             if next_peek.is_none() {
                 break
             }
-            peeked = next_peek.expect("checked expect")
+            peeked = next_peek.expect("checked expect");
             // TODO error on mixed tabs/spaces
         }
+        trace!("Peeked to {}, with {} spaces", peeked, space_count);
         // Now that indents are found, go back to regular tokens.
         self.tokenizer_state = TokenizerState::LookingForNewline;
 
@@ -141,19 +152,58 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
         let current_indent = *self.indent_size_stack.last()
             .expect("Indent stack was missing leading 0");
 
+        trace!("Indent stack = {:?} (current {})",
+            self.indent_size_stack, current_indent);
+
         // Equal indentation: no starting block, go directly to parsing line
         if space_count == current_indent {
+            trace!("Indentation is the same, calling next_line");
             self.next_line() // Mutually recursive for empty lines
         }
         // Greater Indendation: new block
         else if space_count > current_indent {
+            trace!("Indentation greater, pushing {} and returning a BeginBlock", space_count);
             self.indent_size_stack.push(space_count);
             Token::new_indent(self.iter.get_location())
         }
         else { // space_count < current_indent
-            self.indent_size_stack.pop();
-            Token::new_outdent(self.iter.get_location())
+            trace!("Indentation is less, going to emit outdents");
+            self.tokenizer_state = TokenizerState::EmittingOutdents;
+            self.next_outdent()
         }
+    }
+
+    /// Emit all needed outdents until tabbing lines up.
+    fn next_outdent(&mut self) -> Token {
+        trace!("Calling next_outdent");
+        let location = self.iter.get_location();
+        trace!("Current pos: {:?}", location);
+        trace!("Indent stack: {:?}", self.indent_size_stack);
+        if self.indent_size_stack.len() > 1usize {
+            let last_indent = *self.indent_size_stack.last()
+                .expect("Checked expect");
+            trace!("Checking indent {} vs {}", last_indent, location.column);
+            if last_indent > location.column {
+                trace!("Popping the indent");
+                self.indent_size_stack.pop();
+                let position = TextLocation {
+                    column: last_indent,
+                    index: location.index + (last_indent - location.column),
+                    line: location.line
+                };
+                return Token::new_outdent(position)
+            }
+            else if last_indent < location.column {
+                trace!("last_indent < location.column");
+            }
+        }
+        // Edge case: there shouldn't be any indentation but we are indented
+        else if location.column > 0 {
+            self.indent_size_stack.push(location.column);
+            return Token::new_indent(self.iter.get_location())
+        }
+        self.tokenizer_state = TokenizerState::LookingForIndent;
+        return self.next_line()
     }
 
     /// We've parsed all the indentation, so parse tokens until newline,
