@@ -26,6 +26,8 @@ pub struct Parser<T: Tokenizer> {
     expr_infix_parsers: HashMap<(TokenType, CowStr), Rc<InfixParser<Expression, T> + 'static>>,
     /// Parsers used for prefix symbols in expressions (`not`, `let`)
     expr_prefix_parsers: HashMap<(TokenType, CowStr), Rc<PrefixParser<Expression, T> + 'static>>,
+    /// Parses for parsing program items (struct/enum/fn declarations, etc.)
+    item_parsers: HashMap<(TokenType, CowStr), Rc<PrefixParser<Item, T> + 'static>>,
     /// Mapping of tokens to applied operators
     token_operators: HashMap<(TokenType, CowStr), Operator>,
     /// Allows the parser to skip over unneeded indentation
@@ -295,6 +297,24 @@ impl<T: Tokenizer> Parser<T> {
         return Ok(Block::new(found))
     }
 
+    /// Parse an item from a program (a function definition)
+    pub fn item(&mut self) -> Result<Item, ParseError> {
+        let mut found_parser: Option<Rc<PrefixParser<Item, T> + 'static>> = None;
+        let peek_data = (self.next_type(), Cow::Owned(self.peek().text.to_string()));
+        if let Some(item_parser) = self.item_parsers.get(&(peek_data.0, Cow::Borrowed(&*peek_data.1))) {
+            trace!("Found item parser for {}", &peek_data.1);
+            found_parser = Some(item_parser.clone());
+        }
+        match found_parser {
+            Some(parser) => {
+                let token = self.consume();
+                parser.parse(self, token)
+            },
+            None =>
+                Err(ParseError::LazyString(format!("Unexpeted item token `{}`", &peek_data.1)))
+        }
+    }
+
     ///Grab an lvalue from the token stream
     pub fn lvalue(&mut self) -> Result<Identifier, ParseError> {
         let token = self.consume();
@@ -364,6 +384,10 @@ impl<T: Tokenizer> Parser<T> {
             (Keyword, tokens::Do) => Rc::new(DoBlockParser { }) as Rc<PrefixParser<Statement, T>>,
             (Keyword, tokens::If) => Rc::new(IfBlockParser { }) as Rc<PrefixParser<Statement, T>>,
         ];
+        let item_prefix_map: HashMap<(TokenType, CowStr), Rc<PrefixParser<Item, T> + 'static>> =
+        hashmap![
+            (Keyword, tokens::Fn) => Rc::new(FnDeclarationParser { }) as Rc<PrefixParser<Item, T>>,
+        ];
         let operator_map: HashMap<(TokenType, CowStr), Operator> = hashmap![
             (Symbol, tokens::Plus) => Operator::Addition,
             (Symbol, tokens::PlusEquals) => Operator::Addition,
@@ -386,6 +410,7 @@ impl<T: Tokenizer> Parser<T> {
         Parser {
             tokenizer: tokenizer,
             lookahead: VecDeque::new(),
+            item_parsers: item_prefix_map,
             stmt_prefix_parsers: stmt_prefix_map,
             expr_prefix_parsers: expr_prefix_map,
             expr_infix_parsers: expr_infix_map,
@@ -394,11 +419,15 @@ impl<T: Tokenizer> Parser<T> {
         }
     }
 
-    /// Parse a block and verify it for errors
+    /// Parse a program and verify it for errors
     pub fn parse_unit(&mut self) -> Result<Program, ParseError> {
-        // In the future the parser will hande items separately.
-        let block = Unit::new(try!(self.block()));
-        let program = Verifier { }.verify_unit(block);
+        let mut items = Vec::with_capacity(10);
+        while self.next_type() != TokenType::EOF {
+            let item = try!(self.item());
+            items.push(item);
+        }
+        let unit = Unit::new(items);
+        let program = Verifier { }.verify_unit(unit);
         if let Err(errors) = program {
             Err(ParseError::VerifierError { collection: errors })
         }

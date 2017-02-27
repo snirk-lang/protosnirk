@@ -170,6 +170,7 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
         }
     }
 
+    /*
     fn check_unit(&mut self, unit: &Unit) {
         trace!("Checking unit");
         let fn_ret_double = RealTypeRef::get_float().to_ref();
@@ -208,6 +209,7 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
             .verify(LLVMVerifierFailureAction::LLVMPrintMessageAction)
             .unwrap();
     }
+    */
 
     fn check_if_expr(&mut self, if_expr: &IfExpression) {
         // Build conditional expr

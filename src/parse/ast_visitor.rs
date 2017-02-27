@@ -11,7 +11,9 @@ use super::{ErrorCollector, VerifyError};
 /// Trait for expression checkers: visitors on the expression tree.
 pub trait ASTVisitor {
     fn check_unit(&mut self, unit: &Unit) {
-        self.check_block(&unit.block);
+        for item in unit.get_items() {
+            self.check_item(item);
+        }
     }
 
     fn check_expression(&mut self, expr: &BaseExpression) {
@@ -57,10 +59,23 @@ pub trait ASTVisitor {
         }
     }
 
+    fn check_item(&mut self, item: &Item) {
+        match *item {
+            Item::FnDeclaration(ref decl) => {
+                self.check_fn_declaration(decl)
+            }
+        }
+    }
+
     fn check_block(&mut self, block: &Block) {
         for stmt in &block.statements {
             self.check_statement(stmt);
         }
+    }
+
+    #[inline]
+    fn check_fn_declaration(&mut self, decl: &FnDeclaration) {
+        self.check_block(decl.get_block())
     }
 
     #[inline]
