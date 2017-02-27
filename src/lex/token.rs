@@ -26,6 +26,9 @@ impl Token {
     pub fn get_text(&self) -> &str {
         &self.text
     }
+    pub fn get_type(&self) -> TokenType {
+        self.data.get_type()
+    }
     #[inline]
     pub fn new_symbol<T: Into<CowStr>>(text: T, location: TextLocation) -> Token {
         Token {

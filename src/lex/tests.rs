@@ -112,6 +112,7 @@ fn it_grabs_prefix_symbol_at_end_of_file() {
         }
     });
 }
+
 #[test]
 fn it_grabs_adjacent_prefix_symbols() {
     let input = "+-";
@@ -550,4 +551,20 @@ fn it_tokenizes_complex_input() {
             }
         }
     });
+}
+
+fn print_parses(input: &'static str) {
+    println!("Input: {}", input);
+    println!("-------------------");
+    let mut tokenizer = make_tokenizer(input);
+    let mut tokens = Vec::new();
+    let mut next = tokenizer.next();
+    while next.get_type() != TokenType::EOF {
+        tokens.push(next);
+        next = tokenizer.next();
+    }
+    for token in tokens {
+        println!("{} ({:?})", token.get_text(), token.get_type());
+    }
+    println!("===================\n");
 }
