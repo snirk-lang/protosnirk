@@ -32,12 +32,15 @@ pub trait ASTVisitor {
             },
             BaseExpression::UnaryOp(ref unary_op) => {
                 self.check_unary_op(unary_op)
-            },
+            }
             BaseExpression::VariableRef(ref var_ref) => {
                 self.check_var_ref(var_ref)
             }
             BaseExpression::IfExpression(ref if_expr) => {
                 self.check_if_expr(if_expr)
+            }
+            BaseExpression::FnCall(ref fn_call) => {
+                self.check_fn_call(fn_call)
             }
         }
     }
@@ -137,5 +140,10 @@ pub trait ASTVisitor {
         self.check_expression(if_expr.get_condition());
         self.check_expression(if_expr.get_true_expr());
         self.check_expression(if_expr.get_else());
+    }
+
+    fn check_fn_call(&mut self, fn_call: &FnCall) {
+        self.check_var_ref(fn_call.get_name());
+        
     }
 }

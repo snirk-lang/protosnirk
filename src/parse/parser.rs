@@ -82,6 +82,18 @@ impl<T: Tokenizer> Parser<T> {
         }
     }
 
+    /// If the next token is an indent, comsume it add the indentaiton rule to the stack.
+    pub fn apply_indentation(&mut self, rule: IndentationRule) -> bool {
+        if self.next_type() == TokenType::BeginBlock {
+            self.consume();
+            self.indent_rules.push(rule);
+            true
+        }
+        else {
+            false
+        }
+    }
+
     /// Grab `count` more tokens from the lexer and return the last one.
     ///
     /// This core method applies all indentation rules
@@ -144,16 +156,8 @@ impl<T: Tokenizer> Parser<T> {
     /// If the next token is an indentation, applies the rule and returns `(true, ...)``
     pub fn consume_type_indented(&mut self, expected_type: TokenType, rule: IndentationRule)
                                  -> Result<(bool, Token), ParseError> {
-        let (indented, token) = self.consume_indented(rule);
-        if token.data.get_type() != expected_type {
-            Err(ParseError::ExpectedToken {
-                expected: expected_type,
-                got: token.into()
-            })
-        }
-        else {
-            Ok((indented, token))
-        }
+        let indented = self.apply_indentation(rule);
+        self.consume_type(expected_type).map(|t| (indented, t))
     }
 
     /// Attempts to match the next token from the tokenizer with the given type and name.
@@ -177,16 +181,8 @@ impl<T: Tokenizer> Parser<T> {
                                  expected_type: TokenType,
                                  expected_name: CowStr,
                                  rule: IndentationRule) -> Result<(bool, Token), ParseError> {
-        let (applied, token) = try!(self.consume_type_indented(expected_type, rule));
-        if token.text != expected_name {
-            Err(ParseError::ExpectedToken {
-                expected: expected_type,
-                got: token.into()
-            })
-        }
-        else {
-            Ok((applied, token))
-        }
+        let indented = self.apply_indentation(rule);
+        self.consume_name(expected_type, expected_name).map(|t| (indented, t))
     }
 
     /// Peek at the next token without consuming it.
