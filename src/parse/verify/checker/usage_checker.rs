@@ -13,13 +13,15 @@ impl UsageChecker {
             debug_assert!(!(!sym.is_mutable() && sym.is_mutated()),
                 "Did not expect immutable {:?} to be mutated", sym);
             if !sym.is_used() {
-                let err_message = format!("Variable {} is declared but never used",
+                let err_message = format!("{} {} is declared but never used",
+                    sym.get_source().get_name(),
                     sym.get_declaration().text);
                 warns.add_warning(
                     VerifyError::new(sym.get_declaration().clone(), vec![], err_message));
             }
             if sym.is_mutable() && !sym.is_mutated() {
-                let err_message = format!("Variable {} is declared mutable but never mutated",
+                let err_message = format!("{} {} is declared mutable but never mutated",
+                    sym.get_source().get_name(),
                     sym.get_declaration().text);
                 warns.add_warning(
                     VerifyError::new(sym.get_declaration().clone(), vec![], err_message));

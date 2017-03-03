@@ -3,9 +3,10 @@ use std::ops::Deref;
 
 use lex::Token;
 use parse::ASTVisitor;
-use parse::ast::{Declaration, Identifier, Assignment, Block};
+use parse::ast::{Declaration, Identifier, Assignment, Block, FnDeclaration, FnCall};
 use parse::verify::{ErrorCollector, VerifyError, Symbol};
 use parse::verify::scope::{ScopeIndex, SymbolTable, SymbolTableBuilder};
+use parse::types::{Type, FnType};
 
 /// Builds up the symbol table for a parse tree
 /// and reports variable declaration and mutability errors.
@@ -65,6 +66,7 @@ impl ASTVisitor for SymbolTableChecker {
             self.errors.add_error(VerifyError::new(var_ref.token.clone(), vec![], err_text));
         }
     }
+
     fn check_assignment(&mut self, assign: &Assignment) {
         trace!("Checking assignment to {}", assign.lvalue.get_name());
         if let Some(index) = self.table_builder.get(assign.lvalue.get_name()) {
@@ -88,6 +90,7 @@ impl ASTVisitor for SymbolTableChecker {
         }
         self.check_expression(&assign.rvalue);
     }
+
     fn check_block(&mut self, block: &Block) {
         trace!("Checking a block");
         self.current_index.push();
@@ -98,6 +101,81 @@ impl ASTVisitor for SymbolTableChecker {
         self.table_builder.pop();
         self.current_index.pop();
         self.current_index.increment();
+    }
+
+    fn check_fn_declaration(&mut self, fn_declaration: &FnDeclaration) {
+        trace!("Checking function declaration");
+        if let Some(index) = self.table_builder.get(fn_declaration.get_name().get_name()).cloned() {
+            let declared_at = self.symbol_table[&index].get_declaration().clone();
+            // Add declaration to error
+            let references = vec![declared_at];
+            let err_text = format!("Function {} is already declared",
+                fn_declaration.get_name().get_name());
+            self.errors.add_error(VerifyError::new(fn_declaration.get_name().get_token().clone(),
+                                                   references,
+                                                   err_text));
+            // _Should_ return here
+            // but let's see if checking the function ends up being helpful
+        }
+        self.current_index.push();
+        self.table_builder.new_scope();
+
+        // Declared function info
+        let mut param_types = HashMap::new();
+        let fn_index = self.current_index.clone();
+        self.current_index.increment();
+
+        for param in fn_declaration.get_args() {
+            trace!("Checking parameter {}", param.get_name());
+            // All parameters are floats for now
+            param_types.insert(param.get_name().into(), Type::Float);
+            // Check standard symbol table for any conflicts.
+            // They're probably only present in other param names.
+            if let Some(declared_index) = self.table_builder.get(param.get_name()).cloned() {
+                let declared_at = self.symbol_table[&declared_index].get_declaration().clone();
+                // Add previous declaration
+                let references = vec![declared_at];
+                let err_text = format!("Argument {} is already declared", param.get_name());
+                self.errors.add_error(VerifyError::new(param.get_token().clone(), references, err_text));
+                // We will keep parsing arg params after registering duplicate
+                continue
+            }
+            let var_index = self.current_index.clone();
+            self.current_index.increment();
+            trace!("Created index {:?} for fn arg {}", var_index, param.get_name());
+            param.set_index(var_index.clone());
+            self.table_builder.define_local(param.get_name().to_string(), var_index.clone());
+            self.symbol_table.insert(var_index.clone(),
+                Symbol::from_parameter(param, var_index));
+        }
+        // Add the function to the symbol table
+        // The function is not stored in the table builder
+        // nor do function invokes check it
+        let fn_type = Type::Fn(FnType::new(Box::new(Type::Float), param_types));
+        self.table_builder.define_global(fn_declaration.get_name().get_name().into(),
+                                         fn_index.clone());
+        self.symbol_table.insert(fn_index.clone(),
+            Symbol::from_fn_decl(fn_declaration.get_name(), fn_index, fn_type));
+
+        // Inlined the check_block code here, didn't feel like having fn args be in a different
+        // scope.
+        for stmt in &fn_declaration.get_block().statements {
+            self.check_statement(&stmt);
+        }
+        self.table_builder.pop();
+        self.current_index.pop();
+        self.current_index.increment();
+    }
+
+    fn check_fn_call(&mut self, fn_call: &FnCall) {
+        trace!("Checking function call of {}", fn_call.get_name().get_name());
+
+    }
+}
+
+impl SymbolTableChecker {
+    fn match_fn_arguments(&self) {
+
     }
 }
 #[cfg(test)]
