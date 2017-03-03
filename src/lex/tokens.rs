@@ -63,7 +63,8 @@ declare_tokens! {
         RightParen: ")"; Complete,
         GitMarker: "<<<<<<<"; Complete,
         InlineArrow: "=>"; Complete,
-        Arrow: "->"; Complete
+        Arrow: "->"; Complete,
+        Comma: ","; Complete
     }
     symparts {
         "//"; CompletePrefix, // Comments hack, allows // and /// to be parsed.
