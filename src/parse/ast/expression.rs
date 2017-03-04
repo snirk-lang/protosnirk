@@ -224,12 +224,22 @@ impl IfExpression {
 pub struct FnCall {
     lvalue: Identifier,
     paren_token: Token,
-    args: Vec<CallArgument>
+    args: FnCallArgs
 }
 
 impl FnCall {
-    pub fn new(lvalue: Identifier, token: Token, args: Vec<CallArgument>) -> FnCall {
+    pub fn new(lvalue: Identifier, token: Token, args: FnCallArgs) -> FnCall {
         FnCall { lvalue: lvalue, paren_token: token, args: args }
+    }
+    pub fn named(lvalue: Identifier, token: Token, args: Vec<CallArgument>) -> FnCall {
+        FnCall { lvalue: lvalue, paren_token: token, args: FnCallArgs::Arguments(args) }
+    }
+    pub fn single_expr(lvalue: Identifier, token: Token, arg: Expression) -> FnCall {
+        FnCall {
+            lvalue: lvalue,
+            paren_token: token,
+            args: FnCallArgs::SingleExpr(Box::new(arg))
+        }
     }
     pub fn get_name(&self) -> &Identifier {
         &self.lvalue
@@ -237,9 +247,17 @@ impl FnCall {
     pub fn get_token(&self) -> &Token {
         &self.paren_token
     }
-    pub fn get_args(&self) -> &[CallArgument] {
+    pub fn get_args(&self) -> &FnCallArgs {
         &self.args
     }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum FnCallArgs {
+    /// Function was called with a single expression
+    SingleExpr(Box<Expression>),
+    /// Function was called with a list of arguments
+    Arguments(Vec<CallArgument>)
 }
 
 /// Represents arguments given to call a function with
