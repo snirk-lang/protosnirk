@@ -352,6 +352,8 @@ impl<T: Tokenizer> Parser<T> {
 
             (Symbol, tokens::Percent) => BinOpExprSymbol::with_precedence(Precedence::Modulo),
 
+            (Symbol, tokens::LeftParen) => Rc::new(FnCallParser { }) as Rc<InfixParser<Expression, T>>,
+
             (Symbol, tokens::LeftAngle) => BinOpExprSymbol::with_precedence(Precedence::EqualityCompare),
             (Symbol, tokens::RightAngle) => BinOpExprSymbol::with_precedence(Precedence::EqualityCompare),
             (Symbol, tokens::LessThanEquals) => BinOpExprSymbol::with_precedence(Precedence::EqualityCompare),
