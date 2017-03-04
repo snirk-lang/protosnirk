@@ -244,6 +244,9 @@ impl FnCall {
     pub fn get_name(&self) -> &Identifier {
         &self.lvalue
     }
+    pub fn get_text(&self) -> &str {
+        self.get_name().get_name()
+    }
     pub fn get_token(&self) -> &Token {
         &self.paren_token
     }
@@ -258,6 +261,14 @@ pub enum FnCallArgs {
     SingleExpr(Box<Expression>),
     /// Function was called with a list of arguments
     Arguments(Vec<CallArgument>)
+}
+impl FnCallArgs {
+    pub fn len(&self) -> usize {
+        match *self {
+            FnCallArgs::SingleExpr(_) => 1,
+            FnCallArgs::Arguments(ref args) => args.len()
+        }
+    }
 }
 
 /// Represents arguments given to call a function with
@@ -275,6 +286,9 @@ impl CallArgument {
     }
     pub fn get_name(&self) -> &Identifier {
         &self.name
+    }
+    pub fn get_text(&self) -> &str {
+        self.name.get_name()
     }
     pub fn has_value(&self) -> bool {
         self.expr.is_some()

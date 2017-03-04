@@ -153,6 +153,53 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
         self.ir_code.push(bin_op_value);
     }
 
+    fn check_fn_call(&mut self, fn_call: &FnCall) {
+        trace!("Checking call to {}", fn_call.get_text());
+        let mut arg_map = HashMap::with_capacity(fn_call.get_args().len());
+        let fn_type = self.symbols[&fn_call.get_name().get_index()]
+                        .get_type()
+                        .clone()
+                        .expect_fn();
+        trace!("Found function type {:?}", fn_type);
+
+        match *fn_call.get_args() {
+            FnCallArgs::SingleExpr(ref inner) => {
+                self.check_expression(inner);
+                let arg_val = self.ir_code.pop()
+                    .expect("Could not generate value of function arg");
+                arg_map.insert(0, arg_val);
+            },
+            FnCallArgs::Arguments(ref args) => {
+                // TODO just use a hashmap in fncall
+                for arg in args {
+                    let (ix, declared_type) = fn_type.get_arg(arg.get_text())
+                        .expect("Function arg check did not pass");
+                    // No value so must be a ref
+                    if !arg.has_value() {
+                        self.check_var_ref(arg.get_name());
+                        let arg_ref = self.ir_code.pop()
+                            .expect("Could not get alloca for implicit var for fn arg");
+                        arg_map.insert(ix, arg_ref);
+                    }
+                    else {
+                        self.check_expression(arg.get_expr().expect("Checked expect"));
+                        let value_ref = self.ir_code.pop()
+                            .expect("Could not get alloca for named var of fn arg");
+                        arg_map.insert(ix, value_ref);
+                    }
+                }
+            }
+        }
+        let mut arg_values = Vec::with_capacity(fn_call.get_args().len());
+        for ix in 0 .. arg_values.len() {
+            arg_values.push(arg_map[&ix].to_ref());
+        }
+        debug_assert_eq!(arg_values.len(), arg_map.len());
+        let name = format!("call_{}", fn_call.get_text());
+        let fn_ref = self.scope_manager[&fn_call.get_name().get_index()];
+        self.context.builder_mut().build_call(fn_ref, arg_values.as_mut_slice(), &name);
+    }
+
     fn check_return(&mut self, return_: &Return) {
         trace!("Checking return statement");
         if let Some(ref return_expr) = return_.value {
@@ -209,6 +256,7 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
             trace!("Running optimizations on a function");
             self.module_provider.get_pass_manager().run(&mut fn_ref);
         }
+        self.scope_manager.insert(fn_declaration.get_name().get_index(), fn_ref.to_ref());
     }
 
     fn check_unit(&mut self, unit: &Unit) {

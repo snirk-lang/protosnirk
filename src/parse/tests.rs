@@ -90,36 +90,21 @@ pub fn parse_fails() {
 #[test]
 fn parse_examples() {
     let inputs = &[
-r#"let mut x = 0
-if x + 0
-    x += 1
-x"#,
-
-
-r#"let mut x = 5
-if x + 5
-    x + 1
-else
-    x"#,
-
-r#"let mut x = 5
-if x + 5
-    x + 1
-else if x - 5
-    x + 1
-else if x * 5
-    x - 1
-else
-    x - 1
+r#"
+fn fib(x)
+    if x <= 2
+        1
+    else
+        fib(x - 1) + fib(x - 2)
 "#
 ];
-    //::env_logger::LogBuilder::new()
-    //    .parse("TRACE")
-    //    .init()
-    //    .unwrap();
+    ::env_logger::LogBuilder::new()
+        .parse("TRACE")
+        .init()
+        .unwrap();
     for input in inputs {
         let mut parser = parser(input);
         trace!("Parsing input {:?}", input);
-        println!("{:#?}", parser.parse_unit().unwrap());
+        trace!("Resulting program:\n{:#?}", parser.parse_unit().unwrap());
     }
 }
