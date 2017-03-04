@@ -8,9 +8,9 @@ use lex::TokenizerSymbolRule::*;
 
 macro_rules! declare_tokens {
     (
-        symbols { $($sym_name:ident : $sym_val:expr; $sym_rule:expr),* }
-        symparts { $($part_val:expr; $part_rule:expr),* }
-        keywords { $($kw_name:ident : $kw_val:expr),* }
+        symbols { $($sym_name:ident : $sym_val:expr; $sym_rule:expr,)* }
+        symparts { $($part_val:expr; $part_rule:expr,)* }
+        keywords { $($kw_name:ident : $kw_val:expr,)* }
     ) => {
         $(#[allow(non_upper_case_globals, dead_code)]
         pub const $kw_name : CowStr = Cow::Borrowed($kw_val);)*
@@ -64,7 +64,8 @@ declare_tokens! {
         GitMarker: "<<<<<<<"; Complete,
         InlineArrow: "=>"; Complete,
         Arrow: "->"; Complete,
-        Comma: ","; Complete
+        Comma: ","; Complete,
+        Colon: ":"; Complete,
     }
     symparts {
         "//"; CompletePrefix, // Comments hack, allows // and /// to be parsed.
@@ -72,7 +73,7 @@ declare_tokens! {
         "<<<"; Partial,
         "<<<<"; Partial,
         "<<<<<"; Partial,
-        "!"; Partial
+        "!"; Partial,
     }
     keywords {
         Let: "let",
@@ -81,6 +82,6 @@ declare_tokens! {
         Do: "do",
         If: "if",
         Else: "else",
-        Fn: "fn"
+        Fn: "fn",
     }
 }
