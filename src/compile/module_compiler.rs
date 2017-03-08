@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, BTreeMap};
 
 use parse::{ASTVisitor, ScopeIndex, SymbolTable};
 use parse::ast::*;
@@ -155,7 +155,7 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
 
     fn check_fn_call(&mut self, fn_call: &FnCall) {
         trace!("Checking call to {}", fn_call.get_text());
-        let mut arg_map = HashMap::with_capacity(fn_call.get_args().len());
+        let mut arg_map = BTreeMap::new();
         let fn_type = self.symbols[&fn_call.get_name().get_index()]
                         .get_type()
                         .clone()
@@ -167,13 +167,18 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
                 self.check_expression(inner);
                 let arg_val = self.ir_code.pop()
                     .expect("Could not generate value of function arg");
-                arg_map.insert(0, arg_val);
+                trace!("Insearting default value at index 0");
+                arg_map.insert(0usize, arg_val);
             },
             FnCallArgs::Arguments(ref args) => {
                 // TODO just use a hashmap in fncall
+                // Also it's important to emut code in the order that
+                // the arguments are given to the function rather than
+                // sort the arguments by how the callee does.
                 for arg in args {
-                    let (ix, declared_type) = fn_type.get_arg(arg.get_text())
+                    let (ix, _declared_type) = fn_type.get_arg(arg.get_text())
                         .expect("Function arg check did not pass");
+                    // TODO type check the param types
                     // No value so must be a ref
                     if !arg.has_value() {
                         self.check_var_ref(arg.get_name());
@@ -190,14 +195,22 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
                 }
             }
         }
+        trace!("Preparing arguments: {:?}", arg_map);
         let mut arg_values = Vec::with_capacity(fn_call.get_args().len());
-        for ix in 0 .. arg_values.len() {
-            arg_values.push(arg_map[&ix].to_ref());
+        for (ix, value) in arg_map.into_iter() {
+            trace!("Pushing arg {}: {:?}", ix, value);
+            arg_values.push(value);
+            trace!("Arg {} pushed", ix);
         }
-        debug_assert_eq!(arg_values.len(), arg_map.len());
+        trace!("Finished pushing args");
+        debug_assert_eq!(arg_values.len(), fn_type.get_args().len());
         let name = format!("call_{}", fn_call.get_text());
+        trace!("Scope manager: {:?}", self.scope_manager);
+        trace!("Fn call index: {:?}", fn_call.get_name().get_index());
         let fn_ref = self.scope_manager[&fn_call.get_name().get_index()];
-        self.context.builder_mut().build_call(fn_ref, arg_values.as_mut_slice(), &name);
+        trace!("Got a function ref to call");
+        let call = self.context.builder_mut().build_call(fn_ref, arg_values.as_mut_slice(), &name);
+        self.ir_code.push(call);
     }
 
     fn check_return(&mut self, return_: &Return) {
@@ -226,6 +239,11 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
         let mut fn_ref = FunctionRef::new(&mut self.module_provider.get_module_mut(),
             fn_declaration.get_name().get_name(), &fn_type);
 
+        // Gotta insert the fn ref first so it can be called recursively
+        self.scope_manager.insert(fn_declaration.get_name().get_index(), fn_ref.to_ref());
+        trace!("Inserted {} into the scope manager: {:?}",
+            fn_declaration.get_name().get_name(), self.scope_manager);
+
         // Gonna be fancy and have a separate basic block for parameters
         let mut entry_block = fn_ref.append_basic_block_in_context(self.context.global_context_mut(), "entry");
         let mut start_block = fn_ref.append_basic_block_in_context(self.context.global_context_mut(), "start");
@@ -235,6 +253,7 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
         // Rename args to %argname, create+remember allocas and store the function values there.
         // This allows LLVM to mutate function params even if we don't allow it right now.
         for (ir_param, ast_param) in fn_ref.params_iter().zip(fn_declaration.get_args()) {
+            trace!("Adding fn param {} (ix {:?})", ast_param.get_name(), ast_param.get_index());
             ir_param.set_name(ast_param.get_name());
             let alloca = self.context.builder_mut().build_alloca(float_type.to_ref(), ast_param.get_name());
             self.scope_manager.insert(ast_param.get_index(), alloca.to_ref());
@@ -243,6 +262,7 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
         self.context.builder_mut().build_br(&mut start_block);
         self.context.builder_mut().position_at_end(&mut start_block);
 
+        // Compile the function
         self.check_block(&fn_declaration.get_block());
 
         if let Some(remaining_expr) = self.ir_code.pop() {
@@ -256,7 +276,6 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
             trace!("Running optimizations on a function");
             self.module_provider.get_pass_manager().run(&mut fn_ref);
         }
-        self.scope_manager.insert(fn_declaration.get_name().get_index(), fn_ref.to_ref());
     }
 
     fn check_unit(&mut self, unit: &Unit) {
@@ -266,7 +285,6 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
             self.check_item(fn_declaration);
         }
 
-        self.module_provider.get_module().dump();
         // The final ir_code value should be a reference to the function
         self.module_provider.get_module()
             .verify(LLVMVerifierFailureAction::LLVMPrintMessageAction)

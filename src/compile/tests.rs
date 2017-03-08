@@ -15,17 +15,23 @@ pub fn create_module_compiler(input: &'static str, name: &str, optimize: bool)
 }
 
 #[test]
-fn compile_basic_programs() {
+fn compile_example() {
     let inputs = &[
 r#"
-fn fact(n)
-    if n == 0
-        0
+fn factHelper(n, acc)
+    if n <= 2
+        acc
     else
-        1
+        factHelper(n: n - 1, acc: acc * n)
+fn fact(n)
+    factHelper(n, acc: 1)
 "#
     ];
-
+    /*
+    ::env_logger::LogBuilder::new()
+        .parse("TRACE")
+        .init()
+        .unwrap();*/
     for (ix, input) in inputs.into_iter().enumerate() {
         trace!("Checking program {} - {:?}", ix, input);
         let name = format!("dump_basic_definitions_{}", ix);
