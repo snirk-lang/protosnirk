@@ -15,6 +15,7 @@ use parse::symbol::{PrefixParser, Precedence, AssignmentParser, InfixParser};
 ///     stmt*
 ///
 /// fn foo (bar, baz, \+ bliz) -> int \- \+ stmt* \-
+/// fn foo(arg1, arg2, argn) => expr
 /// ```
 #[derive(Debug, PartialEq, Clone)]
 pub struct FnDeclarationParser { }
@@ -51,11 +52,19 @@ impl<T: Tokenizer> PrefixParser<Item, T> for FnDeclarationParser {
                 arg_name = true;
             }
         }
-        // TODO -> result type
+        // TODO `->` result type
 
-        // Function body
-        try!(parser.consume_type(TokenType::BeginBlock));
-        let block = try!(parser.block());
+        // Inline fn syntax
+        let block = if parser.peek().get_text() == tokens::InlineArrow {
+            parser.consume();
+            Block::new(vec![Statement::Expression(
+                try!(parser.expression(Precedence::Min)))])
+        }
+        // Indented fn syntax
+        else {
+            try!(parser.consume_type(TokenType::BeginBlock));
+            try!(parser.block())
+        };
 
         let decl = FnDeclaration::new(token, name, args, block);
         Ok(Item::FnDeclaration(decl))

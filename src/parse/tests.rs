@@ -88,15 +88,17 @@ pub fn parse_fails() {
 }
 
 #[test]
-fn parse_examples() {
+fn parse_example() {
     let inputs = &[
 r#"
-fn fib(x)
-    if x <= 2
-        1
+fn factHelper(acc, n)
+    if n == 0
+        acc
     else
-        fib(x - 1) + fib(x - 2)
-"#
+        factHelper(acc: acc * n, n: n - 1)
+fn fact(n)
+    factHelper(n: n, acc: 1)
+"#,
 ];
     ::env_logger::LogBuilder::new()
         .parse("TRACE")
@@ -105,6 +107,6 @@ fn fib(x)
     for input in inputs {
         let mut parser = parser(input);
         trace!("Parsing input {:?}", input);
-        trace!("Resulting program:\n{:#?}", parser.parse_unit().unwrap());
+        trace!("Resulting program:\n{:#?}", parser.parse_unit());
     }
 }

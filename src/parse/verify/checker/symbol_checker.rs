@@ -53,6 +53,7 @@ impl ASTVisitor for SymbolTableChecker {
                 Symbol::from_declaration(decl, var_index));
         }
     }
+
     fn check_var_ref(&mut self, var_ref: &Identifier) {
         trace!("Checking reference to {}", var_ref.get_name());
         if let Some(index) = self.table_builder.get(var_ref.get_name()) {
@@ -104,10 +105,7 @@ impl ASTVisitor for SymbolTableChecker {
     }
 
     fn check_fn_declaration(&mut self, fn_declaration: &FnDeclaration) {
-        self.current_index.push();
-        self.table_builder.new_scope();
-
-        trace!("Checking function declaration");
+        trace!("Checking function declaration for {}", fn_declaration.get_name().get_name());
         if let Some(index) = self.table_builder.get(fn_declaration.get_name().get_name()).cloned() {
             let declared_at = self.symbol_table[&index].get_declaration().clone();
             // Add declaration to error
@@ -121,15 +119,16 @@ impl ASTVisitor for SymbolTableChecker {
             // but let's see if checking the function ends up being helpful
         }
 
-        // Declared function info
-        let mut param_types = HashMap::new();
         let fn_index = self.current_index.clone();
-        self.current_index.increment();
+        self.current_index.push();
+        self.table_builder.new_scope();
+        // Declared function info
+        let mut param_types = Vec::new();
 
         for param in fn_declaration.get_args() {
             trace!("Checking parameter {}", param.get_name());
             // All parameters are floats for now
-            param_types.insert(param.get_name().into(), Type::Float);
+            param_types.push((param.get_name().to_string(), Type::Float));
             // Check standard symbol table for any conflicts.
             // They're probably only present in other param names.
             if let Some(declared_index) = self.table_builder.get(param.get_name()).cloned() {
@@ -150,21 +149,22 @@ impl ASTVisitor for SymbolTableChecker {
                 Symbol::from_parameter(param, var_index));
         }
         // Add the function to the symbol table
-        // The function is not stored in the table builder
-        // nor do function invokes check it
         let fn_type = Type::Fn(FnType::new(Box::new(Type::Float), param_types));
         self.table_builder.define_global(fn_declaration.get_name().get_name().into(),
                                          fn_index.clone());
         self.symbol_table.insert(fn_index.clone(),
-            Symbol::from_fn_decl(fn_declaration.get_name(), fn_index, fn_type));
+            Symbol::from_fn_decl(fn_declaration.get_name(), fn_index.clone(), fn_type));
+        fn_declaration.get_name().set_index(fn_index);
 
         // Inlined the check_block code here, didn't feel like having fn args be in a different
         // scope.
         for stmt in &fn_declaration.get_block().statements {
             self.check_statement(&stmt);
         }
-        self.table_builder.pop();
+        // Go back to global scope
         self.current_index.pop();
+        self.table_builder.pop();
+        // Go on to the next function
         self.current_index.increment();
     }
 
@@ -200,21 +200,30 @@ impl ASTVisitor for SymbolTableChecker {
                     }
                     FnCallArgs::Arguments(ref args) => {
                         for call_arg in args {
+                            trace!("Checking arg {:#3?}", call_arg);
                             // Check values given to params first.
                             if let Some(expr) = call_arg.get_expr() {
                                 self.check_expression(expr);
                             }
                             else {
+                                // It's got a var ref
                                 self.check_var_ref(call_arg.get_name());
                             }
-                            if let Some((_ix, declared_type)) = fn_type.get_arg(call_arg.get_text()) {
-                                if declared_type != self.symbol_table[&call_arg.get_name().get_index()].get_type() {
-                                    let err_text = format!("Expected type {:?} for arg {} of {}",
-                                        declared_type, call_arg.get_text(), fn_call.get_text());
+                            if let Some((_ix, _declared_type)) = fn_type.get_arg(call_arg.get_text()) {
+                                let _call_type = self.symbol_table[&call_arg.get_name().get_index()].get_type();
+
+                                // We need to be able to do real type check here of the expr that
+                                // is being passed into the arg. We don't have that - we don't even
+                                // know if it's an attempt at a function reference or something.
+                                /*
+                                if &declared_type != call_type {
+                                    let err_text = format!("Expected type {:?} for arg {} of {}, got {:?}",
+                                        declared_type, call_arg.get_text(), fn_call.get_text(), call_type);
                                     let refs = vec![call_arg.get_name().get_token().clone(), fn_info.get_declaration().clone()];
                                     let err = VerifyError::new(fn_call.get_token().clone(), refs, err_text);
                                     self.errors.add_error(err);
                                 }
+                                */
                                 // else the arg matches and don't need to do anything.
                             }
                             else {
@@ -234,6 +243,13 @@ impl ASTVisitor for SymbolTableChecker {
             let err_text = format!("Unknown function {}", fn_call.get_text());
             let err = VerifyError::new(fn_call.get_token().clone(), vec![], err_text);
             self.errors.add_error(err);
+        }
+    }
+
+    fn check_unit(&mut self, unit: &Unit) {
+        self.table_builder.new_scope();
+        for item in unit.get_items() {
+            self.check_item(item);
         }
     }
 }

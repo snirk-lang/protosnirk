@@ -45,8 +45,7 @@ impl<T: Tokenizer> Parser<T> {
         let mut indent = false;
         for size in 1usize.. {
             let peeked_type = self.look_ahead(size).data.get_type();
-            if peeked_type != TokenType::BeginBlock &&
-                peeked_type != TokenType::EndBlock {
+            if peeked_type != TokenType::BeginBlock {
                 return (indent, self.look_ahead(size))
             }
             else {
@@ -85,6 +84,7 @@ impl<T: Tokenizer> Parser<T> {
     /// If the next token is an indent, comsume it add the indentaiton rule to the stack.
     pub fn apply_indentation(&mut self, rule: IndentationRule) -> bool {
         if self.next_type() == TokenType::BeginBlock {
+            trace!("Applying rule {:?} to BeginBlock", rule);
             self.consume();
             self.indent_rules.push(rule);
             true
@@ -140,6 +140,7 @@ impl<T: Tokenizer> Parser<T> {
 
     /// Attempts to match the next token from the tokenizer with the given type.
     pub fn consume_type(&mut self, expected_type: TokenType) -> Result<Token, ParseError> {
+        trace!("Consuming type {:?}", expected_type);
         let token = self.consume();
         if token.data.get_type() != expected_type {
             Err(ParseError::ExpectedToken {
@@ -163,6 +164,7 @@ impl<T: Tokenizer> Parser<T> {
     /// Attempts to match the next token from the tokenizer with the given type and name.
     pub fn consume_name(&mut self, expected_type: TokenType, expected_name: CowStr)
             -> Result<Token, ParseError> {
+        trace!("Consuming name {}", expected_name);
         let token = try!(self.consume_type(expected_type));
         if token.text != expected_name {
             Err(ParseError::ExpectedToken {
@@ -235,18 +237,20 @@ impl<T: Tokenizer> Parser<T> {
         let mut left = try!(prefix.parse(self, token));
         trace!("Parsed left expression: {:?}", left);
         while precedence < self.current_precedence() {
-            trace!("Checking that {:?} < {:?}", precedence, self.current_precedence());
+            trace!("Consuming a token to determine if there's an infix");
             // We allow indentation before any infix operator in expression!
             let (_infix_indented, new_token) = self.consume_indented(IndentationRule::NegateDeindent);
+            trace!("Consumed {:?}, indentation: {}", new_token, _infix_indented);
             token = new_token;
-            trace!("Continuing with {}, indentation: {}", token, _infix_indented);
             if let Some(infix) = self.expr_infix_parsers.get(&(token.data.get_type(), Cow::Borrowed(&*token.text))).map(Rc::clone) {
                 trace!("Parsing via infix parser!");
                 left = try!(infix.parse(self, left, token));
             }
+            // consuming might be an issue here
             //else {
             //    break
             //}
+            trace!("Checking that {:?} < {:?}", precedence, self.current_precedence());
         }
         trace!("Done parsing expression");
         Ok(left)
@@ -422,16 +426,14 @@ impl<T: Tokenizer> Parser<T> {
         let mut items = Vec::with_capacity(10);
         while self.next_type() != TokenType::EOF {
             let item = try!(self.item());
+            trace!("Parsed an item");
             items.push(item);
         }
+        trace!("Parsed {} items", items.len());
         let unit = Unit::new(items);
+        trace!("Parsed unit {:#?}", unit);
         let program = Verifier { }.verify_unit(unit);
-        if let Err(errors) = program {
-            Err(ParseError::VerifierError { collection: errors })
-        }
-        else {
-            Ok(program.expect("Checked expect"))
-        }
+        program.map_err(|errors| ParseError::VerifierError { collection: errors })
     }
 
     /// Get the current precedence
