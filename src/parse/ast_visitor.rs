@@ -11,7 +11,9 @@ use super::{ErrorCollector, VerifyError};
 /// Trait for expression checkers: visitors on the expression tree.
 pub trait ASTVisitor {
     fn check_unit(&mut self, unit: &Unit) {
-        self.check_block(&unit.block);
+        for item in unit.get_items() {
+            self.check_item(item);
+        }
     }
 
     fn check_expression(&mut self, expr: &BaseExpression) {
@@ -30,12 +32,15 @@ pub trait ASTVisitor {
             },
             BaseExpression::UnaryOp(ref unary_op) => {
                 self.check_unary_op(unary_op)
-            },
+            }
             BaseExpression::VariableRef(ref var_ref) => {
                 self.check_var_ref(var_ref)
             }
             BaseExpression::IfExpression(ref if_expr) => {
                 self.check_if_expr(if_expr)
+            }
+            BaseExpression::FnCall(ref fn_call) => {
+                self.check_fn_call(fn_call)
             }
         }
     }
@@ -57,10 +62,23 @@ pub trait ASTVisitor {
         }
     }
 
+    fn check_item(&mut self, item: &Item) {
+        match *item {
+            Item::FnDeclaration(ref decl) => {
+                self.check_fn_declaration(decl)
+            }
+        }
+    }
+
     fn check_block(&mut self, block: &Block) {
         for stmt in &block.statements {
             self.check_statement(stmt);
         }
+    }
+
+    #[inline]
+    fn check_fn_declaration(&mut self, decl: &FnDeclaration) {
+        self.check_block(decl.get_block())
     }
 
     #[inline]
@@ -122,5 +140,10 @@ pub trait ASTVisitor {
         self.check_expression(if_expr.get_condition());
         self.check_expression(if_expr.get_true_expr());
         self.check_expression(if_expr.get_else());
+    }
+
+    fn check_fn_call(&mut self, fn_call: &FnCall) {
+        self.check_var_ref(fn_call.get_name());
+        
     }
 }

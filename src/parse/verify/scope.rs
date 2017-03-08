@@ -125,6 +125,13 @@ impl SymbolTableBuilder {
         &mut self.scopes[last_ix].insert(name, value);
     }
 
+    /// Define a variable in the global scope
+    pub fn define_global(&mut self, name: String, value: ScopeIndex) {
+        debug_assert!(!self.scopes.is_empty(),
+            "Attempted to define a global {} with no scopes", name);
+        &mut self.scopes[0].insert(name, value);
+    }
+
     /// Get a variable from any scope
     pub fn get(&self, name: &str) -> Option<&ScopeIndex> {
         trace!("Searching for {} in {:#?}", name, self);

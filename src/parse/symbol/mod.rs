@@ -1,9 +1,11 @@
 mod expression;
 mod statement;
+mod item;
 mod precedence;
 
 pub use self::expression::*;
 pub use self::statement::*;
+pub use self::item::*;
 pub use self::precedence::Precedence;
 
 use std::rc::Rc;

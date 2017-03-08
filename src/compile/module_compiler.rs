@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, BTreeMap};
 
 use parse::{ASTVisitor, ScopeIndex, SymbolTable};
 use parse::ast::*;
@@ -153,6 +153,66 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
         self.ir_code.push(bin_op_value);
     }
 
+    fn check_fn_call(&mut self, fn_call: &FnCall) {
+        trace!("Checking call to {}", fn_call.get_text());
+        let mut arg_map = BTreeMap::new();
+        let fn_type = self.symbols[&fn_call.get_name().get_index()]
+                        .get_type()
+                        .clone()
+                        .expect_fn();
+        trace!("Found function type {:?}", fn_type);
+
+        match *fn_call.get_args() {
+            FnCallArgs::SingleExpr(ref inner) => {
+                self.check_expression(inner);
+                let arg_val = self.ir_code.pop()
+                    .expect("Could not generate value of function arg");
+                trace!("Insearting default value at index 0");
+                arg_map.insert(0usize, arg_val);
+            },
+            FnCallArgs::Arguments(ref args) => {
+                // TODO just use a hashmap in fncall
+                // Also it's important to emut code in the order that
+                // the arguments are given to the function rather than
+                // sort the arguments by how the callee does.
+                for arg in args {
+                    let (ix, _declared_type) = fn_type.get_arg(arg.get_text())
+                        .expect("Function arg check did not pass");
+                    // TODO type check the param types
+                    // No value so must be a ref
+                    if !arg.has_value() {
+                        self.check_var_ref(arg.get_name());
+                        let arg_ref = self.ir_code.pop()
+                            .expect("Could not get alloca for implicit var for fn arg");
+                        arg_map.insert(ix, arg_ref);
+                    }
+                    else {
+                        self.check_expression(arg.get_expr().expect("Checked expect"));
+                        let value_ref = self.ir_code.pop()
+                            .expect("Could not get alloca for named var of fn arg");
+                        arg_map.insert(ix, value_ref);
+                    }
+                }
+            }
+        }
+        trace!("Preparing arguments: {:?}", arg_map);
+        let mut arg_values = Vec::with_capacity(fn_call.get_args().len());
+        for (ix, value) in arg_map.into_iter() {
+            trace!("Pushing arg {}: {:?}", ix, value);
+            arg_values.push(value);
+            trace!("Arg {} pushed", ix);
+        }
+        trace!("Finished pushing args");
+        debug_assert_eq!(arg_values.len(), fn_type.get_args().len());
+        let name = format!("call_{}", fn_call.get_text());
+        trace!("Scope manager: {:?}", self.scope_manager);
+        trace!("Fn call index: {:?}", fn_call.get_name().get_index());
+        let fn_ref = self.scope_manager[&fn_call.get_name().get_index()];
+        trace!("Got a function ref to call");
+        let call = self.context.builder_mut().build_call(fn_ref, arg_values.as_mut_slice(), &name);
+        self.ir_code.push(call);
+    }
+
     fn check_return(&mut self, return_: &Return) {
         trace!("Checking return statement");
         if let Some(ref return_expr) = return_.value {
@@ -170,39 +230,61 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
         }
     }
 
-    fn check_unit(&mut self, unit: &Unit) {
-        trace!("Checking unit");
-        let fn_ret_double = RealTypeRef::get_float().to_ref();
-        let block_fn_type = FunctionTypeRef::get(&fn_ret_double, &mut [], false);
-        trace!("Creating `fn main` definition");
+    fn check_fn_declaration(&mut self, fn_declaration: &FnDeclaration) {
+        trace!("Checking declaration of {}", fn_declaration.get_name().get_name());
+
+        let float_type = RealTypeRef::get_float();
+        let mut arg_types = vec![float_type.to_ref(); fn_declaration.get_args().len()];
+        let fn_type = FunctionTypeRef::get(&float_type, arg_types.as_mut_slice(), false);
         let mut fn_ref = FunctionRef::new(&mut self.module_provider.get_module_mut(),
-            "main", &block_fn_type);
-        let mut basic_block = fn_ref.append_basic_block_in_context(
-            self.context.global_context_mut(), "entry");
-        self.context.builder_mut().position_at_end(&mut basic_block);
-        trace!("Positioned IR builder at the end of entry block, checking unit block");
-        self.check_block(&unit.block);
-        self.module_provider.get_module().dump();
-        let mut builder = self.context.builder_mut();
-        // We can auto-issue a return stmt if the ir_code hasn't been
-        // consumed. Otherwise, we return 0f64.
-        // If the last statement _was_ a return, it's just a redundant
-        // return that llvm should optimize out.
-        // This will also need to be fixed when allowing nested blocks.
-        // This will be redone in the parsing stages.
+            fn_declaration.get_name().get_name(), &fn_type);
+
+        // Gotta insert the fn ref first so it can be called recursively
+        self.scope_manager.insert(fn_declaration.get_name().get_index(), fn_ref.to_ref());
+        trace!("Inserted {} into the scope manager: {:?}",
+            fn_declaration.get_name().get_name(), self.scope_manager);
+
+        // Gonna be fancy and have a separate basic block for parameters
+        let mut entry_block = fn_ref.append_basic_block_in_context(self.context.global_context_mut(), "entry");
+        let mut start_block = fn_ref.append_basic_block_in_context(self.context.global_context_mut(), "start");
+        self.context.builder_mut().position_at_end(&mut entry_block);
+        trace!("Ready to build {}", fn_declaration.get_name().get_name());
+
+        // Rename args to %argname, create+remember allocas and store the function values there.
+        // This allows LLVM to mutate function params even if we don't allow it right now.
+        for (ir_param, ast_param) in fn_ref.params_iter().zip(fn_declaration.get_args()) {
+            trace!("Adding fn param {} (ix {:?})", ast_param.get_name(), ast_param.get_index());
+            ir_param.set_name(ast_param.get_name());
+            let alloca = self.context.builder_mut().build_alloca(float_type.to_ref(), ast_param.get_name());
+            self.scope_manager.insert(ast_param.get_index(), alloca.to_ref());
+            self.context.builder_mut().build_store(ir_param.to_ref(), alloca);
+        }
+        self.context.builder_mut().build_br(&mut start_block);
+        self.context.builder_mut().position_at_end(&mut start_block);
+
+        // Compile the function
+        self.check_block(&fn_declaration.get_block());
+
         if let Some(remaining_expr) = self.ir_code.pop() {
             trace!("Found final expression, appending a return");
-            builder.build_ret(&remaining_expr);
-            self.module_provider.get_module().dump();
+            self.context.builder_mut().build_ret(&remaining_expr);
+            //self.module_provider.get_module().dump();
         }
 
-        // Returns true if verification failed
         assert!(!fn_ref.verify(LLVMVerifierFailureAction::LLVMPrintMessageAction));
         if self.optimizations {
-            trace!("Running optimizations");
+            trace!("Running optimizations on a function");
             self.module_provider.get_pass_manager().run(&mut fn_ref);
         }
-        self.module_provider.get_module().dump();
+    }
+
+    fn check_unit(&mut self, unit: &Unit) {
+        trace!("Checking a unit");
+
+        for fn_declaration in unit.get_items() {
+            self.check_item(fn_declaration);
+        }
+
         // The final ir_code value should be a reference to the function
         self.module_provider.get_module()
             .verify(LLVMVerifierFailureAction::LLVMPrintMessageAction)

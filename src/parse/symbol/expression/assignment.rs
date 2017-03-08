@@ -5,7 +5,7 @@ use parse::{Parser, ParseResult, ParseError};
 use parse::ast::*;
 use parse::symbol::{InfixParser, Precedence};
 
-/// Parses a declaration/// Parses an assignment expresion.
+/// Parses an assignment expresion.
 ///
 /// # Examples
 /// ```text

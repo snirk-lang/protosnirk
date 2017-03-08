@@ -3,9 +3,10 @@ use std::ops::Deref;
 
 use lex::Token;
 use parse::ASTVisitor;
-use parse::ast::{Declaration, Identifier, Assignment, Block};
+use parse::ast::*;
 use parse::verify::{ErrorCollector, VerifyError, Symbol};
 use parse::verify::scope::{ScopeIndex, SymbolTable, SymbolTableBuilder};
+use parse::types::{Type, FnType};
 
 /// Builds up the symbol table for a parse tree
 /// and reports variable declaration and mutability errors.
@@ -52,6 +53,7 @@ impl ASTVisitor for SymbolTableChecker {
                 Symbol::from_declaration(decl, var_index));
         }
     }
+
     fn check_var_ref(&mut self, var_ref: &Identifier) {
         trace!("Checking reference to {}", var_ref.get_name());
         if let Some(index) = self.table_builder.get(var_ref.get_name()) {
@@ -65,6 +67,7 @@ impl ASTVisitor for SymbolTableChecker {
             self.errors.add_error(VerifyError::new(var_ref.token.clone(), vec![], err_text));
         }
     }
+
     fn check_assignment(&mut self, assign: &Assignment) {
         trace!("Checking assignment to {}", assign.lvalue.get_name());
         if let Some(index) = self.table_builder.get(assign.lvalue.get_name()) {
@@ -88,6 +91,7 @@ impl ASTVisitor for SymbolTableChecker {
         }
         self.check_expression(&assign.rvalue);
     }
+
     fn check_block(&mut self, block: &Block) {
         trace!("Checking a block");
         self.current_index.push();
@@ -99,7 +103,157 @@ impl ASTVisitor for SymbolTableChecker {
         self.current_index.pop();
         self.current_index.increment();
     }
+
+    fn check_fn_declaration(&mut self, fn_declaration: &FnDeclaration) {
+        trace!("Checking function declaration for {}", fn_declaration.get_name().get_name());
+        if let Some(index) = self.table_builder.get(fn_declaration.get_name().get_name()).cloned() {
+            let declared_at = self.symbol_table[&index].get_declaration().clone();
+            // Add declaration to error
+            let references = vec![declared_at];
+            let err_text = format!("Function {} is already declared",
+                fn_declaration.get_name().get_name());
+            self.errors.add_error(VerifyError::new(fn_declaration.get_name().get_token().clone(),
+                                                   references,
+                                                   err_text));
+            // _Should_ return here
+            // but let's see if checking the function ends up being helpful
+        }
+
+        let fn_index = self.current_index.clone();
+        self.current_index.push();
+        self.table_builder.new_scope();
+        // Declared function info
+        let mut param_types = Vec::new();
+
+        for param in fn_declaration.get_args() {
+            trace!("Checking parameter {}", param.get_name());
+            // All parameters are floats for now
+            param_types.push((param.get_name().to_string(), Type::Float));
+            // Check standard symbol table for any conflicts.
+            // They're probably only present in other param names.
+            if let Some(declared_index) = self.table_builder.get(param.get_name()).cloned() {
+                let declared_at = self.symbol_table[&declared_index].get_declaration().clone();
+                // Add previous declaration
+                let references = vec![declared_at];
+                let err_text = format!("Argument {} is already declared", param.get_name());
+                self.errors.add_error(VerifyError::new(param.get_token().clone(), references, err_text));
+                // We will keep parsing arg params after registering duplicate
+                continue
+            }
+            let var_index = self.current_index.clone();
+            self.current_index.increment();
+            trace!("Created index {:?} for fn arg {}", var_index, param.get_name());
+            param.set_index(var_index.clone());
+            self.table_builder.define_local(param.get_name().to_string(), var_index.clone());
+            self.symbol_table.insert(var_index.clone(),
+                Symbol::from_parameter(param, var_index));
+        }
+        // Add the function to the symbol table
+        let fn_type = Type::Fn(FnType::new(Box::new(Type::Float), param_types));
+        self.table_builder.define_global(fn_declaration.get_name().get_name().into(),
+                                         fn_index.clone());
+        self.symbol_table.insert(fn_index.clone(),
+            Symbol::from_fn_decl(fn_declaration.get_name(), fn_index.clone(), fn_type));
+        fn_declaration.get_name().set_index(fn_index);
+
+        // Inlined the check_block code here, didn't feel like having fn args be in a different
+        // scope.
+        for stmt in &fn_declaration.get_block().statements {
+            self.check_statement(&stmt);
+        }
+        // Go back to global scope
+        self.current_index.pop();
+        self.table_builder.pop();
+        // Go on to the next function
+        self.current_index.increment();
+    }
+
+    fn check_fn_call(&mut self, fn_call: &FnCall) {
+        trace!("Checking function call of {}", fn_call.get_name().get_name());
+        // Should also get some better naming conventions here
+        if let Some(fn_index) = self.table_builder.get(fn_call.get_text()).cloned() {
+            trace!("Found function info of {}", fn_call.get_text());
+            fn_call.get_name().set_index(fn_index.clone());
+            // TODO cloning the symbol here, may even switch to Rc to make this easier
+            // across the checker.
+            let fn_info = self.symbol_table[&fn_index].clone();
+            if let &Type::Fn(ref fn_type) = fn_info.get_type() {
+                let declared_len = fn_type.get_args().len();
+                let invoked_len = fn_call.get_args().len();
+                if declared_len != invoked_len {
+                    // This is how Rust does it but we can do better.
+                    let err_text = format!("Function {}: expected {} args, got {}",
+                        fn_call.get_name().get_name(), declared_len, invoked_len);
+                    let err = VerifyError::new(fn_call.get_token().clone(), vec![], err_text);
+                    self.errors.add_error(err);
+                }
+                match *fn_call.get_args() {
+                    FnCallArgs::SingleExpr(ref expr) => {
+                        if declared_len != 1 {
+                            // TODO could also provide references
+                            let err_text = format!("Function {}: expected {} args, got 1",
+                                fn_call.get_name().get_name(), declared_len);
+                            let err = VerifyError::new(fn_call.get_token().clone(), vec![], err_text);
+                            self.errors.add_error(err);
+                        }
+                        self.check_expression(expr);
+                    }
+                    FnCallArgs::Arguments(ref args) => {
+                        for call_arg in args {
+                            trace!("Checking arg {:#3?}", call_arg);
+                            // Check values given to params first.
+                            if let Some(expr) = call_arg.get_expr() {
+                                self.check_expression(expr);
+                            }
+                            else {
+                                // It's got a var ref
+                                self.check_var_ref(call_arg.get_name());
+                            }
+                            if let Some((_ix, _declared_type)) = fn_type.get_arg(call_arg.get_text()) {
+                                let _call_type = self.symbol_table[&call_arg.get_name().get_index()].get_type();
+
+                                // We need to be able to do real type check here of the expr that
+                                // is being passed into the arg. We don't have that - we don't even
+                                // know if it's an attempt at a function reference or something.
+                                /*
+                                if &declared_type != call_type {
+                                    let err_text = format!("Expected type {:?} for arg {} of {}, got {:?}",
+                                        declared_type, call_arg.get_text(), fn_call.get_text(), call_type);
+                                    let refs = vec![call_arg.get_name().get_token().clone(), fn_info.get_declaration().clone()];
+                                    let err = VerifyError::new(fn_call.get_token().clone(), refs, err_text);
+                                    self.errors.add_error(err);
+                                }
+                                */
+                                // else the arg matches and don't need to do anything.
+                            }
+                            else {
+                                let err_text = format!("Unknown parameter {}", call_arg.get_text());
+                                let refs = vec![call_arg.get_name().get_token().clone()];
+                                let err = VerifyError::new(fn_call.get_token().clone(), refs, err_text);
+                                self.errors.add_error(err);
+                            }
+                        }
+                    }
+                }
+            }
+            self.symbol_table.get_mut(&fn_call.get_name().get_index())
+                .map(Symbol::set_used);
+        }
+        else {
+            let err_text = format!("Unknown function {}", fn_call.get_text());
+            let err = VerifyError::new(fn_call.get_token().clone(), vec![], err_text);
+            self.errors.add_error(err);
+        }
+    }
+
+    fn check_unit(&mut self, unit: &Unit) {
+        self.table_builder.new_scope();
+        for item in unit.get_items() {
+            self.check_item(item);
+        }
+    }
 }
+
 #[cfg(test)]
 mod tests {
     use std::borrow::Cow;

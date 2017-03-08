@@ -20,7 +20,8 @@ pub enum Expression {
     UnaryOp(UnaryOperation),
     /// If expression
     IfExpression(IfExpression),
-
+    /// Invocation of a funciton with standard named arg setup.
+    FnCall(FnCall),
     // "Non-value expressions"
     // I _guess_ they could return `()`, but why?
 
@@ -215,5 +216,84 @@ impl IfExpression {
     }
     pub fn get_else(&self) -> &Expression {
         &self.else_expr
+    }
+}
+
+/// Represents invocation of a function
+#[derive(Debug, PartialEq, Clone)]
+pub struct FnCall {
+    lvalue: Identifier,
+    paren_token: Token,
+    args: FnCallArgs
+}
+
+impl FnCall {
+    pub fn new(lvalue: Identifier, token: Token, args: FnCallArgs) -> FnCall {
+        FnCall { lvalue: lvalue, paren_token: token, args: args }
+    }
+    pub fn named(lvalue: Identifier, token: Token, args: Vec<CallArgument>) -> FnCall {
+        FnCall { lvalue: lvalue, paren_token: token, args: FnCallArgs::Arguments(args) }
+    }
+    pub fn single_expr(lvalue: Identifier, token: Token, arg: Expression) -> FnCall {
+        FnCall {
+            lvalue: lvalue,
+            paren_token: token,
+            args: FnCallArgs::SingleExpr(Box::new(arg))
+        }
+    }
+    pub fn get_name(&self) -> &Identifier {
+        &self.lvalue
+    }
+    pub fn get_text(&self) -> &str {
+        self.get_name().get_name()
+    }
+    pub fn get_token(&self) -> &Token {
+        &self.paren_token
+    }
+    pub fn get_args(&self) -> &FnCallArgs {
+        &self.args
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum FnCallArgs {
+    /// Function was called with a single expression
+    SingleExpr(Box<Expression>),
+    /// Function was called with a list of arguments
+    Arguments(Vec<CallArgument>)
+}
+impl FnCallArgs {
+    pub fn len(&self) -> usize {
+        match *self {
+            FnCallArgs::SingleExpr(_) => 1,
+            FnCallArgs::Arguments(ref args) => args.len()
+        }
+    }
+}
+
+/// Represents arguments given to call a function with
+#[derive(Debug, PartialEq, Clone)]
+pub struct CallArgument {
+    name: Identifier,
+    expr: Option<Expression>
+}
+impl CallArgument {
+    pub fn var_name(name: Identifier) -> CallArgument {
+        CallArgument { name: name, expr: None }
+    }
+    pub fn var_value(name: Identifier, expr: Expression) -> CallArgument {
+        CallArgument { name: name, expr: Some(expr) }
+    }
+    pub fn get_name(&self) -> &Identifier {
+        &self.name
+    }
+    pub fn get_text(&self) -> &str {
+        self.name.get_name()
+    }
+    pub fn has_value(&self) -> bool {
+        self.expr.is_some()
+    }
+    pub fn get_expr(&self) -> Option<&Expression> {
+        self.expr.as_ref()
     }
 }

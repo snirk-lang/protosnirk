@@ -1,29 +1,42 @@
 //! Symbol table containing information about a given variable declaration
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ops::{Deref, DerefMut};
 
 use lex::Token;
 use parse::verify::scope::ScopeIndex;
-use parse::ast::Declaration;
+use parse::ast::{Declaration, Identifier};
+use parse::types::Type;
+
 
 /// Symbol stored in the symbol table
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Symbol {
+    /// Unique index for symbol
     index: ScopeIndex,
+    /// Cloned token of symbol (i.e. for viewing source)
     decl_token: Token,
-    mutable: bool,
+    /// Whether the symbol has been used
     used: bool,
-    mutated: bool
+    /// Whether the symbol is mutable (tracked per-reference)
+    mutable: bool,
+    /// Whether the symbol has been mutated
+    mutated: bool,
+    /// The type of the symbol
+    type_: Type,
+    /// The source of the symbol
+    source: Source
 }
 impl Symbol {
-    pub fn new(index: ScopeIndex, token: Token, mutable: bool) -> Symbol {
+    pub fn new(index: ScopeIndex, token: Token, mutable: bool, type_: Type, source: Source) -> Symbol {
         Symbol {
             decl_token: token,
             index: index,
             mutable: mutable,
             used: false,
-            mutated: false
+            mutated: false,
+            type_: type_,
+            source: source,
         }
     }
     pub fn from_declaration(decl: &Declaration, index: ScopeIndex) -> Symbol {
@@ -32,9 +45,34 @@ impl Symbol {
             index: index,
             mutable: decl.mutable,
             used: false,
-            mutated: false
+            mutated: false,
+            type_: Type::Float,
+            source: Source::Variable,
         }
     }
+    pub fn from_parameter(ident: &Identifier, index: ScopeIndex) -> Symbol {
+        Symbol {
+            decl_token: ident.get_token().clone(),
+            index: index,
+            mutable: false, // Just gonna strait up refuse mutable parameters
+            mutated: false,
+            used: false,
+            type_: Type::Float,
+            source: Source::Parameter,
+        }
+    }
+    pub fn from_fn_decl(ident: &Identifier, index: ScopeIndex, type_: Type) -> Symbol {
+        Symbol {
+            decl_token: ident.get_token().clone(),
+            index: index,
+            mutable: false,
+            mutated: false,
+            used: false,
+            type_: type_,
+            source: Source::DeclaredFn,
+        }
+    }
+
     pub fn get_index(&self) -> &ScopeIndex {
         &self.index
     }
@@ -55,5 +93,31 @@ impl Symbol {
     }
     pub fn set_used(&mut self) {
         self.used = true;
+    }
+    pub fn get_type(&self) -> &Type {
+        &self.type_
+    }
+    pub fn get_source(&self) -> Source {
+        self.source
+    }
+}
+
+/// Source of a particular symbol
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum Source {
+    /// The symbol was declared as a variable
+    Variable,
+    /// The symbol was declared as a fn parameter
+    Parameter,
+    /// The symbol was declared as a function
+    DeclaredFn,
+}
+impl Source {
+    pub fn get_name(self) -> &'static str {
+        match self {
+            Source::Variable => "variable",
+            Source::Parameter => "function parameter",
+            Source::DeclaredFn => "declared function"
+        }
     }
 }

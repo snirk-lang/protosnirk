@@ -26,6 +26,8 @@ pub struct Parser<T: Tokenizer> {
     expr_infix_parsers: HashMap<(TokenType, CowStr), Rc<InfixParser<Expression, T> + 'static>>,
     /// Parsers used for prefix symbols in expressions (`not`, `let`)
     expr_prefix_parsers: HashMap<(TokenType, CowStr), Rc<PrefixParser<Expression, T> + 'static>>,
+    /// Parses for parsing program items (struct/enum/fn declarations, etc.)
+    item_parsers: HashMap<(TokenType, CowStr), Rc<PrefixParser<Item, T> + 'static>>,
     /// Mapping of tokens to applied operators
     token_operators: HashMap<(TokenType, CowStr), Operator>,
     /// Allows the parser to skip over unneeded indentation
@@ -43,8 +45,7 @@ impl<T: Tokenizer> Parser<T> {
         let mut indent = false;
         for size in 1usize.. {
             let peeked_type = self.look_ahead(size).data.get_type();
-            if peeked_type != TokenType::BeginBlock &&
-                peeked_type != TokenType::EndBlock {
+            if peeked_type != TokenType::BeginBlock {
                 return (indent, self.look_ahead(size))
             }
             else {
@@ -77,6 +78,19 @@ impl<T: Tokenizer> Parser<T> {
             (true, self.consume())
         } else {
             (false, next)
+        }
+    }
+
+    /// If the next token is an indent, comsume it add the indentaiton rule to the stack.
+    pub fn apply_indentation(&mut self, rule: IndentationRule) -> bool {
+        if self.next_type() == TokenType::BeginBlock {
+            trace!("Applying rule {:?} to BeginBlock", rule);
+            self.consume();
+            self.indent_rules.push(rule);
+            true
+        }
+        else {
+            false
         }
     }
 
@@ -126,6 +140,7 @@ impl<T: Tokenizer> Parser<T> {
 
     /// Attempts to match the next token from the tokenizer with the given type.
     pub fn consume_type(&mut self, expected_type: TokenType) -> Result<Token, ParseError> {
+        trace!("Consuming type {:?}", expected_type);
         let token = self.consume();
         if token.data.get_type() != expected_type {
             Err(ParseError::ExpectedToken {
@@ -142,21 +157,14 @@ impl<T: Tokenizer> Parser<T> {
     /// If the next token is an indentation, applies the rule and returns `(true, ...)``
     pub fn consume_type_indented(&mut self, expected_type: TokenType, rule: IndentationRule)
                                  -> Result<(bool, Token), ParseError> {
-        let (indented, token) = self.consume_indented(rule);
-        if token.data.get_type() != expected_type {
-            Err(ParseError::ExpectedToken {
-                expected: expected_type,
-                got: token.into()
-            })
-        }
-        else {
-            Ok((indented, token))
-        }
+        let indented = self.apply_indentation(rule);
+        self.consume_type(expected_type).map(|t| (indented, t))
     }
 
     /// Attempts to match the next token from the tokenizer with the given type and name.
     pub fn consume_name(&mut self, expected_type: TokenType, expected_name: CowStr)
             -> Result<Token, ParseError> {
+        trace!("Consuming name {}", expected_name);
         let token = try!(self.consume_type(expected_type));
         if token.text != expected_name {
             Err(ParseError::ExpectedToken {
@@ -175,16 +183,8 @@ impl<T: Tokenizer> Parser<T> {
                                  expected_type: TokenType,
                                  expected_name: CowStr,
                                  rule: IndentationRule) -> Result<(bool, Token), ParseError> {
-        let (applied, token) = try!(self.consume_type_indented(expected_type, rule));
-        if token.text != expected_name {
-            Err(ParseError::ExpectedToken {
-                expected: expected_type,
-                got: token.into()
-            })
-        }
-        else {
-            Ok((applied, token))
-        }
+        let indented = self.apply_indentation(rule);
+        self.consume_name(expected_type, expected_name).map(|t| (indented, t))
     }
 
     /// Peek at the next token without consuming it.
@@ -237,18 +237,20 @@ impl<T: Tokenizer> Parser<T> {
         let mut left = try!(prefix.parse(self, token));
         trace!("Parsed left expression: {:?}", left);
         while precedence < self.current_precedence() {
-            trace!("Checking that {:?} < {:?}", precedence, self.current_precedence());
+            trace!("Consuming a token to determine if there's an infix");
             // We allow indentation before any infix operator in expression!
             let (_infix_indented, new_token) = self.consume_indented(IndentationRule::NegateDeindent);
+            trace!("Consumed {:?}, indentation: {}", new_token, _infix_indented);
             token = new_token;
-            trace!("Continuing with {}, indentation: {}", token, _infix_indented);
             if let Some(infix) = self.expr_infix_parsers.get(&(token.data.get_type(), Cow::Borrowed(&*token.text))).map(Rc::clone) {
                 trace!("Parsing via infix parser!");
                 left = try!(infix.parse(self, left, token));
             }
+            // consuming might be an issue here
             //else {
             //    break
             //}
+            trace!("Checking that {:?} < {:?}", precedence, self.current_precedence());
         }
         trace!("Done parsing expression");
         Ok(left)
@@ -295,6 +297,24 @@ impl<T: Tokenizer> Parser<T> {
         return Ok(Block::new(found))
     }
 
+    /// Parse an item from a program (a function definition)
+    pub fn item(&mut self) -> Result<Item, ParseError> {
+        let mut found_parser: Option<Rc<PrefixParser<Item, T> + 'static>> = None;
+        let peek_data = (self.next_type(), Cow::Owned(self.peek().text.to_string()));
+        if let Some(item_parser) = self.item_parsers.get(&(peek_data.0, Cow::Borrowed(&*peek_data.1))) {
+            trace!("Found item parser for {}", &peek_data.1);
+            found_parser = Some(item_parser.clone());
+        }
+        match found_parser {
+            Some(parser) => {
+                let token = self.consume();
+                parser.parse(self, token)
+            },
+            None =>
+                Err(ParseError::LazyString(format!("Unexpeted item token `{}`", &peek_data.1)))
+        }
+    }
+
     ///Grab an lvalue from the token stream
     pub fn lvalue(&mut self) -> Result<Identifier, ParseError> {
         let token = self.consume();
@@ -336,6 +356,8 @@ impl<T: Tokenizer> Parser<T> {
 
             (Symbol, tokens::Percent) => BinOpExprSymbol::with_precedence(Precedence::Modulo),
 
+            (Symbol, tokens::LeftParen) => Rc::new(FnCallParser { }) as Rc<InfixParser<Expression, T>>,
+
             (Symbol, tokens::LeftAngle) => BinOpExprSymbol::with_precedence(Precedence::EqualityCompare),
             (Symbol, tokens::RightAngle) => BinOpExprSymbol::with_precedence(Precedence::EqualityCompare),
             (Symbol, tokens::LessThanEquals) => BinOpExprSymbol::with_precedence(Precedence::EqualityCompare),
@@ -364,6 +386,10 @@ impl<T: Tokenizer> Parser<T> {
             (Keyword, tokens::Do) => Rc::new(DoBlockParser { }) as Rc<PrefixParser<Statement, T>>,
             (Keyword, tokens::If) => Rc::new(IfBlockParser { }) as Rc<PrefixParser<Statement, T>>,
         ];
+        let item_prefix_map: HashMap<(TokenType, CowStr), Rc<PrefixParser<Item, T> + 'static>> =
+        hashmap![
+            (Keyword, tokens::Fn) => Rc::new(FnDeclarationParser { }) as Rc<PrefixParser<Item, T>>,
+        ];
         let operator_map: HashMap<(TokenType, CowStr), Operator> = hashmap![
             (Symbol, tokens::Plus) => Operator::Addition,
             (Symbol, tokens::PlusEquals) => Operator::Addition,
@@ -386,6 +412,7 @@ impl<T: Tokenizer> Parser<T> {
         Parser {
             tokenizer: tokenizer,
             lookahead: VecDeque::new(),
+            item_parsers: item_prefix_map,
             stmt_prefix_parsers: stmt_prefix_map,
             expr_prefix_parsers: expr_prefix_map,
             expr_infix_parsers: expr_infix_map,
@@ -394,17 +421,19 @@ impl<T: Tokenizer> Parser<T> {
         }
     }
 
-    /// Parse a block and verify it for errors
+    /// Parse a program and verify it for errors
     pub fn parse_unit(&mut self) -> Result<Program, ParseError> {
-        // In the future the parser will hande items separately.
-        let block = Unit::new(try!(self.block()));
-        let program = Verifier { }.verify_unit(block);
-        if let Err(errors) = program {
-            Err(ParseError::VerifierError { collection: errors })
+        let mut items = Vec::with_capacity(10);
+        while self.next_type() != TokenType::EOF {
+            let item = try!(self.item());
+            trace!("Parsed an item");
+            items.push(item);
         }
-        else {
-            Ok(program.expect("Checked expect"))
-        }
+        trace!("Parsed {} items", items.len());
+        let unit = Unit::new(items);
+        trace!("Parsed unit {:#?}", unit);
+        let program = Verifier { }.verify_unit(unit);
+        program.map_err(|errors| ParseError::VerifierError { collection: errors })
     }
 
     /// Get the current precedence

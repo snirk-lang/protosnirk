@@ -69,6 +69,7 @@ impl<T: Iterator<Item=char>> Iterator for PeekTextIter<T> {
             },
             None => {}
         }
+        trace!("> Next char {:?}", result);
         result
     }
 

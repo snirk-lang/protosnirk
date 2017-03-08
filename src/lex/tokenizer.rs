@@ -73,7 +73,9 @@ pub struct IterTokenizer<I> where I: Iterator<Item=char> {
 impl<I: Iterator<Item=char>> Tokenizer for IterTokenizer<I> {
     #[inline]
     fn next(&mut self) -> Token {
-        self.next()
+        let next = self.next();
+        trace!("> Next token {:?}", next);
+        next
     }
 }
 
@@ -98,7 +100,8 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
 
     /// Gets the next token from the tokenizer
     pub fn next(&mut self) -> Token {
-        trace!("Calling next on {:?}", self.tokenizer_state);
+        trace!(">Calling next on {:?}, peeked {:?}",
+            self.tokenizer_state, self.iter.peek());
         match self.tokenizer_state {
             TokenizerState::LookingForIndent =>
                 self.next_indent(),
@@ -124,7 +127,6 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
 
     /// Get the next `BlockBegin` token(s)
     fn next_indent(&mut self) -> Token {
-        trace!("Calling next_indent");
         let peek_attempt = self.iter.peek();
         if peek_attempt.is_none() {
             self.tokenizer_state = TokenizerState::ReachedEOF;
@@ -199,16 +201,21 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
         }
         // Edge case: there shouldn't be any indentation but we are indented
         else if location.column > 0 {
+            // not getting hit usually
+            trace!("There shouldn't be any indentation but we are indented");
             self.indent_size_stack.push(location.column);
+            self.tokenizer_state = TokenizerState::LookingForNewline;
             return Token::new_indent(self.iter.get_location())
         }
-        self.tokenizer_state = TokenizerState::LookingForIndent;
+        trace!("next_outdent done with outdents, calling next_line");
+        self.tokenizer_state = TokenizerState::LookingForNewline;
         return self.next_line()
     }
 
     /// We've parsed all the indentation, so parse tokens until newline,
     /// then prepare to parse indentation again.
     fn next_line(&mut self) -> Token {
+        trace!("Looking at next_line");
         let maybe_peek = self.iter.peek();
         if maybe_peek.is_none() {
             self.tokenizer_state = TokenizerState::ReachedEOF;
@@ -220,10 +227,13 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
         // TODO for linting purposes, keep track of spaces used.
         // Midline tabs are not appreciated, nor are spaces missing
         // between symbols, in some contexts.
+        trace!("Looping through all chars that are spaces");
         while char_is_spacing(peek) {
+            trace!("Consuming space {:?}", peek);
             self.iter.next();
             let next_peek = self.iter.peek();
             if next_peek.is_none() {
+                trace!("next_line -> eof");
                 self.tokenizer_state = TokenizerState::ReachedEOF;
                 return self.next_eof()
             }
@@ -238,6 +248,8 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
         // If we have a newline, we need to emit a token for it and go
         // back to checking idents. This means that empty whitespace at the
         // end of lines that have text is okay.
+
+        trace!("Consumed all the spacing chars");
 
         // We handle \r first, then look at the following \n.
         // TODO warn on mixed \r\n and \n

@@ -88,38 +88,25 @@ pub fn parse_fails() {
 }
 
 #[test]
-fn parse_examples() {
+fn parse_example() {
     let inputs = &[
-r#"let mut x = 0
-if x + 0
-    x += 1
-x"#,
-
-
-r#"let mut x = 5
-if x + 5
-    x + 1
-else
-    x"#,
-
-r#"let mut x = 5
-if x + 5
-    x + 1
-else if x - 5
-    x + 1
-else if x * 5
-    x - 1
-else
-    x - 1
-"#
+r#"
+fn factHelper(acc, n)
+    if n == 0
+        acc
+    else
+        factHelper(acc: acc * n, n: n - 1)
+fn fact(n)
+    factHelper(n: n, acc: 1)
+"#,
 ];
-    //::env_logger::LogBuilder::new()
-    //    .parse("TRACE")
-    //    .init()
-    //    .unwrap();
+    ::env_logger::LogBuilder::new()
+        .parse("TRACE")
+        .init()
+        .unwrap();
     for input in inputs {
         let mut parser = parser(input);
         trace!("Parsing input {:?}", input);
-        println!("{:#?}", parser.parse_unit().unwrap());
+        trace!("Resulting program:\n{:#?}", parser.parse_unit());
     }
 }

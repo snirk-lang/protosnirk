@@ -25,7 +25,7 @@ pub enum Precedence {
     NumericPrefix,
     /// The `not` keyword
     NotKeyword,
-    /// Parens binder
+    /// Parens binder, used for both prefix and infix fns
     Paren,
     /// Extra value on the end
     Max

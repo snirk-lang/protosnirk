@@ -4,6 +4,7 @@ pub mod ast;
 mod parser;
 mod ast_visitor;
 mod verify;
+mod types;
 pub mod symbol;
 
 #[cfg(test)]
