@@ -553,9 +553,37 @@ fn it_tokenizes_complex_input() {
     });
 }
 
-fn print_parses(input: &'static str) {
-    println!("Input: {}", input);
-    println!("-------------------");
+#[test]
+fn lex_example() {
+    let inputs = &[
+r#"
+fn foo args
+    block
+fn foo2 args
+    block
+"#,
+    ];
+
+    let format = |record: &::log::LogRecord| {
+        format!("[{} {}] {}",
+            &record.location().module_path()[12..],
+            record.location().line(), record.args())
+    };
+
+    ::env_logger::LogBuilder::new()
+        .parse("TRACE")
+        .format(format)
+        .init()
+        .unwrap();
+
+    for input in inputs {
+        log_parses(input);
+    }
+}
+
+fn log_parses(input: &'static str) {
+    trace!("Input: {}", input);
+    trace!("-------------------");
     let mut tokenizer = make_tokenizer(input);
     let mut tokens = Vec::new();
     let mut next = tokenizer.next();
@@ -564,7 +592,7 @@ fn print_parses(input: &'static str) {
         next = tokenizer.next();
     }
     for token in tokens {
-        println!("{} ({:?})", token.get_text(), token.get_type());
+        trace!("{} ({:?})", token.get_text(), token.get_type());
     }
-    println!("===================\n");
+    trace!("===================\n");
 }
