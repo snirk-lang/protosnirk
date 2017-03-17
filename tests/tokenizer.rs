@@ -67,17 +67,27 @@ fn verify_keywords_list(fixture_name: &'static str) {
     }
 }
 
-#[test]
-fn all_keywords() {
-    verify_keywords_list("all-keywords");
+macro_rules! gen_tests {
+    ($name:ident : $filename:expr, $($rest:tt)*) => {
+        #[test]
+        fn $name() {
+            verify_keywords_list($filename);
+        }
+        gen_tests!($($rest)*);
+    };
+    ($name:ident, $($rest:tt)*) => {
+        #[test]
+        fn $name() {
+            verify_keywords_list(stringify!($name));
+        }
+        gen_tests!($($rest)*);
+    };
+    () => {};
 }
 
-#[test]
-fn fn_indent() {
-    verify_keywords_list("fn-indent");
-}
-
-#[test]
-fn block_indent() {
-    verify_keywords_list("block-indent");
+gen_tests! {
+    all_keywords: "all-keywords",
+    fn_indent: "fn-indent",
+    block_indent: "block-indent",
+    identifiers,
 }
