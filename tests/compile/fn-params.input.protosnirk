@@ -1,0 +1,8 @@
+// fn; parse
+fn manyParams(x, y, longParamName,
+              otherLongParam)
+    stmt()
+
+fn manyParams2(x
+              , someLongName)
+    stmt()

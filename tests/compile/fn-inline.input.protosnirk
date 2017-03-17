@@ -1,0 +1,2 @@
+// item; parse
+fn id(arg) => arg
