@@ -31,4 +31,5 @@ ensure_parse_tests! {
     fn_def: item,
     fn_indented_params: item,
     fn_inline: item,
+    factorial: parse_unit,
 }
