@@ -1,0 +1,8 @@
+fn factorialHelper(acc, n)
+    if n <= 2
+        acc
+    else
+        factorialHelper(acc: acc * n, n: n - 1)
+
+fn factorial(n)
+    factorialHelper(n, acc: 1)

@@ -63,7 +63,7 @@ mod tests {
         let expr = AssignmentParser { }.parse(&mut parser, lvalue, assign_token);
         let expected = Expression::Assignment(Assignment::new(lvalue_ident,
             Box::new(Expression::Literal(Literal::new(five_token)))));
-        parse_tests::expression_eq(&expected, &expr.unwrap());
+        parse_tests::expression_match(&expected, &expr.unwrap());
     }
 
     #[test]

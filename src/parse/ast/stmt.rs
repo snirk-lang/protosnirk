@@ -45,6 +45,9 @@ impl Return {
             false
         }
     }
+    pub fn get_value(&self) -> &Option<Box<Expression>> {
+        &self.value
+    }
 }
 
 /// Do <block> statement.
@@ -59,6 +62,9 @@ impl DoBlock {
     }
     pub fn has_value(&self) -> bool {
         self.block.has_value()
+    }
+    pub fn get_block(&self) -> &Block {
+        &self.block
     }
 }
 

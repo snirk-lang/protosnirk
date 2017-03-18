@@ -1,0 +1,4 @@
+// item
+fn manyParams(x, y, longParamName,
+              otherLongParam)
+    stmt()

@@ -1,4 +1,3 @@
-dist: trusty
 sudo: false
 
 git:
@@ -22,9 +21,24 @@ notifications:
   email: false
 
 install:
- - cargo install --force cargo-check
+  # Install cargo-check to speed up compile time of the general code
+#  - cargo install --force cargo-check
+  - mkdir -v $HOME/bin
+  - sh build/install-llvm.sh
+  - sh build/install-cmake.sh
+  - export PATH=$PATH:$HOME/.cargo/bin
+  - echo $PATH
+  - ls $HOME/bin
+  - echo "Done with install"
+  - export LLVM_SYS_3.7.1_PREFIX=$HOME/bin
 
 script:
+  - echo "Beginning script"
+  - echo $PATH
+  - ls $HOME/bin
+  - whereis -b llvm-config
+  - whereis -b cmake
   - llvm-config --version
-  - cargo check --verbose
-  - cargo test --verbose
+  - cmake --version
+#  - cargo check --verbose
+  - cargo test --verbose compile_example

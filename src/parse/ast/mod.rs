@@ -73,4 +73,7 @@ impl Block {
     pub fn get_index(&self) -> &ScopeIndex {
         &self.partial_index
     }
+    pub fn get_stmts(&self) -> &[Statement] {
+        &self.statements
+    }
 }

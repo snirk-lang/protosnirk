@@ -85,7 +85,7 @@ mod tests {
         };
         let expected = Declaration::new(LET_TOKEN.clone(), false, ident, Box::new(LITERAL_ZERO.clone()));
         let parsed = DeclarationParser { }.parse(&mut parser, LET_TOKEN.clone()).unwrap();
-        parse_tests::expression_eq(&Expression::Declaration(expected), &parsed);
+        parse_tests::expression_match(&Expression::Declaration(expected), &parsed);
     }
 
     #[test]
@@ -97,19 +97,6 @@ mod tests {
         };
         let expected = Declaration::new(LET_TOKEN.clone(), true, ident, Box::new(LITERAL_ZERO.clone()));
         let parsed = DeclarationParser { }.parse(&mut parser, LET_TOKEN.clone()).unwrap();
-        parse_tests::expression_eq(&Expression::Declaration(expected), &parsed);
+        parse_tests::expression_match(&Expression::Declaration(expected), &parsed);
     }
-
-    /* // TODO: design requires some thinking, not supported right now.
-    fn it_parses_let_var_eq_block() {
-        let mut parser = parse_tests::parser("x = do\n    0");
-        let block = Block::new(vec![Statement::Expression(LITERAL_ZERO.clone())]);
-        let expected = Declaration::new(LET_TOKEN.clone(),
-                                        true,
-                                        Box::new(Statement::DoBlock(block));
-        let parsed = DeclarationParser { }.parse(&mut parser, LET_TOKEN.clone()).unwrap();
-        parse_tests::expression_eq(Expression::Declaration(expected), parsed);
-
-    }
-    */
 }

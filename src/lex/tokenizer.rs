@@ -26,6 +26,7 @@ pub fn char_is_symbol(ch: char) -> bool {
     ch == '(' || ch == ')' ||
     ch == '-' || ch == '*' ||
     ch == ',' || ch == ':' ||
+    ch == '!' ||
     ch.is_symbol()
 }
 
@@ -278,7 +279,7 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
         }
         else if peek.is_number() {
             self.parse_float_literal()
-        } else if peek.is_letter() {
+        } else if peek == '_' || peek.is_letter() {
             self.parse_keyword_or_ident()
         } else if char_is_symbol(peek) {
             self.parse_symbol()

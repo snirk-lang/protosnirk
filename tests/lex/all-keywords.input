@@ -1,0 +1,28 @@
+fn foo(arg)
+    let mut mt = 1 - 2 * 3 / 4 % 5
+    let im = 1
+    do
+        mt += 1
+        mt -= 1
+        mt *= 2
+        mt /= 2
+        mt %= 2
+    return 1
+
+fn foo2(args)
+    if args < 0
+        1
+    else if args > 0
+        if args <= 4
+            2
+        else if args >= 5
+            if args == 6
+                3
+            else if args != 7
+                4
+            else
+                6
+        else
+            7
+    else
+        8
