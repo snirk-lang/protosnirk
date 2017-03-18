@@ -18,19 +18,28 @@ prototypes, until I can create a real language, Snirk.
 
 ## What is the status? What is proto?
 
-Protosnirk will be "proto" until it's a _real_ language - it's not even
-Turing complete right now. Until then, each version will add core features
-that "real" languages have (aiming toward statically typed, reference counted).
-
-However, development is free to be fluid. For example, a virtual machine can be
-developed on independently of static typing - the project could be forked to
-create a scripting language, for example.
-
-The _proto_ language is in "alpha" right now. When there's a nice, stable
-virtual machine we can transition to "beta" and ultimately there will be full
-versions - "real" Snirk will come far later (and probably use LLVM).
+Protosnirk will be "proto" until it's a _real_ language - this is an excuse to
+design in a "move fast, break things" fashion with the `proto` name.
+Each version will add core features that "real" languages have.
 
 ## Why is this special?
 
-It's not really special right now. There are a few other serious embedded Rust
+It's not really special right now. I think it will be special in the future, but
+until then, there are a few other serious embedded Rust
 languages right now that are worth checking out.
+
+## What are some of the current features?
+- Whitespace-significant, semicolon-free syntax
+- Expression-based language
+- Immutable-by-default variables
+- Named-parameter calling convention
+- Shorthands for "block" style declaraions (`if`, `fn`)
+
+## What are some of the planned features?
+- Static typing
+- Garbage collection
+- Will not have `null`
+- Full LLVM JIT and statically-linked support
+- Classes, traits, algebraic-data-type-`enum`s
+- Object onwership model and thread safety
+- Compile-time-constants
