@@ -1,4 +1,4 @@
-// item; parse
+// item
 fn function(input)
     expr()
     expr()

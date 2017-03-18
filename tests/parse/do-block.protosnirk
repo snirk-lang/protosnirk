@@ -1,4 +1,4 @@
-// fn; parse
+// fn
 fn foo()
     expr()
     do
