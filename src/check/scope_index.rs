@@ -43,27 +43,3 @@ impl Default for ScopeIndex {
         ScopeIndex { indices: vec![0usize] }
     }
 }
-
-#[derive(Debug, Clone, PartialEq, Default)]
-pub struct SymbolTable {
-    values: HashMap<ScopeIndex, Symbol>
-}
-
-impl SymbolTable {
-    pub fn new() -> SymbolTable {
-        SymbolTable { values: hashmap![] }
-    }
-}
-
-impl Deref for SymbolTable {
-    type Target = HashMap<ScopeIndex, Symbol>;
-    fn deref(&self) -> &Self::Target {
-        &self.values
-    }
-}
-
-impl DerefMut for SymbolTable {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.values
-    }
-}

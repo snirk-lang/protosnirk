@@ -1,21 +1,23 @@
 //! Result types for Verification
 
 use lex::{Token};
+use parse::ast::Unit;
+
 
 /// Compiler error returned by an expression verifier.
 ///
 /// Whether this error is actually a warning or lint depends on
 /// compiler options. Errors are collected in an `ErrorCollector`.
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct VerifyError {
+pub struct CheckerError {
     //err: ErrorCode,
     offender: Token,
     references: Vec<Token>,
     text: String,
 }
-impl VerifyError {
-    pub fn new(offender: Token, references: Vec<Token>, text: String) -> VerifyError {
-        VerifyError {
+impl CheckerError {
+    pub fn new(offender: Token, references: Vec<Token>, text: String) -> CheckerError {
+        CheckerError {
             offender: offender,
             references: references,
             text: text,
