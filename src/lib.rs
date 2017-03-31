@@ -15,6 +15,7 @@ pub mod lex;
 pub mod parse;
 #[macro_use]
 pub mod llvm;
+pub mod check;
 pub mod compile;
 
 #[cfg(test)]
