@@ -4,9 +4,9 @@ use std::collections::{HashMap, HashSet};
 use std::ops::{Deref, DerefMut};
 
 use lex::Token;
-use parse::verify::scope::ScopeIndex;
 use parse::ast::{Declaration, Identifier};
 use parse::types::Type;
+use check::scope::ScopeIndex;
 
 
 /// Symbol stored in the symbol table
@@ -25,10 +25,10 @@ pub struct Symbol {
     /// The type of the symbol
     type_: Type,
     /// The source of the symbol
-    source: Source
+    source: SymbolSource
 }
 impl Symbol {
-    pub fn new(index: ScopeIndex, token: Token, mutable: bool, type_: Type, source: Source) -> Symbol {
+    pub fn new(index: ScopeIndex, token: Token, mutable: bool, type_: Type, source: SymbolSource) -> Symbol {
         Symbol {
             decl_token: token,
             index: index,
@@ -47,7 +47,7 @@ impl Symbol {
             used: false,
             mutated: false,
             type_: Type::Float,
-            source: Source::Variable,
+            source: SymbolSource::Variable,
         }
     }
     pub fn from_parameter(ident: &Identifier, index: ScopeIndex) -> Symbol {
@@ -58,7 +58,7 @@ impl Symbol {
             mutated: false,
             used: false,
             type_: Type::Float,
-            source: Source::Parameter,
+            source: SymbolSource::Parameter,
         }
     }
     pub fn from_fn_decl(ident: &Identifier, index: ScopeIndex, type_: Type) -> Symbol {
@@ -69,7 +69,7 @@ impl Symbol {
             mutated: false,
             used: false,
             type_: type_,
-            source: Source::DeclaredFn,
+            source: SymbolSource::DeclaredFn,
         }
     }
 
@@ -97,14 +97,14 @@ impl Symbol {
     pub fn get_type(&self) -> &Type {
         &self.type_
     }
-    pub fn get_source(&self) -> Source {
+    pub fn get_source(&self) -> SymbolSource {
         self.source
     }
 }
 
 /// Source of a particular symbol
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum Source {
+pub enum SymbolSource {
     /// The symbol was declared as a variable
     Variable,
     /// The symbol was declared as a fn parameter
@@ -112,12 +112,12 @@ pub enum Source {
     /// The symbol was declared as a function
     DeclaredFn,
 }
-impl Source {
+impl SymbolSource {
     pub fn get_name(self) -> &'static str {
         match self {
-            Source::Variable => "variable",
-            Source::Parameter => "function parameter",
-            Source::DeclaredFn => "declared function"
+            SymbolSource::Variable => "variable",
+            SymbolSource::Parameter => "function parameter",
+            SymbolSource::DeclaredFn => "declared function"
         }
     }
 }

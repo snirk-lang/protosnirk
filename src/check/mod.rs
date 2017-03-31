@@ -1,80 +1,71 @@
 //! Visitors which validate a parsed protosnirk program.
 //!
 //! This module is concerned with ensuring that the
-//! program accessed from the parser is valid: it adhers
-//! to protosnirk's semantic rules in addition to syntax rules.
+//! program accessed from the parser is legal: it passes type
+//! checking and lifetime checks.
 //!
-//! In addition, metadata is added to the expression tree, such as
-//! the symbol table. The `verify` module will also handle type inference.
+//! Checkers may attach metadata to the AST which will use each AST's
+//! `index`, such as a symbol table or type table.
 //!
-//! # Parser Steps
-//! The parser handles some of the basics.
+//! ## Verifier Results
+//! The verifier will either give a successful `Program` (with metadata the
+//! compiler needs, like a symbol and type table), or a collection of
+//! `VerifierError`s.
 //!
-//! ### lvalue vs rvalue
-//! ```text
-//! x + 2 = 5
-//!   ^ lvalue needed here
-//!
-//! let 4 = y
-//!     ^ lvalue needed here
-//! ```
-//!
-//! ### Expression vs Statement (Parser)
-//! ```text
-//! let x = y += 2
-//!            ^ expression needed here
-//!
-//! return let x = 0
-//!            ^ expression needed here
-//! ```
-//!
-//! # Verifier Steps
-//! These are the passes the verifier makes
-//! ### Unknown identifier
+//! ### Errors
+//! These are errors that are identified by various checks.
+//! #### Unknown Identifier
+//! Probably a typo
 //! ```text
 //! let x = y
-//!         ^ Unknown identifier `y`
-//! z += 2
-//! ^ Unknown identifier `z`
+//!         ^ `y` is not defined
 //! ```
-//! ### Variable already defined
+//! #### Variable already defined
 //! ```text
 //! let mut y = 0
 //! let y = 0
-//!     ^ Variable `y` already defined on line x
+//!     ^ `y` has already been defined on line x
 //! ```
-//! ### Attempt to reassign immutable value
+//! #### Variable of wrong type
 //! ```text
-//! y = 12
-//!   ^ Cannot reassign immutable variable `y` defined on line x
-//!
-//! z += 12
-//!   ^ Cannot reassign immutable variable `z` defined on line x
+//! fn foo() => 1
+//! let x = 1 + foo
+//!             ^ `foo`: expected integer type (for addition expression)
+//!               `foo` is of type `fn() -> int`
 //! ```
-//! ## Warnings
-//!
-//! ### Unused mutable
+//! ### Warnings
+//! If a checked `Program` has only warnings,
+//! it is considered compileable.
+//! #### Unused mutable
 //! ```text
 //! let mut var = 0
-//!         ^ WARN unusedMutable
 //!         ^ `var` is declared mutable but not mutated
 //! return var
 //! ```
-//! ### Unused variable
+//! #### Unused variable
 //! ```text
 //! let x = 0
-//!     ^ WARN unusedVariable
-//!     ^ `var` is declared but not used
+//!     ^ `x` is declared but not used
 //! return y
 //! ```
-pub mod checker;
-pub mod scope;
-mod symbol;
-mod verification_result;
-mod collector;
-mod verifier;
 
-pub use self::symbol::*;
+mod ast_visitor;
+mod collector;
+mod errors;
+
+mod scope_index;
+mod symbol;
+
+mod symbol_checker;
+mod usage_checker;
+
+mod unit_checker;
+
+pub use self::ast_visitor::ASTVisitor; // Allow external use of the trait
 pub use self::collector::ErrorCollector;
-pub use self::verifier::Verifier;
-pub use self::verification_result::VerifyError;
+pub use self::errors::{CheckerError, CheckResult};
+
+pub use self::scope_index::ScopeIndex;
+pub use self::symbol::{Symbol, SymbolSource};
+
+pub use self::unit_checker::UnitChecker;
