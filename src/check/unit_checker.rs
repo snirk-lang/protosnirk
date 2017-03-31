@@ -9,9 +9,9 @@ use parse::verify::scope::SymbolTable;
 /// checkers in this module and it produces a complete program,
 /// with a symbol table and possible compilation errrors.
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
-pub struct Verifier { }
+pub struct UnitChecker { }
 
-impl Verifier {
+impl UnitChecker {
     pub fn verify_unit(&mut self, unit: Unit) -> Result<Program, ErrorCollector> {
         let errors = ErrorCollector::new();
         let mut symbol_builder = SymbolTableChecker::new(errors);
