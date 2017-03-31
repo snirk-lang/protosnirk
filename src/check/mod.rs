@@ -61,11 +61,16 @@ mod usage_checker;
 
 mod unit_checker;
 
+
 pub use self::ast_visitor::ASTVisitor; // Allow external use of the trait
 pub use self::collector::ErrorCollector;
-pub use self::errors::{CheckerError, CheckResult};
+pub use self::errors::CheckerError;
 
 pub use self::scope_index::ScopeIndex;
 pub use self::symbol::{Symbol, SymbolSource};
 
 pub use self::unit_checker::UnitChecker;
+
+/// Mapping of ScopeIndex to Symbol
+type SymbolTable = ::std::collections::HashMap<ScopeIndex, Symbol>;
+type TypeTable = ::std::collections::HashMap<ScopeIndex, Type>;
