@@ -49,7 +49,7 @@
 //! return y
 //! ```
 
-mod ast_visitor;
+mod visitor;
 mod collector;
 mod errors;
 
@@ -62,7 +62,7 @@ mod usage_checker;
 
 mod unit_checker;
 
-pub use self::ast_visitor::ASTVisitor; // Allow external use of the trait
+pub use self::visitor::{ASTVisitor, ASTVisitorMut}; // Allow external use of the trait
 pub use self::collector::ErrorCollector;
 pub use self::errors::CheckerError;
 
