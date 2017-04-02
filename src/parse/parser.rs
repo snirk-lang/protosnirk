@@ -9,7 +9,7 @@ use std::rc::Rc;
 use std::cell::Cell;
 
 use lex::{CowStr, Token, TokenType, TokenData, Tokenizer};
-use parse::{Program, ParseError, ParseResult};
+use parse::{ParseError, ParseResult};
 use parse::ast::*;
 use parse::symbol::*;
 

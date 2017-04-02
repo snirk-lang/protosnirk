@@ -8,10 +8,11 @@
 //! The parser will pass an AST (`Program`) to the checker, which will verify
 //! that it is a leagal protosnirk program.
 
+mod scoped_id;
 mod errors;
-mod program;
-pub mod ast;
 mod parser;
+
+pub mod ast;
 pub mod symbol;
 
 #[cfg(test)]
@@ -19,4 +20,4 @@ pub mod tests;
 
 pub use self::errors::{ParseError, ParseResult, ExpectedNextType};
 pub use self::parser::{Parser, IndentationRule};
-pub use self::program::Program;
+pub use self::scoped_id::ScopedId;

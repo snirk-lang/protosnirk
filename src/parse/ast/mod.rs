@@ -11,17 +11,17 @@ pub use self::operator::Operator;
 use std::cell::RefCell;
 
 use lex::Token;
-use parse::verify::scope::ScopeIndex;
+use parse::ScopedId;
 
 /// Basic identifier type
 #[derive(Debug, PartialEq, Clone)]
 pub struct Identifier {
     pub token: Token,
-    pub index: RefCell<ScopeIndex>
+    pub id: RefCell<ScopedId>
 }
 impl Identifier {
     pub fn new(token: Token) -> Self {
-        Identifier { token: token, index: RefCell::new(ScopeIndex::default()) }
+        Identifier { token: token, index: RefCell::new(ScopedId::default()) }
     }
     pub fn get_name(&self) -> &str {
         &self.token.text
@@ -30,11 +30,11 @@ impl Identifier {
         &self.token
     }
 
-    pub fn get_index(&self) -> ScopeIndex {
+    pub fn get_id(&self) -> ScopedId {
         self.index.borrow().clone()
     }
 
-    pub fn set_index(&self, index: ScopeIndex) {
+    pub fn set_id(&self, index: ScopedId) {
         *self.index.borrow_mut() = index;
     }
 }
@@ -48,11 +48,11 @@ impl Into<Token> for Identifier {
 #[derive(Debug, PartialEq, Clone)]
 pub struct Block {
     pub statements: Vec<Statement>,
-    pub partial_index: ScopeIndex
+    //partial_index: ScopeIndex // This isn't used, but might be useful in the future.
 }
 impl Block {
     pub fn new(statements: Vec<Statement>) -> Block {
-        Block { statements: statements, partial_index: ScopeIndex::default() }
+        Block { statements: statements }
     }
     pub fn has_value(&self) -> bool {
         if self.statements.len() == 0 {
@@ -69,9 +69,6 @@ impl Block {
             // }
         }
         return false
-    }
-    pub fn get_index(&self) -> &ScopeIndex {
-        &self.partial_index
     }
     pub fn get_stmts(&self) -> &[Statement] {
         &self.statements
