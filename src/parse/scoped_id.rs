@@ -5,7 +5,7 @@ pub struct ScopedId {
     /// There's a hard cap on how many variables
     /// you can declare per scope. There is no cap
     /// on how many scopes.
-    indices: SmallVec<[u32; 4]>
+    indices: SmallVec<[u16; 4]>
 }
 
 impl ScopedId {
@@ -73,7 +73,7 @@ impl ScopedId {
 impl Default for ScopedId {
     fn default() -> ScopedId {
         let indices = SmallVec::new();
-        indices.push(0u32);
+        indices.push(0);
         ScopedId { indices: indices }
     }
 }
