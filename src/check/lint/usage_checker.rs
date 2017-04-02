@@ -1,7 +1,6 @@
 //! Checks that variables have been used in a symbol table.
 
-use parse::verify::{VerifyError, ErrorCollector};
-use parse::verify::scope::SymbolTable;
+use check::{CheckerError, ErrorCollector, SymbolTable};
 
 /// Reports warnings for unused variables and un-mutated mutable variables.
 #[derive(Debug)]
