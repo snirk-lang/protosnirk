@@ -1,10 +1,13 @@
 use parse::ast::Unit;
 
 use check::{ASTVisitor, Program, ErrorCollector};
+use check::scope::ScopeChecker;
+use check::symbol::SymbolChecker;
+use check::types::TypeChecker;
 
 /// Runs verifications against code
 ///
-/// The verifier is used to bring to gether the various expresison
+/// The verifier is used to bring together the various expresison
 /// checkers in this module and it produces a complete program,
 /// with a symbol table and possible compilation errrors.
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
