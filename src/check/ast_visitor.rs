@@ -6,7 +6,6 @@ use std::collections::HashMap;
 use lex::Token;
 use parse::ast::*;
 use parse::ast::Expression as BaseExpression;
-use super::{ErrorCollector, VerifyError};
 
 /// Trait for expression checkers: visitors on the expression tree.
 pub trait ASTVisitor {
@@ -144,6 +143,5 @@ pub trait ASTVisitor {
 
     fn check_fn_call(&mut self, fn_call: &FnCall) {
         self.check_var_ref(fn_call.get_name());
-        
     }
 }
