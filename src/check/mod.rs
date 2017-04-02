@@ -49,6 +49,7 @@
 //! return y
 //! ```
 
+mod program;
 mod visitor;
 mod collector;
 mod errors;
@@ -57,16 +58,30 @@ mod scope;
 mod symbol;
 mod lint;
 
+mod program_checker;
+
 pub mod types;
 
 pub use self::visitor::{ASTVisitor}; // Allow external use of the trait (i.e. in compiler)
 pub use self::collector::ErrorCollector;
 pub use self::errors::CheckerError;
+pub use self::program::Program;
 
 pub use self::symbol::{Symbol, SymbolSource};
 
 pub use self::program_checker::UnitChecker;
 
-/// Mapping of ScopeIndex to Symbol
-type SymbolTable = ::std::collections::HashMap<ScopeIndex, Symbol>;
-type TypeTable = ::std::collections::HashMap<ScopeIndex, Type>;
+use std::collections::HashMap;
+use parse::ScopedId;
+use self::types::Type;
+
+/// Each type in the type inference algorithm is given a unique id.
+pub type TypeId = u64;
+
+/// Mapping of ScopeIndex to Symbol. Each correct variable reference
+/// has a scopedId, and each corresponds to a Symbol with information
+/// about that reference
+pub type SymbolTable = HashMap<ScopedId, Symbol>;
+/// Each symbol has a TypeId, and each TypeId corresponds to a given
+/// type.
+pub type TypeTable = HashMap<TypeId, Type>;

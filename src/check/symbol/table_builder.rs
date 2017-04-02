@@ -31,9 +31,11 @@ pub struct SymbolTableBuilder {
 }
 
 impl SymbolTableBuilder {
-    /// Create a new empty lexical scope manager
+    /// Create a new empty lexical scope manager.
+    ///
+    /// It starts off with a global scope.
     pub fn new() -> SymbolTableBuilder {
-        SymbolTableBuilder { scopes: vec![] }
+        SymbolTableBuilder { scopes: vec![HashMap::new()] }
     }
 
     /// Create a new scope
@@ -83,6 +85,13 @@ impl SymbolTableBuilder {
             "Attempted to get local var {} with no scopes", name);
         let local_scope_ix = self.scopes.len() - 1usize;
         self.scopes[local_scope_ix].get(name)
+    }
+
+    /// Get a scopeIndex defined at the global level.
+    pub fn get_global(&self, name: &str) -> Option<&ScopeIndex> {
+        debug_assert!(!self.scopes.is_empty(),
+            "Attempted to get global var {} with no scopes", name);
+        self.scopes[0].get(name)
     }
 
     /// Get a variable, starting from the given scope
