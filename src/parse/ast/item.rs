@@ -58,9 +58,13 @@ impl FnDeclaration {
     pub fn get_token(&self) -> &Token {
         &self.fn_token
     }
-    /// Get the name of the function
-    pub fn get_name(&self) -> &Identifier {
+    /// Get the identifier of the function
+    pub fn get_ident(&self) -> &Identifier {
         &self.name
+    }
+    /// Gets the textual name of the function
+    pub fn get_name(&self) -> &str {
+        &self.name.get_name()
     }
     /// Get the prototype of the function
     pub fn get_args(&self) -> &Vec<Identifier> {
