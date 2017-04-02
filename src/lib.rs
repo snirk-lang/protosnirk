@@ -5,8 +5,10 @@ extern crate log;
 extern crate env_logger;
 
 #[macro_use]
-extern crate maplit;
-extern crate unicode_categories;
+extern crate maplit; // Convenience for initializing parser for now
+extern crate unicode_categories; // Used by tokenizer for valid idents
+extern crate smallvec; // Optimize storage in ScopedIds
+
 extern crate llvm_sys;
 
 extern crate libc;

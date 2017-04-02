@@ -15,6 +15,7 @@ llvm-sys = "^60"
 log = "0.4"
 env_logger = "0.5"
 libc = "0.2"
+smallvec = "0.6"
 
 [dev-dependencies]
 lazy_static = "1"
