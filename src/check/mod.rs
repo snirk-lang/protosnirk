@@ -53,23 +53,19 @@ mod visitor;
 mod collector;
 mod errors;
 
-mod scope_index;
+mod scope;
 mod symbol;
+mod lint;
+
 pub mod types;
 
-mod symbol_checker;
-mod usage_checker;
-
-mod unit_checker;
-
-pub use self::visitor::{ASTVisitor, ASTVisitorMut}; // Allow external use of the trait
+pub use self::visitor::{ASTVisitor}; // Allow external use of the trait (i.e. in compiler)
 pub use self::collector::ErrorCollector;
 pub use self::errors::CheckerError;
 
-pub use self::scope_index::ScopeIndex;
 pub use self::symbol::{Symbol, SymbolSource};
 
-pub use self::unit_checker::UnitChecker;
+pub use self::program_checker::UnitChecker;
 
 /// Mapping of ScopeIndex to Symbol
 type SymbolTable = ::std::collections::HashMap<ScopeIndex, Symbol>;
