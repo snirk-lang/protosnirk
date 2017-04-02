@@ -5,15 +5,13 @@ use std::ops::{Deref, DerefMut};
 
 use lex::Token;
 use parse::ast::{Declaration, Identifier};
-use parse::types::Type;
-use check::scope::ScopeIndex;
-
+use parse::ScopedId;
 
 /// Symbol stored in the symbol table
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Symbol {
     /// Unique index for symbol
-    index: ScopeIndex,
+    index: ScopedId,
     /// Cloned token of symbol (i.e. for viewing source)
     decl_token: Token,
     /// Whether the symbol has been used
@@ -28,7 +26,7 @@ pub struct Symbol {
     source: SymbolSource
 }
 impl Symbol {
-    pub fn new(index: ScopeIndex, token: Token, mutable: bool, type_: Type, source: SymbolSource) -> Symbol {
+    pub fn new(index: ScopedId, token: Token, mutable: bool, type_: Type, source: SymbolSource) -> Symbol {
         Symbol {
             decl_token: token,
             index: index,
@@ -39,7 +37,7 @@ impl Symbol {
             source: source,
         }
     }
-    pub fn from_declaration(decl: &Declaration, index: ScopeIndex) -> Symbol {
+    pub fn from_declaration(decl: &Declaration, index: ScopedId) -> Symbol {
         Symbol {
             decl_token: decl.get_ident().get_token().clone(),
             index: index,
@@ -50,7 +48,7 @@ impl Symbol {
             source: SymbolSource::Variable,
         }
     }
-    pub fn from_parameter(ident: &Identifier, index: ScopeIndex) -> Symbol {
+    pub fn from_parameter(ident: &Identifier, index: ScopedId) -> Symbol {
         Symbol {
             decl_token: ident.get_token().clone(),
             index: index,
@@ -61,7 +59,7 @@ impl Symbol {
             source: SymbolSource::Parameter,
         }
     }
-    pub fn from_fn_decl(ident: &Identifier, index: ScopeIndex, type_: Type) -> Symbol {
+    pub fn from_fn_decl(ident: &Identifier, index: ScopedId, type_: Type) -> Symbol {
         Symbol {
             decl_token: ident.get_token().clone(),
             index: index,
@@ -73,7 +71,7 @@ impl Symbol {
         }
     }
 
-    pub fn get_index(&self) -> &ScopeIndex {
+    pub fn get_index(&self) -> &ScopedId {
         &self.index
     }
     pub fn get_declaration(&self) -> &Token {

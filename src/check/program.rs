@@ -5,7 +5,7 @@
 //! types.
 
 use parse::ast::Unit;
-use check::{SymbolTable, TypeTable};
+use check::{SymbolTable, TypeTable, ErrorCollector};
 
 /// Represents a fully parsed and checked program, ready
 /// to be compiled.
@@ -20,11 +20,11 @@ pub struct Program {
 impl Program {
     /// Create a `Program` from a collection of fields
     pub fn new(unit: Unit,
-               symbol_table: SymbolTable,
-               type_table: TypeTable,
+               symbols: SymbolTable,
+               types: TypeTable,
                errors: ErrorCollector) -> Program {
         Program {
-            unit: unit, symbols: symbols, type_tableL type_table, errors: errors
+            unit: unit, symbols: symbols, types: types, errors: errors
         }
     }
 

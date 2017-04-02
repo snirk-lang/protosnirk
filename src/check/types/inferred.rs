@@ -3,12 +3,13 @@
 use std::collections::HashMap;
 
 use parse::ast::*;
+use parse::ScopedId;
 
 use check::ASTVisitor;
 use check::types::Type;
-use check::ScopeIndex;
 
-#[derive(PartialEq, Eq, Hash)]
+/// Represents a unique type.
+#[derive(PartialEq, Eq, Hash, Default)]
 struct TypeSymbol(u64);
 
 macro_rules! gen_builtin_type_symbols {
@@ -36,12 +37,25 @@ macro_rules! get_builtin_type_symbols {
 }
 
 impl TypeSymbol {
+    /// Produce the next TypeSymbol.
+    #[inline]
     pub fn next(&self) -> TypeSymbol {
         // I assume you won't get more than U64 types.
         TypeSymbol(self.0 + 1)
     }
+    /// Increment this TypeSymbol.
+    #[inline]
+    pub fn increment(&mut self) -> TypeSymbol {
+        self.0 += 1;
+    }
+    /// Whether this TypeSymbol has been assigned yet
+    #[inline]
+    pub fn is_known(&self) -> bool {
+        self.0 == 0
+    }
 }
 
+// The builtin types are given symbols starting from 1.
 get_builtin_type_symbols! {
     UNIT,
     BOOL,
@@ -50,7 +64,7 @@ get_builtin_type_symbols! {
 
 struct TypeEnvironment {
     types: HashMap<TypeSymbol, Type>,
-    scope_map: HashMap<ScopeIndex, TypeSymbol>,
+    scope_map: HashMap<ScopedId, TypeSymbol>,
     curr_symbol: TypeSymbol,
 }
 
@@ -67,19 +81,13 @@ impl TypeEnvironment {
     }
 }
 
-struct Foo<'a> {
-    bar: &'a mut String
-}
-
 impl ASTVisitor for TypeEnvironment {
     fn check_unit(unit: &Unit) {
-        let mut text = "Hello world".into();
-        let foo = Foo { bar: text };
-        let text2 = foo.bar;
-        let foo2 = Foo { bar: text};
     }
 }
 
 enum TypeAscriptionRule {
-    
+    DeclaredParameter,
+    DeclaredLetExplicit,
+    MatchNamedArgCalled,
 }
