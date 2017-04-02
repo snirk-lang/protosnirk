@@ -55,12 +55,12 @@ mod errors;
 
 mod scope_index;
 mod symbol;
+pub mod types;
 
 mod symbol_checker;
 mod usage_checker;
 
 mod unit_checker;
-
 
 pub use self::ast_visitor::ASTVisitor; // Allow external use of the trait
 pub use self::collector::ErrorCollector;

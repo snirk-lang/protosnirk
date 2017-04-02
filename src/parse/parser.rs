@@ -12,7 +12,6 @@ use lex::{CowStr, Token, TokenType, TokenData, Tokenizer};
 use parse::{Program, ParseError, ParseResult};
 use parse::ast::*;
 use parse::symbol::*;
-use parse::verify::Verifier;
 
 /// Parser object which parses things
 pub struct Parser<T: Tokenizer> {
@@ -422,7 +421,7 @@ impl<T: Tokenizer> Parser<T> {
     }
 
     /// Parse a program and verify it for errors
-    pub fn parse_unit(&mut self) -> Result<Program, ParseError> {
+    pub fn parse_unit(&mut self) -> Result<Unit, ParseError> {
         let mut items = Vec::with_capacity(10);
         while self.next_type() != TokenType::EOF {
             let item = try!(self.item());
@@ -432,8 +431,7 @@ impl<T: Tokenizer> Parser<T> {
         trace!("Parsed {} items", items.len());
         let unit = Unit::new(items);
         trace!("Parsed unit {:#?}", unit);
-        let program = Verifier { }.verify_unit(unit);
-        program.map_err(|errors| ParseError::VerifierError { collection: errors })
+        unit
     }
 
     /// Get the current precedence

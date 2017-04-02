@@ -3,7 +3,6 @@ use std::collections::HashMap;
 
 use parse::ScopeIndex;
 use parse::tests::parser;
-use parse::{ErrorCollector, SymbolTable, ASTVisitor};
 use compile::{ModuleProvider, ModuleCompiler, SimpleModuleProvider};
 
 use llvm::{Context, Module, Builder, Value};

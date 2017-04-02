@@ -1,5 +1,3 @@
-//! Definition of types in protosnirk
-
 use std::collections::HashMap;
 
 /// Representation of types in protosnirk
@@ -7,7 +5,7 @@ use std::collections::HashMap;
 pub enum Type {
     /// `()`
     Empty,
-    /// Standard type for now
+    /// Standard number type for now
     Float,
     /// Function - only used in declarations
     Fn(FnType)
@@ -24,8 +22,9 @@ impl Type {
 /// Type representation of functions in protosnirk
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct FnType {
+    /// Return type of the function
     return_type: Box<Type>,
-    // Order must be preserved
+    /// Argument types. Both order and names are important.
     args: Vec<(String, Type)>
 }
 impl FnType {
