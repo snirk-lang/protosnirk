@@ -27,14 +27,16 @@ pub struct ExpressionChecker<'err, 'builder> {
     /// Mutably borrow an ErrorCollector to push to while we're running.
     errors: &'err mut ErrorCollector,
     /// ID of the function or top-level scope we're in.
-    fn_id: ScopedId
+    current_id: ScopedId
 }
 
 impl<'err, 'builder> ExpressionChecker<'err, 'builder> {
     pub fn new(errors: &'err mut ErrorCollector,
                builder: &'builder mut ScopeBuilder) -> ExpressionChecker<'err, 'builder> {
         ExpressionChecker {
-            builder: builder, errors: errors
+            // The current ID can be left as default because it gets overridden
+            // as soon as we visit an `Item`.
+            builder: builder, errors: errors, current_id: ScopedId::default()
         }
     }
 }
@@ -70,10 +72,10 @@ impl<'err, 'builder> ASTVisitor for ExpressionChecker<'err, 'builder> {
         }
 
         // Save the top level ID when checking a new fn declaration.
-        self.fn_id = fn_decl.get_ident().get_id().clone();
+        self.current_id = fn_decl.get_ident().get_id().clone();
 
         // Check in the functions params (not in the global scope)
-        self.fn_id.push();
+        self.current_id.push();
         self.builder.new_scope();
 
         for param in fn_decl.get_args() {
@@ -93,8 +95,8 @@ impl<'err, 'builder> ASTVisitor for ExpressionChecker<'err, 'builder> {
                 continue
             }
             // Set the ScopedId of the param.
-            let param_id = self.fn_id.clone();
-            self.fn_id.increment();
+            let param_id = self.current_id.clone();
+            self.current_id.increment();
             trace!("Created ID {:?} for fn {} arg {}",
                 param_id, fn_decl.get_name(), param.get_name());
             self.builder.define_local(param.get_name().to_string(), param_id.clone());
@@ -108,19 +110,19 @@ impl<'err, 'builder> ASTVisitor for ExpressionChecker<'err, 'builder> {
         for stmt in fn_decl.get_block().get_stmts() {
             self.check_stmt(&stmt);
         }
-        // Don't need to clean up self.fn_id in this checker.
+        // Don't need to clean up self.current_id in this checker.
     }
 
     fn check_block(&mut self, block: &Block) {
         trace!("Checking a block");
-        self.fn_id.push();
+        self.current_id.push();
         self.builder.new_scope();
         for stmt in block.get_stmts() {
             self.check_statement(stmt);
         }
         self.builder.pop();
-        self.fn_id.pop();
-        self.fn_id.increment();
+        self.current_id.pop();
+        self.current_id.increment();
     }
 
     fn check_declaration(&mut self, decl: &Declaration) {
@@ -128,7 +130,7 @@ impl<'err, 'builder> ASTVisitor for ExpressionChecker<'err, 'builder> {
         self.check_expression(decl.get_value());
         trace!("Checking declaration of {}", decl.get_name());
 
-        if let Some(declared_id) = self.builder.get(decl.get_name()).cloned() {
+        if let Some(declared_id) = self.builder.get(decl.get_name()) {
             // TODO reference the previous declaration
             let err_text = format!("Variable {} is already declared", decl.get_name());
             self.errors.add_error(CheckerError::new(
@@ -137,12 +139,47 @@ impl<'err, 'builder> ASTVisitor for ExpressionChecker<'err, 'builder> {
             return
         }
 
-        let decl_id = self.fn_id.clone();
-        self.fn_id.increment();
+        let decl_id = self.current_id.clone();
+        self.current_id.increment();
         trace!("Created ID {:?} for variable {}", decl_id, decl.get_name());
     }
 
-    fn check_var_ref(&mut self, var_ref: &Identifier) {
+    fn check_fn_call(&mut self, call: &FnCall) {
+        // Only check that the fn name exists, and recurse into the args.
+        if let Some(fn_id) = self.table_builder.get(call.get_text()).cloned() {
+            call.get_ident().set_id(fn_id);
+            // TODO Args are not checked if fn name is not known!
+            match *call.get_args() {
+                FnCallArgs::SingleExpr(ref expr) => {
+                    self.check_expression(expr);
+                },
+                FnCallArgs::Arguments(ref args) => {
+                    for call_arg in args {
+                        // Check expresions in args
+                        if let Some(expr) = call_arg.get_expr() {
+                            self.check_expression(expr);
+                        }
+                        // If using implicit names, need to check the
+                        // name exists in _our_ scope first.
+                        else {
+                            self.check_var_ref(call_arg.get_name());
+                        }
+                    }
+                }
+            }
+        }
+        else {
+            let err_text = format!("Unknown function {}", call.get_name());
+            let err = CheckerError::new(call.get_token().clone(), vec![], err_text);
+            self.errors.add_error(err);
+        }
+    }
 
+    fn check_var_ref(&mut self, var_ref: &Identifier) {
+        trace!("Checking reference to {}", var_ref.get_name());
+        if let Some(index) = self.table_builder.get(var_ref.get_name()) {
+            trace!("Found reference to {} with ID {}", var_ref.get_name(), index);
+            var_ref.set_index(index.clone());
+        }
     }
 }
