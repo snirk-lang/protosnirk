@@ -16,109 +16,83 @@ pub struct SymbolId(u32);
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Symbol {
     id: SymbolId,
-    declaration: SymbolDeclaration,
-    source: SymbolSource
+    data: SymbolData,
+    ident: Identifier // Has copy of symbol id
 }
 
 impl Symbol {
-    pub fn new(index: ScopedId, token: Token, , source: SymbolSource) -> Symbol {
-        Symbol {
-            decl_token: token,
-            index: index,
-            mutable: mutable,
-            used: false,
-            mutated: false,
-            type_: type_,
-            source: source,
-        }
-    }
-    pub fn from_declaration(decl: &Declaration, index: ScopedId) -> Symbol {
-        Symbol {
-            decl_token: decl.get_ident().get_token().clone(),
-            index: index,
-            mutable: decl.mutable,
-            used: false,
-            mutated: false,
-            type_: Type::Float,
-            source: SymbolSource::Variable,
-        }
-    }
-    pub fn from_parameter(ident: &Identifier, index: ScopedId) -> Symbol {
-        Symbol {
-            decl_token: ident.get_token().clone(),
-            index: index,
-            mutable: false, // Just gonna strait up refuse mutable parameters
-            mutated: false,
-            used: false,
-            type_: Type::Float,
-            source: SymbolSource::Parameter,
-        }
-    }
-    pub fn from_fn_decl(ident: &Identifier, index: ScopedId, type_: Type) -> Symbol {
-        Symbol {
-            decl_token: ident.get_token().clone(),
-            index: index,
-            mutable: false,
-            mutated: false,
-            used: false,
-            type_: type_,
-            source: SymbolSource::DeclaredFn,
-        }
+    /// Create a new symbol (for a variable or item) with the given data.
+    pub fn new(id: SymbolId, data: SymbolData, ident: Identifier) -> Symbol {
+        Symbol { id: id, data: data, ident: ident }
     }
 
-    pub fn get_index(&self) -> &ScopedId {
-        &self.index
+    /// Gets the data associated with the symbol
+    pub fn get_data(&self) -> &SymbolData {
+        &self.data
     }
-    pub fn get_declaration(&self) -> &Token {
-        &self.decl_token
+}
+
+/// Data that can be attached to a symbol when it is declared, marking it as
+/// a variable or item.
+#[derive(Debug, PartialEq, Clone)]
+pub enum SymbolData {
+    Item(ItemData),
+    Variable(VariableData)
+}
+
+/// Data used for declaring an item (such as a function or static value)
+#[derive(Debug, PartialEq, Clone)]
+pub struct ItemData {
+    // visibility
+    // external?
+}
+
+/// Data used for declaring a variable, such as whether it is declared mutable
+#[derive(Debug, PartialEq, Clone)]
+pub struct VariableData {
+    // ownership
+    // declared type
+    mutable: bool,
+}
+
+impl VariableData {
+    pub fn new(mutable: bool) -> VariableData {
+        VariableData { mutable: mutable }
     }
     pub fn is_mutable(&self) -> bool {
         self.mutable
     }
-    pub fn is_used(&self) -> bool {
-        self.used
-    }
-    pub fn is_mutated(&self) -> bool {
-        self.mutated
-    }
-    pub fn set_mutated(&mut self) {
-        self.mutated = true;
-    }
-    pub fn set_used(&mut self) {
-        self.used = true;
-    }
-    pub fn get_type(&self) -> &Type {
-        &self.type_
-    }
-    pub fn get_source(&self) -> SymbolSource {
-        self.source
-    }
 }
 
-/// Source of a particular symbol
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum SymbolSource {
-    /// The symbol was declared as a variable
-    Variable,
-    /// The symbol was declared as a fn parameter
-    Parameter,
-    /// The symbol was declared as a function
-    DeclaredFn,
-}
-impl SymbolSource {
-    pub fn get_name(self) -> &'static str {
-        match self {
-            SymbolSource::Variable => "variable",
-            SymbolSource::Parameter => "function parameter",
-            SymbolSource::DeclaredFn => "declared function"
+/// Generate some helper methods to get
+macro_rules! symbol_methods {
+    ($($enum_type:ident $var_type:ident : $ctor_name:ident, $is_name:ident, $get_name:ident,)+) => {
+        impl Symbol {
+            $(
+                pub fn $ctor_name(id: SymbolId, data: $var_type, ident: Identifier) -> Symbol {
+                    Symbol { id: id, data: SymbolData::$enum_type(data), ident: ident }
+                }
+
+                pub fn $is_name(&self) -> bool {
+                    match self.data {
+                        &SymbolData::$enum_type(_) => true,
+                        _ => false
+                    }
+                }
+
+                pub fn $get_name(&self) -> Option<&$var_type> {
+                    match self.data {
+                        &SymbolData::$enum_type(ref data) => Some(data).as_ref(),
+                        _ => None
+                    }
+                }
+
+            )+
         }
     }
 }
 
-/// Represents data about a declared symbol
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct SymbolDeclaration {
-    mutable: bool,
-    location: TextLocation,
-
+symbol_methods! {
+    Item ItemData : new_item, is_item, get_item_data,
+    Variable VariableData : new_var, is_variable, get_var_data,
 }
