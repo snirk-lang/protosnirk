@@ -77,12 +77,16 @@ impl TypeEnvironment {
         }
     }
     pub fn analyze(&mut self, unit: &Unit) {
-        self.visit_unit(unit);
+        self.check_unit(unit);
     }
 }
 
 impl ASTVisitor for TypeEnvironment {
-    fn check_unit(unit: &Unit) {
+    //fn check_unit(unit: &Unit) {
+    //}
+
+    pub fn check_fn_declaration(&mut self, fn_decl: &FnDeclaration) {
+        
     }
 }
 

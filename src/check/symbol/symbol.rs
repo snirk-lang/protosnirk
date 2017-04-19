@@ -3,30 +3,25 @@
 use std::collections::{HashMap, HashSet};
 use std::ops::{Deref, DerefMut};
 
-use lex::Token;
+use lex::{Token, TextLocation};
 use parse::ast::{Declaration, Identifier};
 use parse::ScopedId;
 
-/// Symbol stored in the symbol table
+/// Identification of a unique symbol.
+#[derive(Debug, PartialEq, Eq, Clone, Copy, PartialOrd, Ord, Hash, Default)]
+pub struct SymbolId(u32);
+
+/// Each symbol in the program is a value which is declared in a scope.
+/// For now, this is just used
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Symbol {
-    /// Unique index for symbol
-    index: ScopedId,
-    /// Cloned token of symbol (i.e. for viewing source)
-    decl_token: Token,
-    /// Whether the symbol has been used
-    used: bool,
-    /// Whether the symbol is mutable (tracked per-reference)
-    mutable: bool,
-    /// Whether the symbol has been mutated
-    mutated: bool,
-    /// The type of the symbol
-    type_: Type,
-    /// The source of the symbol
+    id: SymbolId,
+    declaration: SymbolDeclaration,
     source: SymbolSource
 }
+
 impl Symbol {
-    pub fn new(index: ScopedId, token: Token, mutable: bool, type_: Type, source: SymbolSource) -> Symbol {
+    pub fn new(index: ScopedId, token: Token, , source: SymbolSource) -> Symbol {
         Symbol {
             decl_token: token,
             index: index,
@@ -118,4 +113,12 @@ impl SymbolSource {
             SymbolSource::DeclaredFn => "declared function"
         }
     }
+}
+
+/// Represents data about a declared symbol
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct SymbolDeclaration {
+    mutable: bool,
+    location: TextLocation,
+
 }
