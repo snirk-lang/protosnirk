@@ -19,7 +19,7 @@ allow for a REPL. The only type is `f64` ("inferred"). There are no conditionals
 
 Compiler errors: invalid syntax, unknown variable, can't assign to immutable.
 
-Runtime errors: None?
+Runtime errors: Dividing by zero is a run time error.
 
 ```
 // Comments with 2 slashes
