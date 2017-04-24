@@ -62,8 +62,10 @@ get_builtin_type_symbols! {
     FLOAT,
 }
 
+#[derive(Debug, PartialEq, Clone)]
 struct TypeEnvironment {
-    types: HashMap<TypeSymbol, Type>,
+    known_types: HashMap<TypeSymbol, Type>,
+    equations: Vec<TypeEquation>,
     scope_map: HashMap<ScopedId, TypeSymbol>,
     curr_symbol: TypeSymbol,
 }
@@ -81,17 +83,32 @@ impl TypeEnvironment {
     }
 }
 
+enum TypeEquation {
+    SameType(TypeSymbol, TypeSymbol),
+    KnownType(TypeSymbol, TypeSymbol)
+}
+
 impl ASTVisitor for TypeEnvironment {
     //fn check_unit(unit: &Unit) {
     //}
-
-    pub fn check_fn_declaration(&mut self, fn_decl: &FnDeclaration) {
-        
+    fn check_fn_declaration(&mut self, fn_decl: &FnDeclaration) {
     }
 }
 
-enum TypeAscriptionRule {
-    DeclaredParameter,
-    DeclaredLetExplicit,
-    MatchNamedArgCalled,
+trait Ascriptor<E> {
+    fn apply(ast: &E, env: &mut TypeEnvironment);
+}
+
+struct IfExprAscriptor;
+impl Ascriptor<IfExpression> for IfExprAscriptor {
+    fn apply(ast: &IfExpression, env: &mut TypeEnvironment) {
+
+    }
+}
+
+struct MathInfixNumericAscriptor;
+impl Ascriptor<BinaryOperation> for MathInfixNumericAscriptor {
+    fn apply(ast: &BinaryOperation, env: &mut TypeEnvironment) {
+
+    }
 }
