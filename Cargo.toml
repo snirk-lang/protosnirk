@@ -11,7 +11,7 @@ license = "MIT"
 [dependencies]
 maplit = "*"
 unicode_categories = "0.1"
-llvm-sys = "0.4"
+llvm-sys = { git = "https://github.com/SnirkImmington/llvm-sys.rs-fork-mirror" }
 log = "*"
 env_logger = "*"
 
@@ -20,3 +20,4 @@ lazy_static = "0.2"
 
 [dependencies.iron_llvm]
 git = "https://github.com/Immington-Industries/iron-llvm"
+branch = "llvm-4.0"
