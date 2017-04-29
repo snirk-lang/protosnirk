@@ -37,7 +37,7 @@ install:
   - hg clone https://snirkimmington@bitbucket.org/snirkimmington/llvm-sys.rs $HOME/llvm-sys.rs
   # Super duper hacky to get ncurses6
   -
-  - sudo ln -s /usr/lib/libncursesw.so.6  /usr/lib/libncursesw.so.5
+  - sudo ln -s /usr/lib/libncursesw.so.5  /usr/lib/libncursesw.so.6
 
 script:
   - llvm-config --version
