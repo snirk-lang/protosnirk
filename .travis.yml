@@ -38,6 +38,7 @@ install:
   # Super duper hacky to get ncurses6
   -
   - sudo ln -s /usr/lib/libncursesw.so.5  /usr/lib/libncursesw.so.6
+  - sudo ldconfig -n /usr/lib/libncursesw.so.6 
 
 script:
   - llvm-config --version
