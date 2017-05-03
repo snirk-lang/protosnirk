@@ -36,16 +36,12 @@ install:
   # Clone the fork of llvm-sys with bugfixes
   - hg clone https://snirkimmington@bitbucket.org/snirkimmington/llvm-sys.rs $HOME/llvm-sys.rs
   # Super duper hacky to get ncurses6
-  -
   - sudo ln -s /usr/lib/libncursesw.so.5  /usr/lib/libncursesw.so.6
-  - sudo ldconfig -n /usr/lib/libncursesw.so.6 
+  - sudo ldconfig -n /usr/lib/libncursesw.so.6
 
 script:
-  - llvm-config --version
   - export PATH=$HOME/llvm-4.0.0/bin:$PATH
   - echo $PATH
-  - which llvm-config
-  - which libncursesw
   - ldd $(which llvm-config)
   - llvm-config --version
   - PATH=$HOME/llvm-4.0.0/bin:$PATH cargo test --verbose compile_example
