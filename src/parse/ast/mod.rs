@@ -2,10 +2,12 @@ mod expression;
 mod item;
 mod stmt;
 mod operator;
+mod types;
 
 pub use self::expression::*;
 pub use self::item::*;
 pub use self::stmt::*;
+pub use self::types::*;
 pub use self::operator::Operator;
 
 use std::cell::RefCell;

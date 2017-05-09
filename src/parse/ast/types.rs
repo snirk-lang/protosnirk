@@ -1,4 +1,4 @@
-//! Type expressions
+//! TypeExpression expressions
 //!
 //! Ways of representing a type. Can end up being complicated, like expressions.
 //! let x: Vector<Clone + Ordered> // Generic bounds
@@ -14,70 +14,72 @@
 use lex::{Token, TokenType, TokenData};
 use parse::ast::{Literal, Identifier};
 
-/// Represents the type of a value.
-#[derive(Debug, PartialEq, Clone)]
-pub struct Type {
-    reference: Ownership,
-    value: TypeExpression
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum Ownership {
-    Owned,
-    Borrowed,
-    Shared
-}
-
-/// Types.
+/// TypeExpression expressions
 #[derive(Debug, PartialEq, Clone)]
 pub enum TypeExpression {
+    /// A primitive type, i.e. defined via LLVM
+    Primitive(PrimitiveType),
     /// Single type, such as a struct or primitive
     Named(Named),
     /// Generic type, such as `List<T>`
     Generic(Generic),
-    /// Named tuple, such as `(x: int, y: int)`
-    NamedTuple(NamedTuple),
-    /// Unnamed tuple, such as `(int, int)`
-    UnnamedTuple(UnnamedTuple),
     /// Sized array, such as `[int: 3]`
     SizedArray(SizedArray),
-    /// Unsized array, such as `[int]`
-    UnsizedArray(UnsizedArray)
+    // Borrowed
+    // Shared
 }
 
-/// A basic type, just a name like `int` or `String`
+/// Primitive (intrinsic) types.
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum PrimitiveType {
+    /// Unit type ()
+    Unit,
+    /// Boolean type: true | false
+    Bool,
+    /// Numeric type
+    Float64,
+}
+
+/// A named basic type (non-intrinsic), like `String`
 #[derive(Debug, PartialEq, Clone)]
 pub struct Named {
     ident: Identifier
+}
+impl Named {
+    pub fn new(ident: Identifier) -> Named {
+        Named { ident: ident }
+    }
+
+    pub fn get_ident(&self) -> &Identifier { &self.ident }
 }
 
 /// A type with generic parameters, like `List<T>`
 #[derive(Debug, PartialEq, Clone)]
 pub struct Generic {
     ident: Identifier,
-    args: Vec<Type>
+    args: Vec<TypeExpression>
 }
+impl Generic {
+    pub fn new(ident: Identifier, args: Vec<TypeExpression>) -> Generic {
+        Generic { ident: ident, args: args }
+    }
 
-/// A named tuple type, like `(x: int, y: int)`
-#[derive(Debug, PartialEq, Clone)]
-pub struct NamedTuple {
-    types: HashMap<Identifier, Type>
-}
+    pub fn get_ident(&self) -> &Identifier { &self.ident }
 
-/// An unnamed tuple type, like `(int, String)`
-#[derive(Debug, PartialEq, Clone)]
-pub struct UnnamedTuple {
-    types: Vec<Type>
+    pub fn get_args(&self) -> &[TypeExpression] { &self.args }
 }
 
 /// An array with a fixed size, like `[int: 3]`
 #[derive(Debug, PartialEq, Clone)]
 pub struct SizedArray {
-    value: Type,
-    size: ast::Literal
+    value: Box<TypeExpression>,
+    size: Literal
 }
+impl SizedArray {
+    pub fn new(value: Box<TypeExpression>, size: Literal) -> SizedArray {
+        SizedArray { value: value, size: size }
+    }
+    pub fn get_inner_type(&self) -> &TypeExpression { &self.value }
 
-#[derive(Debug, PartialEq, Clone)]
-pub struct UnsizedArray {
-    inner: Box<Type>
+    pub fn get_size_expr(&self) -> &Literal { &self.size }
 }
