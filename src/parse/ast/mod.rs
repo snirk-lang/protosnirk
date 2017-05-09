@@ -14,7 +14,11 @@ mod expression;
 mod item;
 mod stmt;
 mod operator;
+<<<<<<< HEAD
 pub mod types;
+=======
+mod types;
+>>>>>>> Add type expressions to AST definitions
 
 pub use self::expression::*;
 pub use self::item::*;
