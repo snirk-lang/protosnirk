@@ -8,7 +8,8 @@ pub mod tokenizer;
 #[cfg(test)]
 pub mod tests;
 
-pub use self::token::{Token, TokenType, TokenData};
+pub use self::token::{Token, TokenData};
+pub use self::tokens::TokenType;
 pub use self::textiter::{TextLocation, TextIter, PeekTextIter};
 pub use self::tokenizer::{Tokenizer, IterTokenizer};
 

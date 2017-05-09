@@ -3,7 +3,7 @@
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 
-use lex::{CowStr, TokenizerSymbolRule};
+use lex::{Token, TokenData, CowStr, TokenizerSymbolRule};
 use lex::TokenizerSymbolRule::*;
 
 macro_rules! declare_tokens {
@@ -34,6 +34,54 @@ macro_rules! declare_tokens {
                     Cow::Borrowed($part_val) => $part_rule
                 ),*
             ]
+        }
+
+        /// Which type of token this is.
+        ///
+        /// Used by the parsers to expect keywords or symbols
+        /// in the token stream
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+        pub enum TokenType {
+            /// Token is an identifier
+            Ident,
+            /// Token is a literal
+            Literal,
+            $(
+                $sym_name,
+            )*
+            $(
+                $kw_name,
+            )*
+            BeginBlock,
+            EndBlock,
+            EOF,
+        }
+
+        impl Token {
+            pub fn get_type(&self) -> TokenType {
+                match self.get_data() {
+                    TokenData::NumberLiteral(_) => TokenType::Literal,
+                    TokenData::BeginBlock => TokenType::BeginBlock,
+                    TokenData::EndBlock => TokenType::EndBlock,
+                    TokenData::EOF => TokenType::EOF,
+                    TokenData::Keyword => {
+                        match self.get_text() {
+                            $(
+                                $kw_val => TokenType::$kw_name,
+                            )*
+                            _ => unreachable!("Invalid token text for kw")
+                        }
+                    },
+                    TokenData::Symbol => {
+                        match self.get_text() {
+                            $(
+                                $sym_val => TokenType::$sym_name,
+                            )*
+                            _ => unreachable!("Invalid token text for symbol")
+                        }
+                    }
+                }
+            }
         }
     }
 }
