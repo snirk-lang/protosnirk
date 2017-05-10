@@ -210,6 +210,16 @@ impl<T: Tokenizer> Parser<T> {
         self.indent_rules.pop()
     }
 
+    pub fn type_expr(&mut self) -> Result<TypeExpression, ParseError> {
+        let mut token = self.consume();
+        trace!("Parsing type expression with {}", token);
+        // First we handle ownership, then do pratt-style parsing.
+        // This allows us to keep the type expr parsers in the
+        // `PrefixParser` and `InfixParser` trait but also not have
+        // ownership be some kind of wrapped expr:
+        // i.e struct Borrowed { inner: TypeDeclare }
+    }
+
     /// Parses any expression with the given precedence.
     ///
     /// This parser will push a `NegateDeindent` rule to the rule stack.
