@@ -32,11 +32,6 @@ pub struct Parser<T: Tokenizer> {
     token_operators: HashMap<TokenType, Operator>,
     /// Allows the parser to skip over unneeded indentation
     indent_rules: Vec<IndentationRule>,
-<<<<<<< HEAD
-=======
-    /// AstId used to give all nodes unique ids.
-    current_id: AstId
->>>>>>> Explore having AST ids
 }
 
 impl<T: Tokenizer> Parser<T> {

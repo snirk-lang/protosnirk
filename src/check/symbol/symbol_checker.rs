@@ -5,24 +5,24 @@ use lex::Token;
 use parse::ast::*;
 use check::ASTVisitor;
 use check::{ErrorCollector, CheckerError, Symbol};
-use check::scope::{ScopeIndex, SymbolTable, SymbolTableBuilder};
+use check::scope::{ScopedId, SymbolTable, SymbolTableBuilder};
 use parse::types::{Type, FnType};
 
 /// Builds up the symbol table for a parse tree
 /// and reports variable declaration and mutability errors.
 #[derive(Debug, Clone, PartialEq, Default)]
-pub struct SymbolTableChecker {
+pub struct SymbolChecker {
     symbol_table: SymbolTable,
     table_builder: SymbolTableBuilder,
-    current_index: ScopeIndex,
+    current_index: ScopedId,
     errors: ErrorCollector
 }
-impl SymbolTableChecker {
-    pub fn new(errors: ErrorCollector) -> SymbolTableChecker {
-        SymbolTableChecker {
+impl SymbolChecker {
+    pub fn new(errors: ErrorCollector) -> SymbolChecker {
+        SymbolChecker {
             symbol_table: SymbolTable::new(),
             table_builder: SymbolTableBuilder::new(),
-            current_index: ScopeIndex::default(),
+            current_index: ScopedId::default(),
             errors: errors
         }
     }
@@ -30,7 +30,7 @@ impl SymbolTableChecker {
         (self.symbol_table, self.errors)
     }
 }
-impl ASTVisitor for SymbolTableChecker {
+impl ASTVisitor for SymbolChecker {
     fn check_declaration(&mut self, decl: &Declaration) {
         // Check rvalue first to prevent use-before-declare
         self.check_expression(&decl.value);
