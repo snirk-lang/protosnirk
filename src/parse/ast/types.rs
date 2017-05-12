@@ -14,13 +14,26 @@
 use lex::{Token, TokenType, TokenData};
 use parse::ast::{Literal, Identifier};
 
+pub struct TypeId(u32);
+
+/// Type expressions in the AST.
+#[derive(Debug, PartialEq, Clone)]
+pub struct TypeExpression {
+    /// ID given to types in `check::types`
+    id: Option<TypeId>,
+    /// Type expression i.e. as in the source
+    kind: TypeExpression
+}
+
 /// TypeExpression expressions
 #[derive(Debug, PartialEq, Clone)]
-pub enum TypeExpression {
+pub enum TypeKind {
     /// A primitive type, i.e. defined via LLVM
     Primitive(PrimitiveType),
     /// Single type, such as a struct or primitive
     Named(Named),
+    /// The `_` in type expressions.
+    PleaseInfer,
     /// Generic type, such as `List<T>`
     Generic(Generic),
     /// Sized array, such as `[int: 3]`
