@@ -10,20 +10,53 @@
 //! let x =
 //! Arrays can all be allocated on the stack
 //! Maybe just make array syntax a macro...
+use std::cell::Cell;
+
 
 use lex::{Token, TokenType, TokenData};
+use parse::Id;
 use parse::ast::{Literal, Identifier};
-
-pub struct TypeId(u32);
 
 /// Type expressions in the AST.
 #[derive(Debug, PartialEq, Clone)]
 pub struct TypeExpression {
     /// ID given to types in `check::types`
-    id: Option<TypeId>,
+    id: Cell<Id>,
     /// Type expression i.e. as in the source
-    kind: TypeExpression
+    kind: TypeKind
 }
+impl TypeExpression {
+    /// Creates a new TypeExpression with the given type kind.
+    pub fn new(kind: TypeKind) -> TypeExpression {
+        TypeExpression { id: Cell::default(), kind: kind }
+    }
+
+    /// Creates a new TypeExpression with the given type id and type kind.
+    pub fn with_type_id(id: Id, kind: TypeKind) -> TypeExpression {
+        TypeExpression { id: Cell::new(id), kind: kind }
+    }
+
+    /// Gets the type id of this TypeExpression
+    pub fn get_type_id(&self) -> Id {
+        &self.id
+    }
+
+    /// Whether this TypeExpression has a TypeId
+    pub fn has_type_id(&self) -> bool {
+        !self.id.is_default()
+    }
+
+    /// Sets the type ID of this TypeExpression
+    pub fn set_type_id(&self, id: Id) {
+        self.id = id;
+    }
+
+    /// Gets the `TypeKind` of this TypeExpression
+    pub fn get_type(&self) -> &TypeKind {
+        &self.kind
+    }
+}
+
 
 /// TypeExpression expressions
 #[derive(Debug, PartialEq, Clone)]
@@ -31,15 +64,24 @@ pub enum TypeKind {
     /// A primitive type, i.e. defined via LLVM
     Primitive(PrimitiveType),
     /// Single type, such as a struct or primitive
-    Named(Named),
+    Named(NamedType),
     /// The `_` in type expressions.
     PleaseInfer,
     /// Generic type, such as `List<T>`
-    Generic(Generic),
+    Generic(GenericType),
     /// Sized array, such as `[int: 3]`
-    SizedArray(SizedArray),
+    SizedArray(SizedArrayType),
     // Borrowed
     // Shared
+}
+
+/// Arguments to generic types.
+#[derive(Debug, PartialEq, Clone)]
+pub enum GenericParameter {
+    /// Simple named arg, the `T` in `List<T>`
+    Named(NamedType),
+    // bounded
+    // with-default?
 }
 
 /// Primitive (intrinsic) types.
@@ -47,7 +89,7 @@ pub enum TypeKind {
 pub enum PrimitiveType {
     /// Unit type ()
     Unit,
-    /// Boolean type: true | false
+    /// Boolean type: `true` | `false`
     Bool,
     /// Numeric type
     Float64,
@@ -55,12 +97,12 @@ pub enum PrimitiveType {
 
 /// A named basic type (non-intrinsic), like `String`
 #[derive(Debug, PartialEq, Clone)]
-pub struct Named {
+pub struct NamedType {
     ident: Identifier
 }
-impl Named {
-    pub fn new(ident: Identifier) -> Named {
-        Named { ident: ident }
+impl NamedType {
+    pub fn new(ident: Identifier) -> NamedType {
+        NamedType { ident: ident }
     }
 
     pub fn get_ident(&self) -> &Identifier { &self.ident }
@@ -68,29 +110,30 @@ impl Named {
 
 /// A type with generic parameters, like `List<T>`
 #[derive(Debug, PartialEq, Clone)]
-pub struct Generic {
+pub struct GenericType {
     ident: Identifier,
-    args: Vec<TypeExpression>
+    args: Vec<GenericParameter>
 }
-impl Generic {
-    pub fn new(ident: Identifier, args: Vec<TypeExpression>) -> Generic {
-        Generic { ident: ident, args: args }
+impl GenericType {
+    /// Create a new Generic `TypeKind` with the given identifier and generic args.
+    pub fn new(ident: Identifier, args: Vec<GenericParameter>) -> GenericType {
+        GenericType { ident: ident, args: args }
     }
 
     pub fn get_ident(&self) -> &Identifier { &self.ident }
 
-    pub fn get_args(&self) -> &[TypeExpression] { &self.args }
+    pub fn get_params(&self) -> &[GenericParameter] { &self.args }
 }
 
 /// An array with a fixed size, like `[int: 3]`
 #[derive(Debug, PartialEq, Clone)]
-pub struct SizedArray {
+pub struct SizedArrayType {
     value: Box<TypeExpression>,
-    size: Literal
+    size: u64
 }
-impl SizedArray {
-    pub fn new(value: Box<TypeExpression>, size: Literal) -> SizedArray {
-        SizedArray { value: value, size: size }
+impl SizedArrayType {
+    pub fn new(value: Box<TypeExpression>, size: Literal) -> SizedArrayType {
+        SizedArrayType { value: value, size: size }
     }
     pub fn get_inner_type(&self) -> &TypeExpression { &self.value }
 
