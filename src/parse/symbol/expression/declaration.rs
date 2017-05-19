@@ -30,7 +30,6 @@ impl<T: Tokenizer> PrefixParser<Expression, T> for DeclarationParser {
         trace!("Got name {:?}", name);
         try!(parser.consume_name(TokenType::Symbol, tokens::Equals));
         trace!("Consumed =, parsing rvalue");
-        // TODO allow for block here
         let value_expr = try!(parser.expression(Precedence::Min));
         let value = try!(value_expr.expect_value());
         trace!("Got rvalue {:?}", value);
