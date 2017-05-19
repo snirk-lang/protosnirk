@@ -1,4 +1,4 @@
-//! TypeExpression expressions
+//! Type expressions
 //!
 //! Ways of representing a type. Can end up being complicated, like expressions.
 // let x: Vector<Clone + Ordered> // Generic bounds
@@ -23,13 +23,6 @@ pub enum TypeExpression {
     Function(FnTypeExpression),
 }
 impl TypeExpression {
-}
-impl NamedType {
-    pub fn new(ident: Identifier) -> NamedType {
-        NamedType { ident: ident }
-    }
-
-    pub fn get_ident(&self) -> &Identifier { &self.ident }
 }
 
 /// A named type expression.
