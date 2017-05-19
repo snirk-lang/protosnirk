@@ -24,9 +24,9 @@ pub enum TypeExpression {
 }
 impl TypeExpression {
 }
-impl Named {
-    pub fn new(ident: Identifier) -> Named {
-        Named { ident: ident }
+impl NamedType {
+    pub fn new(ident: Identifier) -> NamedType {
+        NamedType { ident: ident }
     }
 
     pub fn get_ident(&self) -> &Identifier { &self.ident }
@@ -119,20 +119,4 @@ impl FnTypeExpression {
     pub fn set_type_id(&self, new_id: TypeId) {
         self.type_id.set(new_id);
     }
-}
-impl SizedArray {
-    pub fn new(value: Box<TypeExpression>, size: Literal) -> SizedArray {
-        SizedArray { value: value, size: size }
-    }
-    pub fn get_inner_type(&self) -> &TypeExpression { &self.value }
-
-/// Type expression for a primitive type.
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum Primitive {
-    /// () or void
-    Unary,
-    /// `int` becomes `Int64`
-    Int,
-    /// `bool` becomes `Bool`
-    Bool,
 }
