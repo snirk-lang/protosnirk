@@ -35,5 +35,6 @@ pub enum ExpectedNextType {
     AnyItem,
     Lvalue,
     Rvalue,
+    TypeExpression,
     SpecificToken(CowStr),
 }

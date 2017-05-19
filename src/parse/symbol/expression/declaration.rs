@@ -45,7 +45,7 @@ mod tests {
     use lex::{Token, TokenData, TokenType, TextLocation};
     use parse::ast::{Declaration, Expression, Statement, Block, Literal, Identifier};
     use parse::symbol::{PrefixParser, DeclarationParser};
-    use parse::ScopeIndex;
+    use parse::ScopedId;
     use parse::tests as parse_tests;
 
     const LET_TOKEN: Token = Token {
@@ -79,7 +79,7 @@ mod tests {
     fn it_parses_let_var_eq_value() {
         let mut parser = parse_tests::parser("x = 0");
         let ident = Identifier {
-            index: RefCell::new(ScopeIndex::default()),
+            index: RefCell::new(ScopedId::default()),
             token: X_TOKEN.clone() // Not looking at token here?
         };
         let expected = Declaration::new(LET_TOKEN.clone(), false, ident, Box::new(LITERAL_ZERO.clone()));
@@ -91,7 +91,7 @@ mod tests {
     fn it_parses_let_mut_var_eq_value() {
         let mut parser = parse_tests::parser("mut x = 0");
         let ident = Identifier {
-            index: RefCell::new(ScopeIndex::default()),
+            index: RefCell::new(ScopedId::default()),
             token: X_TOKEN.clone() // Not looking at token here?
         };
         let expected = Declaration::new(LET_TOKEN.clone(), true, ident, Box::new(LITERAL_ZERO.clone()));
