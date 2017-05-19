@@ -1,17 +1,12 @@
-//! TypeExpression expressions
+//! Type expressions
 //!
 //! Ways of representing a type. Can end up being complicated, like expressions.
 //! let x: Vector<Clone + Ordered> // Generic bounds
-//! // let x: Vec<?Sized> // Not-bounds, etc. from Rust or Pony
-//! let point: (x: int, y: int) // Tuple - named
-//! let namedTuple: (int,) // Tuple - unnamed
+//! let tuple: (int, int) // Tuple - unnamed (possibly ambiguous if we use param shortening )
+//! let anonStruct: struct(x: int, y: int) // anonymous named structs
 //! let tuple4: (array: [int], sizedArray: [int: 6] sizedArraySlice: &[int: 5], slice: &[int])
-//! let array: [int] = myList.getArray()
-//! let x =
-//! Arrays can all be allocated on the stack
-//! Maybe just make array syntax a macro...
-use std::cell::Cell;
 
+use std::cell::Cell;
 
 use lex::{Token, TokenType, TokenData};
 use parse::Id;

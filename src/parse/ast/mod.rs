@@ -1,8 +1,20 @@
+//! Abstract syntax tree definitions.
+//!
+//! This module contains definitions of all of the
+//! AST node types used to parse a protosnirk program,
+//! with a `Unit` being the root of the syntax tree.
+//!
+//! Currently, the parser and checkers do not run
+//! transformative passes to the AST. Instead, many
+//! nodes contain `parse::Id`s which point to data
+//! tables collected in various passes, such as
+//! symbol or type information.
+
 mod expression;
 mod item;
 mod stmt;
 mod operator;
-mod types;
+pub mod types;
 
 pub use self::expression::*;
 pub use self::item::*;
