@@ -9,7 +9,7 @@ use std::rc::Rc;
 use std::cell::Cell;
 
 use lex::{CowStr, Token, TokenType, TokenData, Tokenizer};
-use parse::{ParseError, ParseResult, AstId};
+use parse::{ParseError, ParseResult};
 use parse::ast::*;
 use parse::ast::types::*;
 use parse::symbol::*;
@@ -35,13 +35,6 @@ pub struct Parser<T: Tokenizer> {
 }
 
 impl<T: Tokenizer> Parser<T> {
-    /// Gets a unique `AstId` relative to this parser.
-    #[inline]
-    pub fn unique_id(&mut self) -> AstId {
-        self.current_id.increment();
-        self.current_id
-    }
-
     /// Peeks at the next available token
     pub fn peek(&mut self) -> &Token {
         self.look_ahead(1usize)
