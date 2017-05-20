@@ -9,7 +9,7 @@ use std::rc::Rc;
 use std::cell::Cell;
 
 use lex::{CowStr, Token, TokenType, TokenData, Tokenizer};
-use parse::{ParseError, ParseResult, AstId};
+use parse::{ParseError, ParseResult};
 use parse::ast::*;
 use parse::symbol::*;
 
@@ -31,18 +31,9 @@ pub struct Parser<T: Tokenizer> {
     token_operators: HashMap<TokenType, Operator>,
     /// Allows the parser to skip over unneeded indentation
     indent_rules: Vec<IndentationRule>,
-    /// AstId used to give all nodes unique ids.
-    current_id: AstId
 }
 
 impl<T: Tokenizer> Parser<T> {
-    /// Gets a unique `AstId` relative to this parser.
-    #[inline]
-    pub fn unique_id(&mut self) -> AstId {
-        self.current_id.increment();
-        self.current_id
-    }
-
     /// Peeks at the next available token
     pub fn peek(&mut self) -> &Token {
         self.look_ahead(1usize)
@@ -210,14 +201,33 @@ impl<T: Tokenizer> Parser<T> {
         self.indent_rules.pop()
     }
 
+    /// Parses a type expression from the token stream.
     pub fn type_expr(&mut self) -> Result<TypeExpression, ParseError> {
-        let mut token = self.consume();
-        trace!("Parsing type expression with {}", token);
-        // First we handle ownership, then do pratt-style parsing.
-        // This allows us to keep the type expr parsers in the
-        // `PrefixParser` and `InfixParser` trait but also not have
-        // ownership be some kind of wrapped expr:
-        // i.e struct Borrowed { inner: TypeDeclare }
+        use parse::symbol::types::*;
+        let next_type = self.next_type();
+        trace!("Parsing type expression with {}", next_type);
+
+        // Type expressions don't really have infixes so we just parse them -
+        // the specifics of the array brackets/generic angles are handled by those
+        // prefix parsers anyway.
+        // Generic bounds (like `T: Managed + Cloneable`) will also have infix parsing.
+        let parser = match next_type {
+            TokenType::Identifier => {
+                trace!("Parsing named type expr");
+                NamedTypeParser { }
+            },
+            TokenType::LeftBracket => {
+                trace!("Parsing array type expr");
+                ArrayTypeParser { }
+            },
+            other => {
+                trace!("Invalid token for type expr");
+                // TODO this is also a bad error
+                return Err(ParseError::LazyString(format!(
+                    "Unexpected token {:?} for type expression", next_type)))
+            }
+        };
+        parser.parse(self, self.consume())
     }
 
     /// Parses any expression with the given precedence.
@@ -262,6 +272,8 @@ impl<T: Tokenizer> Parser<T> {
             }
             else {
                 trace!("Unable to find an infix parser for {:?}", token_type);
+                // At this point, we've probably hit the border of the expression.
+                break // Will probably also be hit by the while loop conditional.
             }
             trace!("Checking that {:?} < {:?}", precedence, self.current_precedence());
         }
@@ -285,10 +297,6 @@ impl<T: Tokenizer> Parser<T> {
     }
 
     /// Parse a block of code.
-    ///
-    /// This is synonymous with a "program" as programs do not support
-    /// nested blocks. Later on, this will be using the lexer's significant whitespace parsing
-    /// to support `Indent` and `Outdent` tokens for begin/end blocks.
     ///
     /// Block parsing assumes the `BeginBlock` token has already been consumed.
     pub fn block(&mut self) -> Result<Block, ParseError> {
@@ -321,7 +329,7 @@ impl<T: Tokenizer> Parser<T> {
         }
     }
 
-    ///Grab an lvalue from the token stream
+    /// Grab an lvalue from the token stream
     pub fn lvalue(&mut self) -> Result<Identifier, ParseError> {
         let token = self.consume();
         trace!("Getting an lvalue from {}", token);
@@ -423,7 +431,6 @@ impl<T: Tokenizer> Parser<T> {
             expr_infix_parsers: expr_infix_map,
             token_operators: operator_map,
             indent_rules: Vec::new(),
-            current_id: AstId::default()
         }
     }
 

@@ -20,4 +20,4 @@ pub mod tests;
 
 pub use self::errors::{ParseError, ParseResult, ExpectedNextType};
 pub use self::parser::{Parser, IndentationRule};
-pub use self::index::{AstId, ScopedId};
+pub use self::index::{Id, ScopedId};

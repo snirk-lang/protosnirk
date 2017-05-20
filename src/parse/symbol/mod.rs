@@ -1,7 +1,7 @@
 mod expression;
 mod statement;
 mod item;
-mod types;
+pub mod types;
 mod precedence;
 
 pub use self::expression::*;
