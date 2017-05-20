@@ -58,7 +58,7 @@ mod scope;
 mod symbol;
 mod lint;
 
-mod program_checker;
+mod unit_checker;
 
 pub mod types;
 
@@ -67,21 +67,19 @@ pub use self::collector::ErrorCollector;
 pub use self::errors::CheckerError;
 pub use self::program::Program;
 
-pub use self::symbol::{Symbol, SymbolSource};
+pub use self::symbol::*;
 
-pub use self::program_checker::UnitChecker;
+pub use self::unit_checker::UnitChecker;
 
 use std::collections::HashMap;
-use parse::ScopedId;
+use parse::{Id, ScopedId};
 use self::types::Type;
-
-/// Each type in the type inference algorithm is given a unique id.
-pub type TypeId = u64;
 
 /// Mapping of ScopeIndex to Symbol. Each correct variable reference
 /// has a scopedId, and each corresponds to a Symbol with information
 /// about that reference
 pub type SymbolTable = HashMap<ScopedId, Symbol>;
+
 /// Each symbol has a TypeId, and each TypeId corresponds to a given
 /// type.
-pub type TypeTable = HashMap<TypeId, Type>;
+pub type TypeTable = HashMap<Id, Type>;
