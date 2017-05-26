@@ -57,9 +57,9 @@ impl TypeSymbol {
 
 // The builtin types are given symbols starting from 1.
 get_builtin_type_symbols! {
-    UNIT,
-    BOOL,
-    FLOAT,
+    Unit,
+    Bool,
+    Float,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -91,24 +91,7 @@ enum TypeEquation {
 impl ASTVisitor for TypeEnvironment {
     //fn check_unit(unit: &Unit) {
     //}
+
     fn check_fn_declaration(&mut self, fn_decl: &FnDeclaration) {
-    }
-}
-
-trait Ascriptor<E> {
-    fn apply(ast: &E, env: &mut TypeEnvironment);
-}
-
-struct IfExprAscriptor;
-impl Ascriptor<IfExpression> for IfExprAscriptor {
-    fn apply(ast: &IfExpression, env: &mut TypeEnvironment) {
-
-    }
-}
-
-struct MathInfixNumericAscriptor;
-impl Ascriptor<BinaryOperation> for MathInfixNumericAscriptor {
-    fn apply(ast: &BinaryOperation, env: &mut TypeEnvironment) {
-
     }
 }
