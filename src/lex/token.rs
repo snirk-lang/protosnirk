@@ -88,6 +88,10 @@ impl Eq for Token { }
 pub enum TokenData {
     /// Token is a numeric literal
     NumberLiteral(f64),
+    /// Token is unit type literal `()`
+    UnitLiteral,
+    /// Token is boolean literal `true` or `false`
+    BoolLiteral(bool),
     /// Token is some name
     Ident,
     /// Token is a keyword

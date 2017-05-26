@@ -11,16 +11,14 @@ use check::lint::UsageChecker;
 /// The verifier is used to bring together the various expresison
 /// checkers in this module and it produces a complete program,
 /// with a symbol table and possible compilation errrors.
-#[derive(Debug, PartialEq, Eq, Clone, Default)]
+#[derive(Debug)]
 pub struct UnitChecker { }
 
 impl UnitChecker {
     pub fn verify_unit(&mut self, unit: Unit) -> Program {
         let mut errors = ErrorCollector::new();
-        //{
-            let mut scope_checker = ScopeChecker::new(&mut errors);
-            scope_checker.check_unit(unit);
-        //}
+        let mut scope_checker = ScopeChecker::new(&mut errors);
+        scope_checker.check_unit(unit);
         let mut symbol_checker = SymbolChecker::new(&mut errors);
         symbol_checker.check_unit(&unit);
         let symbol_table = symbol_checker.into_table();

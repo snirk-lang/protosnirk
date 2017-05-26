@@ -66,24 +66,78 @@ impl Expression {
     }
 }
 
-/// Literal value
+/// Values held by a literal.
+#[derive(Debug, PartialEq, Clone)]
+pub enum LiteralValue {
+    /// Literals `true` and `false`
+    Bool(bool),
+    /// Numeric literals
+    Float(f64),
+    /// `()`
+    Unit
+}
+
+/// Represents a literal expression, such as a boolean or number.
 #[derive(Debug, PartialEq, Clone)]
 pub struct Literal {
-    pub token: Token
+    token: Token,
+    value: LiteralValue
 }
 impl Literal {
-    pub fn new(token: Token) -> Self {
-        debug_assert!(token.data.get_type() == TokenType::Literal,
+    /// Creates a new `Literal` from the given token and value.
+    pub fn new(token: Token, value: LiteralValue) -> Literal {
+        debug_assert!(token.get_type() == TokenType::Literal,
             "Literal token created with bad token {:?}", token);
         Literal {
-            token: token
+            token, value
         }
     }
-    pub fn get_value(&self) -> f64 {
-        match self.token.data {
-            TokenData::NumberLiteral(num) => num,
-            ref bad => panic!("Invalid token {:?} owned by Literal", bad)
+    /// Creates a new boolean literal from the given token and boolean value.
+    pub fn new_bool(token: Token, value: bool) -> Literal {
+        debug_assert!(
+            match token.get_data() {
+                TokenData::BoolLiteral(_) => true, _ => false
+            },
+            "Literal bool created with bad token {:?}", token);
+        Literal {
+            toekn: token,
+            value: LiteralValue::Bool(value)
         }
+    }
+
+    /// Creates a new unit type literal `()` from the given token.
+    pub fn new_unit(token: Token) -> Literal {
+        debug_assert!(
+            match token.get_data() {
+                TokenData::UnitLiteral => true, _ => false
+            },
+            "Literal unit created with bad token {:?}", token);
+        Literal {
+            token,
+            value: LiteralValue::Unit
+        }
+    }
+
+    /// Creates a new floating point literal from the given token and value.
+    pub fn new_f64(token: Token, value: f64) -> Literal {
+        debug_assert!(
+            match token.get_data() {
+                TokenData::NumberLiteral(_) => true, _ => false
+            },
+            "Literal f64 called with bad token {:?}", token);
+        Literal {
+            token,
+            value: LiteralValue::Float(value)
+        }
+    }
+
+    /// Gets the `LiteralValue` of this literal expression.
+    pub fn get_value(&self) -> &LiteralValue {
+        &self.value
+    }
+    /// Gets the token of this literal.
+    pub fn get_token(&self) -> &Token {
+        &self.token
     }
 }
 
