@@ -82,4 +82,14 @@ impl BlockFnDeclaration {
     pub fn get_block(&self) -> &Block {
         &self.block
     }
+
+    /// Get the typeid of this function.
+    pub fn get_type_id(&self) -> Id {
+        *self.type_id
+    }
+
+    /// Set the typeid of this function.
+    pub fn set_type_id(&self, id: Id) {
+        *self.type_id = id;
+    }
 }
