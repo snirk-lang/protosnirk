@@ -6,6 +6,7 @@
 use lex::{Token, TokenType, TokenData};
 use parse::{ParseResult, ParseError, ExpectedNextType};
 use parse::ast::{Statement, Identifier, Operator, Block};
+use parse::ast::types::TypeExpression;
 
 /// Expression types
 #[derive(Debug, PartialEq, Clone)]
@@ -200,7 +201,8 @@ pub struct Declaration {
     pub mutable: bool,
     pub token: Token,
     pub ident: Identifier,
-    pub value: Box<Expression>
+    pub value: Box<Expression>,
+    type_decl: Option<TypeExpression>
 }
 impl Declaration {
     pub fn new(token: Token, mutable: bool, ident: Identifier, value: Box<Expression>) -> Self {
@@ -220,6 +222,12 @@ impl Declaration {
     }
     pub fn get_token(&self) -> &Token {
         &self.token
+    }
+    pub fn get_type_decl(&self) -> Option<&TypeExpression> {
+        self.type_decl.as_ref()
+    }
+    pub fn has_declared_type(&self) -> bool {
+        self.type_decl.is_some()
     }
 }
 
