@@ -11,7 +11,7 @@ license = "MIT"
 [dependencies]
 maplit = "*"
 unicode_categories = "0.1"
-llvm-sys = { git = "https://github.com/SnirkImmington/llvm-sys.rs-fork-mirror" }
+llvm-sys = "40.0.2"
 log = "*"
 env_logger = "*"
 
