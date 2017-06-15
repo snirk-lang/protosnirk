@@ -1,4 +1,5 @@
-sudo: false
+sudo: required
+dist: trusty
 
 git:
   depth: 3
@@ -14,31 +15,33 @@ rust:
 #        - beta
 #  fast_finish: true
 
-#cache:
-# - cargo
+cache:
+  - cargo
+  - directories:
+    - $HOME/llvm-4.0.0
 
 notifications:
   email: false
 
+addons:
+  apt:
+    packages:
+      - libffi-dev
+      - libncursesw5
+      - libncursesw5-dev
+
 install:
-  # Install cargo-check to speed up compile time of the general code
-#  - cargo install --force cargo-check
-  - mkdir -v $HOME/bin
   - sh build/install-llvm.sh
   - sh build/install-cmake.sh
-  - export PATH=$PATH:$HOME/.cargo/bin
-  - echo $PATH
-  - ls $HOME/bin
-  - echo "Done with install"
-  - export LLVM_SYS_3.7.1_PREFIX=$HOME/bin
+  # Clone the fork of llvm-sys with bugfixes
+  - hg clone https://snirkimmington@bitbucket.org/snirkimmington/llvm-sys.rs $HOME/llvm-sys.rs
+  # Super duper hacky to get ncurses6
+  - sudo ln -s /usr/lib/libncursesw.so.5  /usr/lib/libncursesw.so.6
+  - sudo ldconfig -n /usr/lib/libncursesw.so.6
 
 script:
-  - echo "Beginning script"
+  - export PATH=$HOME/llvm-4.0.0/bin:$PATH
   - echo $PATH
-  - ls $HOME/bin
-  - whereis -b llvm-config
-  - whereis -b cmake
+  - ldd $(which llvm-config)
   - llvm-config --version
-  - cmake --version
-#  - cargo check --verbose
-  - cargo test --verbose compile_example
+  - PATH=$HOME/llvm-4.0.0/bin:$PATH cargo test --verbose compile_example

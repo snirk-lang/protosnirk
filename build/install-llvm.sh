@@ -1,10 +1,15 @@
 #!/bin/sh
 set -e
 
-# Download llvm.tar.gz
-wget http://releases.llvm.org/3.7.1/clang+llvm-3.7.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz -O llvm.tar.xz
+if [ -d $HOME/llvm-4.0.0 ]
+    echo "LLVM already installed (cache)";
+    exit;
+fi
+
+# Download llvm.tar.gz from llvm-sys's bitbucket
+wget https://bitbucket.org/tari/llvm-sys.rs/downloads/llvm-4.0.0.linux.tar.xz -O llvm-4.0.0.tar.xz
 # Extract files (no `v` arg to reduce web client spam)
-tar xfJ llvm.tar.xz
+tar xfJ llvm-4.0.0.tar.xz
 # Move llvm files over
-mv -v clang+llvm-3.7.1-x86_64-linux-gnu-ubuntu-14.04 $HOME/clang
-cp -v $HOME/clang/bin/* $HOME/bin
+rm -v llvm-4.0.0.tar.xz
+mv -v llvm-4.0.0 $HOME
