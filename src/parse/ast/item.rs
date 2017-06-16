@@ -2,24 +2,17 @@
 //!
 //! An `Item` is a declaration made in the root context of a program
 //! -- namely declarations such as `class`, `enum`, `struct`.
+use std::cell::Cell;
 
 use lex::{Token};
-use parse::ast::{Identifier, Block};
+use parse::Id;
+use parse::ast::{Identifier, Block, Expression};
 use parse::ast::types::TypeExpression;
 
 /// A single "unit" of parsed code.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Unit {
     items: Vec<Item>
-}
-
-/// Items exported from a protosnirk program
-#[derive(Debug, Clone, PartialEq)]
-pub enum Item {
-    /// Inline function declaration
-    InlineFnDeclaration(InlineFnDeclaration),
-    /// Block function declaration
-    BlockFnDeclaration(BlockFnDeclaration)
 }
 
 impl Unit {
@@ -33,6 +26,21 @@ impl Unit {
     }
 }
 
+/// Items exported from a protosnirk program
+#[derive(Debug, Clone, PartialEq)]
+pub enum Item {
+    /// Declaraion of a function
+    FnDeclaration(FnDeclaration)
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum FnDeclaration {
+    /// Function is declared inline with `=>`
+    InlineFnDeclaration(InlineFnDeclaration),
+    /// Function is declared as a block
+    BlockFnDeclaration(BlockFnDeclaration)
+}
+
 /// Declared function argument
 #[derive(Debug, Clone, PartialEq)]
 pub struct FnParameter {
@@ -43,7 +51,7 @@ pub struct FnParameter {
 impl FnParameter {
     /// Creates a new `FnParameter` with the given identifier and declared type.
     pub fn new(ident: Identifier, declared_type: TypeExpression) -> FnParameter {
-        FnParameter { ident, decared_type }
+        FnParameter { ident, declared_type }
     }
     /// Gets the identifier of the parameter
     pub fn get_ident(&self) -> &Identifier {
@@ -138,7 +146,8 @@ impl BlockFnDeclaration {
                block: Block)
                -> BlockFnDeclaration {
         BlockFnDeclaration {
-            fn_token, name, params, return_type, block,
+            fn_token, params, return_type, block,
+            name: ident,
             type_id: Cell::new(Id::default())
         }
     }
