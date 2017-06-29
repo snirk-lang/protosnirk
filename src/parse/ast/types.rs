@@ -12,7 +12,7 @@ use lex::{Token, TokenType, TokenData};
 use parse::ast::{TypeId, Literal, Identifier};
 
 /// Represents type expressions in protosnirk.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum TypeExpression {
     // Inferred type, used when the type is not specified in source.
     //Inferred(Cell<TypeId>),
@@ -43,7 +43,7 @@ impl TypeExpression {
 /// This is what most types in protosnirk will be made of.
 /// This includes `float`, `bool`, etc.
 /// Later, generic/const parameters will be added.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct NamedTypeExpression {
     ident: Identifier,
     type_id: Cell<TypeId>,
@@ -87,7 +87,7 @@ impl NamedTypeExpression {
 ///
 /// It could also be used for named HKT - there's more to figure out between
 /// named/ordered params.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct FnTypeExpression {
     params: Vec<(Identifier, TypeExpression)>,
     return_type: TypeExpression,
@@ -136,7 +136,7 @@ impl FnTypeExpression {
 /// An inline fn type expression.
 ///
 /// It's the `FnTypeExpression` without the return type.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct InlineFnTypeExpression {
     params: Vec<(Identifier, TypeExpression)>,
     type_id: Cell<TypeId>
