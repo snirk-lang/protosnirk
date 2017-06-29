@@ -25,7 +25,10 @@ pub use self::operator::Operator;
 use std::cell::RefCell;
 
 use lex::Token;
-use parse::ScopedId;
+use parse::{Id, ScopedId};
+
+/// A `TypeId` is an `Id` used for type inference.
+pub type TypeId = Id;
 
 /// Basic identifier type
 #[derive(Debug, PartialEq, Clone)]
@@ -61,12 +64,15 @@ impl Into<Token> for Identifier {
 /// Collection of statements which may have an expression value
 #[derive(Debug, PartialEq, Clone)]
 pub struct Block {
+    /// Statements in the block
     pub statements: Vec<Statement>,
-    //partial_index: ScopeIndex // This isn't used, but might be useful in the future.
+    /// Identifier used for typechecking.
+    scope_id: ScopedId
 }
 impl Block {
-    pub fn new(statements: Vec<Statement>) -> Block {
-        Block { statements: statements }
+    /// Create a new block from the given statements and scope id.
+    pub fn new(statements: Vec<Statement>, scope_id: ScopedId) -> Block {
+        Block { statements, scope_id }
     }
     pub fn has_value(&self) -> bool {
         if self.statements.len() == 0 {
@@ -86,5 +92,8 @@ impl Block {
     }
     pub fn get_stmts(&self) -> &[Statement] {
         &self.statements
+    }
+    pub fn get_scope_id(&self) -> &ScopedId {
+        &self.scope_id
     }
 }

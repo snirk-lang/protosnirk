@@ -1,136 +1,175 @@
 //! Type expressions
 //!
 //! Ways of representing a type. Can end up being complicated, like expressions.
-//! let x: Vector<Clone + Ordered> // Generic bounds
-//! let tuple: (int, int) // Tuple - unnamed (possibly ambiguous if we use param shortening )
-//! let anonStruct: struct(x: int, y: int) // anonymous named structs
-//! let tuple4: (array: [int], sizedArray: [int: 6] sizedArraySlice: &[int: 5], slice: &[int])
+// let x: Vector<Clone + Ordered> // Generic bounds
+// let tuple: (int, int) // Tuple - unnamed (possibly ambiguous if we use param shortening )
+// let anonStruct: struct(x: int, y: int) // anonymous named structs
+// let tuple4: (array: [int], sizedArray: [int: 6] sizedArraySlice: &[int: 5], slice: &[int])
 
 use std::cell::Cell;
 
 use lex::{Token, TokenType, TokenData};
-use parse::Id;
-use parse::ast::{Literal, Identifier};
+use parse::ast::{TypeId, Literal, Identifier};
 
-/// Type expressions in the AST.
-#[derive(Debug, PartialEq, Clone)]
-pub struct TypeExpression {
-    /// ID given to types in `check::types`
-    id: Cell<Id>,
-    /// Type expression i.e. as in the source
-    kind: TypeKind
+/// Represents type expressions in protosnirk.
+#[derive(Debug, PartialEq)]
+pub enum TypeExpression {
+    // Inferred type, used when the type is not specified in source.
+    //Inferred(Cell<TypeId>),
+    /// Named type, such as `bool` or `String`
+    Named(NamedTypeExpression),
+    /// Function type, such as `(x: float) -> bool`
+    Function(FnTypeExpression),
+    /// Inline function type such as `(x: float) => `
+    InlineFn(InlineFnTypeExpression)
 }
 impl TypeExpression {
-    /// Creates a new TypeExpression with the given type kind.
-    pub fn new(kind: TypeKind) -> TypeExpression {
-        TypeExpression { id: Cell::default(), kind: kind }
+    /// Get the `TypeId` of this type.
+    pub fn get_type_id(&self) -> TypeId {
+        match self {
+            any => any.get_id()
+        }
     }
-
-    /// Creates a new TypeExpression with the given type id and type kind.
-    pub fn with_type_id(id: Id, kind: TypeKind) -> TypeExpression {
-        TypeExpression { id: Cell::new(id), kind: kind }
-    }
-
-    /// Gets the type id of this TypeExpression
-    pub fn get_type_id(&self) -> Id {
-        &self.id
-    }
-
-    /// Whether this TypeExpression has a TypeId
-    pub fn has_type_id(&self) -> bool {
-        !self.id.is_default()
-    }
-
-    /// Sets the type ID of this TypeExpression
-    pub fn set_type_id(&self, id: Id) {
-        self.id = id;
-    }
-
-    /// Gets the `TypeKind` of this TypeExpression
-    pub fn get_type(&self) -> &TypeKind {
-        &self.kind
+    /// Set the `TypeId` of this type.
+    pub fn set_type_id(&self, new_id: TypeId) {
+        match self {
+            any => any.set_type_id(new_id)
+        }
     }
 }
 
-
-/// TypeExpression expressions
-#[derive(Debug, PartialEq, Clone)]
-pub enum TypeKind {
-    /// A primitive type, i.e. defined via LLVM
-    Primitive(PrimitiveType),
-    /// Single type, such as a struct or primitive
-    Named(NamedType),
-    /// The `_` in type expressions.
-    PleaseInfer,
-    /// Generic type, such as `List<T>`
-    Generic(GenericType),
-    /// Sized array, such as `[int: 3]`
-    SizedArray(SizedArrayType),
-    // Borrowed
-    // Shared
-}
-
-/// Arguments to generic types.
-#[derive(Debug, PartialEq, Clone)]
-pub enum GenericParameter {
-    /// Simple named arg, the `T` in `List<T>`
-    Named(NamedType),
-    // bounded
-    // with-default?
-}
-
-/// Primitive (intrinsic) types.
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub enum PrimitiveType {
-    /// Unit type ()
-    Unit,
-    /// Boolean type: `true` | `false`
-    Bool,
-    /// Numeric type
-    Float64,
-}
-
-/// A named basic type (non-intrinsic), like `String`
-#[derive(Debug, PartialEq, Clone)]
-pub struct NamedType {
-    ident: Identifier
-}
-impl NamedType {
-    pub fn new(ident: Identifier) -> NamedType {
-        NamedType { ident: ident }
-    }
-
-    pub fn get_ident(&self) -> &Identifier { &self.ident }
-}
-
-/// A type with generic parameters, like `List<T>`
-#[derive(Debug, PartialEq, Clone)]
-pub struct GenericType {
+/// A named type expression.
+///
+/// This is what most types in protosnirk will be made of.
+/// This includes `float`, `bool`, etc.
+/// Later, generic/const parameters will be added.
+#[derive(Debug, PartialEq)]
+pub struct NamedTypeExpression {
     ident: Identifier,
-    args: Vec<GenericParameter>
+    type_id: Cell<TypeId>,
 }
-impl GenericType {
-    /// Create a new Generic `TypeKind` with the given identifier and generic args.
-    pub fn new(ident: Identifier, args: Vec<GenericParameter>) -> GenericType {
-        GenericType { ident: ident, args: args }
+impl NamedTypeExpression {
+    /// Create a new `NamedTypeExpression` with
+    /// the given name and default `TypeId`.
+    pub fn new(name: Identifier) -> NamedTypeExpression {
+        NamedTypeExpression { name, type_id: TypeId::default() }
     }
 
-    pub fn get_ident(&self) -> &Identifier { &self.ident }
-
-    pub fn get_params(&self) -> &[GenericParameter] { &self.args }
-}
-
-/// An array with a fixed size, like `[int: 3]`
-#[derive(Debug, PartialEq, Clone)]
-pub struct SizedArrayType {
-    value: Box<TypeExpression>,
-    size: u64
-}
-impl SizedArrayType {
-    pub fn new(value: Box<TypeExpression>, size: Literal) -> SizedArrayType {
-        SizedArrayType { value: value, size: size }
+    /// Create a new `NamedTypeExpression` with the given name and `TypeId`.
+    pub fn with_id(name: Identifier, type_id: TypeId) -> NamedTypeExpression {
+        NamedTypeExpression { name, type_id }
     }
-    pub fn get_inner_type(&self) -> &TypeExpression { &self.value }
 
-    pub fn get_size_expr(&self) -> &Literal { &self.size }
+    /// Gets the identifier of this type.
+    pub fn get_ident(&self) -> Identifier {
+        &self.ident
+    }
+
+    /// Get the `TypeId` of this type.
+    pub fn get_type_id(&self) -> TypeId {
+        *self.type_id.get()
+    }
+
+    /// Set the `TypeId` of this type expression.
+    pub fn set_type_id(&self, new_id: TypeId) {
+        self.type_id.set(new_id);
+    }
+}
+
+/// A function type expression.
+///
+/// This is essentially everything that comes after the name of a function:
+/// ```
+/// fn foo(arg1: Type, arg2: Type2) -> ResultType
+///       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/// ```
+/// So this item has the identifier `foo` and a `FnTypeExpression` for its type.
+///
+/// It could also be used for named HKT - there's more to figure out between
+/// named/ordered params.
+#[derive(Debug, PartialEq)]
+pub struct FnTypeExpression {
+    params: Vec<(Identifier, TypeExpression)>,
+    return_type: TypeExpression,
+    type_id: Cell<TypeId>
+}
+impl FnTypeExpression {
+    /// Create a new `FnTypeExpression` with
+    /// the given argument list, return type, and default `TypeId`.
+    pub fn new(params: Vec<(Identifier, TypeExpression)>,
+               return_type: TypeExpression) -> FnTypeExpression {
+        FnTypeExpression {
+            params,
+            return_type,
+            type_id: TypeId::default()
+        }
+    }
+
+    /// Create a new `FnTypeExpression` with the given argument list,
+    /// return type, and `TypeId`.
+    pub fn with_id(params: Vec<(Identifier, TypeExpression)>,
+                   return_type: TypeExpression,
+                   type_id: TypeId) -> FnTypeExpression {
+        FnTypeExpression { params, return_type, type_id }
+    }
+
+    /// Get the parameter list of this function type.
+    pub fn get_params(&self) -> &[(Identifier, TypeExpression)] {
+        &self.params
+    }
+    /// Get the return type of this function type.
+    pub fn get_return_type(&self) -> &TypeExpression {
+        &self.return_type
+    }
+
+    /// Get the `TypeId` of this type.
+    pub fn get_type_id(&self) -> TypeId {
+        *self.type_id.get()
+    }
+
+    /// Set the `TypeId` of this type expression.
+    pub fn set_type_id(&self, new_id: TypeId) {
+        self.type_id.set(new_id);
+    }
+}
+
+/// An inline fn type expression.
+///
+/// It's the `FnTypeExpression` without the return type.
+#[derive(Debug, PartialEq)]
+pub struct InlineFnTypeExpression {
+    params: Vec<(Identifier, TypeExpression)>,
+    type_id: Cell<TypeId>
+}
+impl InlineFnTypeExpression {
+    /// Create a new `InlineFnTypeExpression` with the given parameter list
+    /// and default `TypeId`.
+    pub fn new(params: Vec<(Identifier, TypeExpression)>)
+              -> InlineFnTypeExpression {
+        InlineFnTypeExpression {
+            params, type_id: TypeId::default()
+        }
+    }
+
+    /// Create a new `InlineFnTypeExpression` with the given parameter list
+    /// and `TypeId`.
+    pub fn with_id(params: Vec<(Identifier, TypeExpression)>,
+                   type_id: TypeId) -> FnTypeExpression {
+        InlineFnTypeExpression { params, type_id }
+    }
+
+    /// Get the parameter list of this function type.
+    pub fn get_params(&self) -> &[(Identifier, TypeExpression)] {
+        &self.params
+    }
+
+    /// Get the `TypeId` of this function type.
+    pub fn get_type_id(&self) -> TypeId {
+        *self.type_id.get()
+    }
+
+    /// Set the `TypeId` of this function type.
+    pub fn set_type_id(&self, new_id: TypeId) {
+        self.type_id.set(new_id);
+    }
 }

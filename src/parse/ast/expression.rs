@@ -29,6 +29,7 @@ pub enum Expression {
     /// Assignment - not considered value expression
     Assignment(Assignment),
     /// Declaration - not considered value expression
+    // TODO this should be parsed as a statement
     Declaration(Declaration),
 }
 impl Expression {
