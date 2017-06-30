@@ -1,3 +1,28 @@
+//! Gives unique IDs to variable `Identifier`s in the AST.
+//!
+//! The code in this module is built around the `ScopeChecker`
+//! which IDs `Identifier`s in expressions and method bodies.
+//!
+//! Consider the following code:
+//! ```text
+//! fn foo(x: int, y: int) -> bool
+//!     let z: int = x + y
+//!     if z < 6
+//!         let mut q = bar()
+//!         q += z
+//!         q
+//!     else
+//!         baz(x + z)
+//! ```
+//! The job of the `ScopeChecker` is to ID `x`, `y`, and `z` in this
+//! scenario. The `ScopeChecker` will assign local variables and items
+//! (i.e. `foo`, `bar`) unique IDs when they are declared. This ensures
+//! an early detection of undeclared variable names and is the basis of the
+//! next passes.
+//!
+//! See the `SymbolChecker` in `check::symbol` which will primarily look at
+//! `int` and `bool`.
+
 mod scope_builder;
 mod item_checker;
 mod expression_checker;

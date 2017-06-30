@@ -12,12 +12,6 @@ use check::scope::scope_builder::ScopeBuilder;
 /// token - whether variable reference, function call
 /// reference, type name, etc.
 ///
-/// This is no small task - a C compiler can't do this
-/// because of C's famous type/name ambiguity. Using this design
-/// could also run into the same problem, even for a less
-/// ambiguous language - I don't think this would work as
-/// well in Rust.
-///
 /// We're just checking variables - types are
 /// established in a later pass.
 #[derive(Debug, PartialEq, Clone)]
@@ -36,17 +30,17 @@ impl<'err, 'builder> ExpressionChecker<'err, 'builder> {
         ExpressionChecker {
             // The current ID can be left as default because it gets overridden
             // as soon as we visit an `Item`.
-            builder: builder, errors: errors, current_id: ScopedId::default()
+            builder, errors,
+            current_id: ScopedId::default(),
         }
     }
 }
 
 impl<'err, 'builder> ASTVisitor for ExpressionChecker<'err, 'builder> {
     fn check_unit(&mut self, unit: &Unit) {
-        // We increment the id first in `Unit` so that the first
-        // index of `ScopedId` is never 0. We also _assume_ that
-        // we can check multiple units in a row, even though the
-        // rest of the system isn't designed to do that.
+        // We increment the id first in `Unit` so that the first index of
+        // an ident's ID is never 0.
+        // This also means we're safe to check multiple units with one checker.
         self.current_id.increment();
         self.current_id.push();
         for item in unit.get_items() {
