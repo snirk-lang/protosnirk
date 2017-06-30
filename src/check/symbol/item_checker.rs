@@ -1,4 +1,4 @@
-use parse::{ScopedId, SymbolId};
+use parse::{ScopedId};
 use parse::ast::*;
 
 use check::{ASTVisitor, ErrorCollector};
@@ -19,12 +19,10 @@ impl<'err, 'table> ItemChecker<'err, 'table> {
                -> ItemChecker<'err, 'table> {
         ItemChecker {
             errors: errors,
-            builder: builder,
             current_id: SymbolId
         }
     }
 }
 
 impl<'err, 'table> ASTVisitor for ItemChecker<'err, 'builder> {
-    self.current_id.increment();
 }

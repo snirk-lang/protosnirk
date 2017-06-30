@@ -25,6 +25,8 @@
 
 mod symbol;
 mod symbol_checker;
+mod table_builder;
+mod item_checker;
 
 pub use self::symbol::*;
 pub use self::symbol_checker::SymbolChecker;
