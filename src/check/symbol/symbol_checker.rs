@@ -2,11 +2,14 @@ use std::collections::HashMap;
 use std::ops::Deref;
 
 use lex::Token;
+
+use parse::ScopedId;
 use parse::ast::*;
 use parse::ast::types::*;
-use parse::ScopedId;
-use check::ASTVisitor;
-use check::{ErrorCollector, CheckerError, Symbol};
+
+use check::{ASTVisitor, ErrorCollector, CheckerError};
+use check::symbol::SymbolTable;
+use check::symbol::table_builder::SymbolTableBuilder;
 
 /// Assigns unique `ScopedId`s to `Identifier`s in the AST and reports
 /// missing variable and mutability errors.
