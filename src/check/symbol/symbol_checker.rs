@@ -3,13 +3,13 @@ use std::ops::Deref;
 
 use lex::Token;
 use parse::ast::*;
+use parse::ast::types::*;
+use parse::ScopedId;
 use check::ASTVisitor;
 use check::{ErrorCollector, CheckerError, Symbol};
-use check::scope::{ScopedId, SymbolTable, SymbolTableBuilder};
-use parse::types::{Type, FnType};
 
-/// Builds up the symbol table for a parse tree
-/// and reports variable declaration and mutability errors.
+/// Assigns unique `ScopedId`s to `Identifier`s in the AST and reports
+/// missing variable and mutability errors.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct SymbolChecker {
     symbol_table: SymbolTable,
