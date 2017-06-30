@@ -1,12 +1,22 @@
+//! Types in protosnirk.
+//!
+//! These represent concrete pieces of information about the types of
+//! protosnirk values. Type checking involves comparing type expressions
+//! in the AST with inferred type data to produce `check::types::Type`s.
+
 use std::collections::HashMap;
 
-/// Representation of types in protosnirk
+use parse::ast::Identifier;
+
+/// Representation of types in protosnirk.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Type {
     /// `()`
     Empty,
     /// Standard number type for now
     Float,
+    /// Values of `true` or `false`.
+    Boolean,
     /// Function - only used in declarations
     Fn(FnType)
 }
@@ -25,7 +35,7 @@ pub struct FnType {
     /// Return type of the function
     return_type: Box<Type>,
     /// Argument types. Both order and names are important.
-    args: Vec<(String, Type)>
+    args: Vec<(Identifier, Type)>
 }
 impl FnType {
     pub fn new(return_type: Box<Type>, args: Vec<(String, Type)>) -> FnType {
