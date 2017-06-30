@@ -206,8 +206,11 @@ pub struct Declaration {
     type_decl: Option<TypeExpression>
 }
 impl Declaration {
-    pub fn new(token: Token, mutable: bool, ident: Identifier, value: Box<Expression>) -> Self {
-        Declaration { token: token, mutable: mutable, ident: ident, value: value }
+    pub fn new(ident: Identifier,
+               mutable: bool,
+               type_decl: Option<TypeExpression>,
+               value: Box<Expression>) -> Declaration {
+        Declaration { ident, mutable, type_decl, value }
     }
     pub fn get_name(&self) -> &str {
         &self.ident.get_name()
@@ -222,7 +225,7 @@ impl Declaration {
         &self.ident
     }
     pub fn get_token(&self) -> &Token {
-        &self.token
+        self.ident.get_token()
     }
     pub fn get_type_decl(&self) -> Option<&TypeExpression> {
         self.type_decl.as_ref()

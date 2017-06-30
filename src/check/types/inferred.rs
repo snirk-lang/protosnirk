@@ -84,8 +84,20 @@ impl TypeEnvironment {
 }
 
 enum TypeEquation {
-    SameType(TypeSymbol, TypeSymbol),
-    KnownType(TypeSymbol, TypeSymbol)
+    /// Two `TypeSymbol`s must be the same type.
+    SymbolsSameType(TypeSymbol, TypeSymbol),
+    /// An identifier has a known type.
+    IdentKnownType(ScopedId, TypeSymbol),
+    /// Two identifiers have the same type.
+    IdentsSameType(ScopedId, ScopedId),
+
+    /// A function is declared.
+    DeclaredFunction {
+        args: Vec<(ScopedId, TypeSymbol)>,
+        return_type: TypeSymbol
+    },
+    /// A variable is declared explicitly.
+    DeclaredVar(ScopedId, TypeSymbol),
 }
 
 impl ASTVisitor for TypeEnvironment {
@@ -93,5 +105,21 @@ impl ASTVisitor for TypeEnvironment {
     //}
 
     fn check_fn_declaration(&mut self, fn_decl: &FnDeclaration) {
+    }
+}
+
+/// Collects type equations.
+pub struct EquationCollector<'a> {
+    /// Type equations the collector has generated
+    equations: &'a mut Vec<TypeEquation>,
+    /// Types the collector knows already
+    known_types: &'a mut HashMap<TypeSymbol, Type>,
+    /// Identifier types the collector knows already
+    known_idents: &'a mut HashMap<ScopedId, TypeSymbol>
+}
+
+impl<'a> ASTVisitor for EquationCollector<'a> {
+    fn check_fn_declaration(&mut self, fn_decl: &FnDeclaration) {
+
     }
 }

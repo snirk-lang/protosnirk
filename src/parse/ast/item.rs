@@ -7,10 +7,12 @@ use std::cell::Cell;
 use lex::{Token};
 use parse::Id;
 use parse::ast::{Identifier, Block, Expression};
-use parse::ast::types::TypeExpression;
+use parse::ast::types::{TypeExpression,
+                        FnTypeExpression,
+                        InlineFnTypeExpression};
 
 /// A single "unit" of parsed code.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Unit {
     items: Vec<Item>
 }
@@ -41,32 +43,6 @@ pub enum FnDeclaration {
     BlockFnDeclaration(BlockFnDeclaration)
 }
 
-/// Declared function argument
-#[derive(Debug, Clone, PartialEq)]
-pub struct FnParameter {
-    ident: Identifier,
-    declared_type: TypeExpression
-    // default value, etc.
-}
-impl FnParameter {
-    /// Creates a new `FnParameter` with the given identifier and declared type.
-    pub fn new(ident: Identifier, declared_type: TypeExpression) -> FnParameter {
-        FnParameter { ident, declared_type }
-    }
-    /// Gets the identifier of the parameter
-    pub fn get_ident(&self) -> &Identifier {
-        &self.ident
-    }
-    /// Gets the name of this parameter
-    pub fn get_name(&self) -> &str {
-        self.ident.get_name()
-    }
-    /// Gets the type of the parameter
-    pub fn get_type(&self) -> &TypeExpression {
-        &self.declared_type
-    }
-}
-
 /// Inline fn declaration.
 ///
 /// Functions can be declared inline using the inline arrow. Inline
@@ -75,22 +51,24 @@ impl FnParameter {
 ///
 /// # Example
 /// ```snirk
-/// fn foo(arg: Type) => arg + 1
+/// fn foo(arg: float) => arg + 1
 /// ```
 #[derive(Debug, PartialEq, Clone)]
 pub struct InlineFnDeclaration {
     fn_token: Token,
     ident: Identifier,
-    params: Vec<FnParameter>,
+    type_expr: InlineFnTypeExpression,
     expr: Expression,
-    type_id: Cell<Id>,
 }
 impl InlineFnDeclaration {
     /// Create a new `InlineFnDeclaration`
-    pub fn new(fn_token: Token, ident: Identifier, params: Vec<FnParameter>, expr: Expression)
+    pub fn new(fn_token: Token,
+               ident: Identifier,
+               type_expr: InlineFnTypeExpression,
+               expr: Expression)
                -> BlockFnDeclaration {
         BlockFnDeclaration {
-            fn_token, ident, params, expr,
+            fn_token, ident, type_expr, expr,
             type_id: Cell::new(Id::default())
         }
     }
@@ -106,24 +84,13 @@ impl InlineFnDeclaration {
     pub fn get_name(&self) -> &str {
         &self.name.get_name()
     }
-    /// Get the parameters of the function
-    pub fn get_params(&self) -> &Vec<FnParameter> {
-        &self.params
+    /// Get the type expression of the function
+    pub fn get_type_expr(&self) -> &InlineFnTypeExpression {
+        &self.type_expr
     }
     /// Get the expression of the function
     pub fn get_expr(&self) -> &Expression {
         &self.block
-    }
-    /// Get the typeid of this function.
-    ///
-    /// The typeid includes the parameter and return types.
-    pub fn get_type_id(&self) -> Id {
-        *self.type_id
-    }
-
-    /// Set the typeid of this function.
-    pub fn set_type_id(&self, id: Id) {
-        *self.type_id = id;
     }
 }
 
@@ -131,23 +98,19 @@ impl InlineFnDeclaration {
 #[derive(Debug, Clone, PartialEq)]
 pub struct BlockFnDeclaration {
     fn_token: Token,
-    name: Identifier,
-    params: Vec<FnParameter>,
-    return_type: TypeExpression,
+    ident: Identifier,
+    type_expr: FnTypeExpression,
     block: Block,
-    type_id: Cell<Id>
 }
 impl BlockFnDeclaration {
     /// Create a new FnDeclaration
     pub fn new(fn_token: Token,
                ident: Identifier,
-               params: Vec<FnParameter>,
-               return_type: TypeExpression,
+               type_expr: FnTypeExpression,
                block: Block)
                -> BlockFnDeclaration {
         BlockFnDeclaration {
-            fn_token, params, return_type, block,
-            name: ident,
+            fn_token, ident, type_expr, block,
             type_id: Cell::new(Id::default())
         }
     }
@@ -164,25 +127,11 @@ impl BlockFnDeclaration {
         &self.name.get_name()
     }
     /// Get the parameters of the function
-    pub fn get_params(&self) -> &Vec<FnParameter> {
-        &self.params
-    }
-    /// Get the return type of the funciton
-    pub fn get_return_type(&self) -> &TypeExpression {
-        &self.return_type
+    pub fn get_type_expr(&self) -> &FnTypeExpression {
+        &self.type_expr
     }
     /// Get the block inside the function
     pub fn get_block(&self) -> &Block {
         &self.block
-    }
-
-    /// Get the typeid of this function.
-    pub fn get_type_id(&self) -> Id {
-        *self.type_id
-    }
-
-    /// Set the typeid of this function.
-    pub fn set_type_id(&self, id: Id) {
-        *self.type_id = id;
     }
 }
