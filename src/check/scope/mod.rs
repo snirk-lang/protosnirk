@@ -1,61 +1,32 @@
-//! Gives unique IDs to variable `Identifier`s in the AST.
+//! Scope checking: giving `Identifier`s `ScopedId`s.
 //!
-//! The code in this module is built around the `ScopeChecker`
-//! which IDs `Identifier`s in expressions and method bodies.
+//! The `scope` module of `check` primarily deals with giving identifiers
+//! of various kinds unique `ID`s for the purpose of later analysis. This
+//! includes things like detecting whether some variable or name is being
+//! used without being declared (i.e. detecting a typo) and setting up
+//! later passes to resolve types, mapping the structure of declared types
+//! or pinning function signature types to invocations of the functions.
 //!
-//! Consider the following code:
-//! ```text
-//! fn foo(x: int, y: int) -> bool
-//!     let z: int = x + y
-//!     if z < 6
-//!         let mut q = bar()
-//!         q += z
-//!         q
-//!     else
-//!         baz(x + z)
-//! ```
-//! The job of the `ScopeChecker` is to ID `x`, `y`, and `z` in this
-//! scenario. The `ScopeChecker` will assign local variables and items
-//! (i.e. `foo`, `bar`) unique IDs when they are declared. This ensures
-//! an early detection of undeclared variable names and is the basis of the
-//! next passes.
+//! Scoping is split into two parts: an initial `Item` pass which resolves
+//! global names (declared types in one id-space, declared names in another)
+//! and one which resolves identifiers within functions (and is thus able
+//! to recognize i.e. a function being called after it has been declared).
 //!
-//! See the `SymbolChecker` in `check::symbol` which will primarily look at
-//! `int` and `bool`.
+//! The purpose of this system is to mitigate the need for some transformation
+//! passes. The `ScopedId` of identifiers is the only metadata which appears
+//! in the AST itself, and by using it we are able to create mappings of
+//! `ID` to other symbolic data, such as types, scopes, lifetimes, symbols, etc
+//!
+//! Although some forms of errors can be detected this early, we may want to
+//! continue parsing until we can get a better picture
+//!
+//! In the future this module should be split up to deal with types and methods
+//! separately.
 
+mod expression_identifier;
+mod type_identifier;
+mod scope_checker;
 mod scope_builder;
-mod item_checker;
-mod expression_checker;
 
-use self::scope_builder::ScopeBuilder;
-use self::item_checker::ItemChecker;
-use self::expression_checker::ExpressionChecker;
-
-use parse::ast::Unit;
-use check::ErrorCollector;
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct ScopeChecker<'err> {
-    errors: &'err mut ErrorCollector
-}
-
-impl<'err> ScopeChecker<'err> {
-    pub fn new(errors: &'err mut ErrorCollector) -> ScopeChecker {
-        ScopeChecker {errors: errors }
-    }
-
-    /// Checks the scoping rules for a unit
-    pub fn check_unit(&mut self, unit: &Unit) {
-        let mut builder = ScopeBuilder::new();
-        {
-            let items_checker = ItemChecker::new(&mut self.errors, &mut builder);
-            items_checker.check_unit(unit);
-        }
-        {
-            let expression_checker = ExpressionChecker::new(&mut self.errors, &mut builder);
-            expression_checker.check_unit(unit);
-        }
-        // we're done, the invariant is that all of the `ScopedId`s are set if there are no
-        // errors.
-    }
-}
+pub use self::scope_checker::ScopeChecker;
+pub use self::scope_builder::ScopeBuilder;

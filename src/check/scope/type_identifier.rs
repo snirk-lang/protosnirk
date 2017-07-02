@@ -48,7 +48,7 @@ impl<'err, 'builder> ASTVisitor for ItemChecker<'err, 'builder> {
         if let Some(prev_decl_ix) = self.builder.get(fn_decl.get_name()) {
             // fn was previously declared
             // add multiple def error, continue on
-            let declared_at = self.symbol_table[&declared_index].get_declaration()
+            let declared_at = self.symbol_table[&declared_index].get_declaration();
         }
         // Get an ID for the function - should start at [1, 0]
         let fn_id = self.current_id.clone();
