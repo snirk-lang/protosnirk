@@ -23,8 +23,8 @@
 //! In the future this module should be split up to deal with types and methods
 //! separately.
 
-mod expression_identifier;
-mod type_identifier;
+mod expressions;
+mod types;
 mod scope_checker;
 mod scope_builder;
 
