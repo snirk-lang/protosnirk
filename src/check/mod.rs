@@ -54,32 +54,11 @@ mod visitor;
 mod collector;
 mod errors;
 
-mod scope;
-mod symbol;
-mod lint;
-
-mod unit_checker;
-
+pub mod scope;
+pub mod lint;
 pub mod types;
 
 pub use self::visitor::{ASTVisitor}; // Allow external use of the trait (i.e. in compiler)
 pub use self::collector::ErrorCollector;
 pub use self::errors::CheckerError;
 pub use self::program::Program;
-
-pub use self::symbol::*;
-
-pub use self::unit_checker::UnitChecker;
-
-use std::collections::HashMap;
-use parse::{Id, ScopedId};
-use self::types::Type;
-
-/// Mapping of ScopeIndex to Symbol. Each correct variable reference
-/// has a scopedId, and each corresponds to a Symbol with information
-/// about that reference
-pub type SymbolTable = HashMap<ScopedId, Symbol>;
-
-/// Each symbol has a TypeId, and each TypeId corresponds to a given
-/// type.
-pub type TypeTable = HashMap<Id, Type>;
