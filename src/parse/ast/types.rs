@@ -90,14 +90,14 @@ impl NamedTypeExpression {
 #[derive(Debug, PartialEq, Clone)]
 pub struct FnTypeExpression {
     params: Vec<(Identifier, TypeExpression)>,
-    return_type: TypeExpression,
+    return_type: Option<TypeExpression>,
     type_id: Cell<TypeId>
 }
 impl FnTypeExpression {
     /// Create a new `FnTypeExpression` with
     /// the given argument list, return type, and default `TypeId`.
     pub fn new(params: Vec<(Identifier, TypeExpression)>,
-               return_type: TypeExpression) -> FnTypeExpression {
+               return_type: Option<TypeExpression>) -> FnTypeExpression {
         FnTypeExpression {
             params,
             return_type,
@@ -118,7 +118,9 @@ impl FnTypeExpression {
         &self.params
     }
     /// Get the return type of this function type.
-    pub fn get_return_type(&self) -> &TypeExpression {
+    ///
+    /// If none, the return type is `()` but undeclared.
+    pub fn get_return_type(&self) -> Option<&TypeExpression> {
         &self.return_type
     }
 

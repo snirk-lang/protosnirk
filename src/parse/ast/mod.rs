@@ -47,8 +47,8 @@ impl Identifier {
         &self.token
     }
 
-    pub fn get_id(&self) -> ScopedId {
-        self.index.borrow().clone()
+    pub fn get_id(&self) -> &ScopedId {
+        self.index.borrow()
     }
 
     pub fn set_id(&self, index: ScopedId) {
@@ -67,7 +67,7 @@ pub struct Block {
     /// Statements in the block
     pub statements: Vec<Statement>,
     /// Identifier used for typechecking.
-    scope_id: ScopedId
+    scope_id: RefCell<ScopedId>
 }
 impl Block {
     /// Create a new block from the given statements and scope id.
@@ -93,7 +93,10 @@ impl Block {
     pub fn get_stmts(&self) -> &[Statement] {
         &self.statements
     }
-    pub fn get_scope_id(&self) -> &ScopedId {
-        &self.scope_id
+    pub fn get_id(&self) -> &ScopedId {
+        self.scope_id.borrow()
+    }
+    pub fn set_id(&self, id: ScopedId) {
+        *self.scope_id.borrow_mut() = id;
     }
 }

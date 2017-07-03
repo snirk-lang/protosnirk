@@ -216,10 +216,6 @@ impl<T: Tokenizer> Parser<T> {
                 trace!("Parsing named type expr");
                 NamedTypeParser { }
             },
-            TokenType::LeftBracket => {
-                trace!("Parsing array type expr");
-                ArrayTypeParser { }
-            },
             other => {
                 trace!("Invalid token for type expr");
                 // TODO this is also a bad error
