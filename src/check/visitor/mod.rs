@@ -1,3 +1,3 @@
 mod visitor;
 
-pub use self::visitor::ASTVisitor;
+pub use self::visitor::*;
