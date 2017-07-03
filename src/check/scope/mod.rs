@@ -46,9 +46,9 @@ pub struct ASTIdentifier { }
 impl ASTIdentifier {
     pub fn check_unit(&self, errors: &mut ErrorCollector, unit: &Unit) {
         let mut type_scope = types::default_type_scope();
-        ItemVarIdentifier::new(errors, types).visit_unit(unit);
+        ItemVarIdentifier::new(errors, type_scope).visit_unit(unit);
         ItemTypeIdentifier::new(errors).visit_unit(unit);
         ExpressionVarIdentifier::new(errors).visit_unit(unit);
-        ExpressionTypeIdentifier::new(errors, types).visit_unit(unit);
+        ExpressionTypeIdentifier::new(errors, type_scope).visit_unit(unit);
     }
 }

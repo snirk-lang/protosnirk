@@ -5,7 +5,7 @@
 //! types.
 
 use parse::ast::Unit;
-use check::{SymbolTable, TypeTable, ErrorCollector};
+use check::{ErrorCollector};
 
 /// Represents a fully parsed and checked program, ready
 /// to be compiled.

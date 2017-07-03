@@ -50,7 +50,7 @@
 //! ```
 
 mod program;
-mod visitor;
+pub mod visitor;
 mod collector;
 mod errors;
 
@@ -58,7 +58,6 @@ pub mod scope;
 pub mod lint;
 pub mod types;
 
-pub use self::visitor::{ASTVisitor}; // Allow external use of the trait (i.e. in compiler)
 pub use self::collector::ErrorCollector;
 pub use self::errors::CheckerError;
 pub use self::program::Program;
