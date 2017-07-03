@@ -4,18 +4,15 @@ use parse::ast::*;
 use check::{ASTVisitor, ErrorCollector, CheckerError};
 use check::scope::scope_builder::ScopeBuilder;
 
-/// Establishes variable scopes.
+/// Establishes `ScopeId`s for identifiers of variables in expressions.
 ///
-/// The `ExpressionChecker` is the first verify pass.
-/// Having been given only the parsed AST, its job
-/// is to give meaningful unique IDs to each `Ident`
-/// token - whether variable reference, function call
-/// reference, type name, etc.
-///
-/// We're just checking variables - types are
-/// established in a later pass.
+/// The `NameIdentifier` sets unique `ScopedId`s to `Identifier`s
+/// throughout the AST. The first pass sets up items which can be used in
+/// expressions, such as the names of functions or types. The second pass
+/// sets up `Identifier`s within function bodies to both local variables and
+/// globally-declard items.
 #[derive(Debug, PartialEq, Clone)]
-pub struct ExpressionChecker<'err, 'builder> {
+pub struct NameIdentifier<'err, 'builder> {
     /// Build up the map of all name declarations.
     builder: &'builder mut ScopeBuilder,
     /// Mutably borrow an ErrorCollector to push to while we're running.
@@ -24,19 +21,25 @@ pub struct ExpressionChecker<'err, 'builder> {
     current_id: ScopedId
 }
 
-impl<'err, 'builder> ExpressionChecker<'err, 'builder> {
+impl<'err, 'builder> NameIdentifier<'err, 'builder> {
     pub fn new(errors: &'err mut ErrorCollector,
-               builder: &'builder mut ScopeBuilder) -> ExpressionChecker<'err, 'builder> {
-        ExpressionChecker {
+               builder: &'builder mut ScopeBuilder) -> NameIdentifier<'err, 'builder> {
+        NameIdentifier {
             // The current ID can be left as default because it gets overridden
             // as soon as we visit an `Item`.
             builder, errors,
             current_id: ScopedId::default(),
         }
     }
+
+    pub fn first_check_item(&self, item: &Item) {
+        match item {
+
+        }
+    }
 }
 
-impl<'err, 'builder> ASTVisitor for ExpressionChecker<'err, 'builder> {
+impl<'err, 'builder> ASTVisitor for NameIdentifier<'err, 'builder> {
     fn check_unit(&mut self, unit: &Unit) {
         // We increment the id first in `Unit` so that the first index of
         // an ident's ID is never 0.
