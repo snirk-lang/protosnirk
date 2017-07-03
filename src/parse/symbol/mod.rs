@@ -36,7 +36,7 @@ pub trait InfixParser<E, T: Tokenizer> {
 
 // TODO This can't be implemented until we have a way of knowing when to stop calling
 // the prefix parser, i.e. once a close paren is matched.
-
+/*
 /// Parses a list of expressions using an `InfixParser`.
 #[derive(Debug, Clone, Copy)]
 pub struct CommaSeparatedParser<'p, E, T: Tokenizer> {
@@ -87,3 +87,4 @@ impl<'p, E, T: Tokenizer> PrefixParser for CommaSeparatedParser<'p, E, T> {
         }
     }
 }
+*/

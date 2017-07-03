@@ -1,6 +1,6 @@
 //! Parses variable declarations
 
-// This will become much more complex with tuple declarations
+// This will become more complex with tuple declarations
 // and other pattern declaration types.
 
 use lex::{tokens, Token, Tokenizer, TokenType, TokenData};
@@ -11,8 +11,8 @@ use parse::symbol::{PrefixParser, Precedence};
 ///
 /// # Examples
 /// ```text
-/// let mut            x          =         6 + 3
-/// ^:.  ^:mutable  ->name:name (skip) ->value:expression
+/// let mut            x        :      type?   =         6 + 3
+/// ^:.  ^:mutable  ->name:name ^check ^opt   (skip) ->value:expression
 /// ```
 #[derive(Debug)]
 pub struct DeclarationParser { }
@@ -28,12 +28,23 @@ impl<T: Tokenizer> PrefixParser<Expression, T> for DeclarationParser {
         trace!("Found mutability: {}", is_mutable);
         let name = try!(parser.lvalue());
         trace!("Got name {:?}", name);
+        let decl_type = if parser.next_type() == TokenType::Colon {
+            trace!("Found type declaration");
+            parser.consume();
+            Some(try!(parser.type_expr()))
+        }
+        else {
+            trace!("No type declaration");
+            None
+        };
         try!(parser.consume_name(TokenType::Symbol, tokens::Equals));
         trace!("Consumed =, parsing rvalue");
         let value_expr = try!(parser.expression(Precedence::Min));
         let value = try!(value_expr.expect_value());
         trace!("Got rvalue {:?}", value);
-        Ok(Expression::Declaration(Declaration::new(token, is_mutable, name, Box::new(value))))
+        Ok(Expression::Declaration(Declaration::new(
+            token, is_mutable, name, decl_type, Box::new(value)
+        )))
     }
 }
 

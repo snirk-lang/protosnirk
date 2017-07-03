@@ -26,47 +26,68 @@ impl<T: Tokenizer> PrefixParser<Item, T> for FnDeclarationParser {
         let name = try!(parser.lvalue());
 
         // Args
+
+        // TODO Eventually params should be a separate parser?
+        // altough the fn signature type parser would be a little different
+        // from the first-class-fn type parser.
+
         // left paren cannot be indented
         try!(parser.consume_name(TokenType::Symbol, tokens::LeftParen));
         // S1 -> ")", done | name, S2
         // S2 -> ",", S1 | ")", done
-        let mut args = Vec::new();
-        let mut arg_name = true;
+        let mut params = Vec::new();
+        let mut param_name = true;
         loop {
             if parser.peek().get_text() == tokens::RightParen {
                 parser.consume(); // right paren
                 break
             }
             // name
-            if arg_name {
+            if param_name {
                 parser.apply_indentation(IndentationRule::NegateDeindent);
                 let name = try!(parser.lvalue());
-                args.push(name);
-                arg_name = false;
+                try!(parser.consume_type(TokenType::Colon));
+                let type_ = try!(parser.type_expr());
+                params.push((name, type_));
+                param_name = false;
             }
             // comma
             else {
                 try!(parser.consume_name_indented(TokenType::Symbol,
                                                   tokens::Comma,
                                                   IndentationRule::NegateDeindent));
-                arg_name = true;
+                param_name = true;
             }
         }
-        // TODO `->` result type
 
-        // Inline fn syntax
-        let block = if parser.peek().get_text() == tokens::InlineArrow {
+        // Explicitly differentiating between omitted return type for block fns
+        // This is gonna be `None` for inline fns
+        let return_type = if parser.next_type() == TokenType::Colon {
             parser.consume();
-            Block::new(vec![Statement::Expression(
-                try!(parser.expression(Precedence::Min)))])
+            Some(try!(parser.type_expr()))
         }
-        // Indented fn syntax
         else {
-            try!(parser.consume_type(TokenType::BeginBlock));
-            try!(parser.block())
+            None
         };
 
-        let decl = FnDeclaration::new(token, name, args, block);
-        Ok(Item::FnDeclaration(decl))
+        // Inline fn
+        if parser.next_type() == TokenType::InlineArrow {
+            parser.consume();
+            let expr = try!(parser.expression(Precedence::Min));
+            let inline_type = InlineFnTypeExpression::new(params);
+            Ok(Item::InlineFnDeclaration(InlineFnDeclaration::new(
+                token, name, inline_type, expr
+            )))
+        }
+        // Indented fn
+        else {
+            // This is gonna require a comment in the place of Python's `pass`.
+            try!(parser.consume_type(TokenType::BeginBlock));
+            let block = try!(parser.block());
+            let fn_type = FnTypeExpression::new(params, return_type);
+            Ok(Item::BlockFnDeclaration(BlockFnDeclaration::new(
+                token, name, fn_type, block
+            )))
+        }
     }
 }
