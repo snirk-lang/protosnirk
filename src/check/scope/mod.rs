@@ -23,10 +23,32 @@
 //! In the future this module should be split up to deal with types and methods
 //! separately.
 
-mod expressions;
+mod names;
 mod types;
-mod scope_checker;
 mod scope_builder;
 
-pub use self::scope_checker::ScopeChecker;
-pub use self::scope_builder::ScopeBuilder;
+pub use self::scope_builder::{ScopeBuilder, NameScopeBuilder};
+
+use parse::ast::Unit;
+use check::ErrorCollector;
+
+use self::names::*;
+use self::types::*;
+
+/// Identifies `Ident`s in the AST.
+///
+/// Each `Identifier`'s `ScopedId` is set based on whether
+/// it appears in an expression context or type context.
+/// The IDs take scoping rules into account, identifying
+/// types and variables with unique IDs.
+#[derive(Debug, PartialEq, Clone)]
+pub struct ASTIdentifier { }
+impl ASTIdentifier {
+    pub fn check_unit(&self, errors: &mut ErrorCollector, unit: &Unit) {
+        let mut type_scope = types::default_type_scope();
+        ItemVarIdentifier::new(errors, types).visit_unit(unit);
+        ItemTypeIdentifier::new(errors).visit_unit(unit);
+        ExpressionVarIdentifier::new(errors).visit_unit(unit);
+        ExpressionTypeIdentifier::new(errors, types).visit_unit(unit);
+    }
+}

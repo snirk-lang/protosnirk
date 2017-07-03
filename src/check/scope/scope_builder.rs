@@ -5,6 +5,10 @@ use std::hash::Hash;
 
 use parse::ScopedId;
 
+/// A `ScopeBuilder` which handles named things defined in different
+/// scopes, suitable for most `ScopeBuilder` uses.
+pub type NameScopeBuilder = ScopeBuilder<String>;
+
 /// Generic structure to build a scope mapping.
 ///
 /// # Motivation
