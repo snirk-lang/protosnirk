@@ -7,7 +7,7 @@ use check::visitor::*;
 
 /// Identifies names of items that can be used in expressions,
 /// namely function definitions.
-pub struct ItemVarIdentifier<'err, 'builder, 'id> {
+pub struct ItemVarIdentifier<'err, 'builder> {
     errors: &'err mut ErrorCollector,
     builder: &'builder mut NameScopeBuilder,
     current_id: ScopedId

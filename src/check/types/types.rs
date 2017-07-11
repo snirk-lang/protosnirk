@@ -6,53 +6,56 @@
 
 use std::collections::HashMap;
 
+use parse::ScopedId;
 use parse::ast::Identifier;
 
-/// Representation of types in protosnirk.
+use check::types::{TypeId, TypeEnvironment};
+
+/// Representation of types which have been inferred.
+/// This is intended to cover generics in the future; so the types are not
+/// always concrete.
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum Type {
-    /// `()`
-    Empty,
-    /// Standard number type for now
-    Float,
-    /// Values of `true` or `false`.
-    Boolean,
-    /// Function - only used in declarations
-    Fn(FnType)
-}
-impl Type {
-    pub fn expect_fn(self) -> FnType {
-        match self {
-            Type::Fn(inner) => inner,
-            other => panic!("`expect_fn` called on {:?}", other)
-        }
-    }
+pub enum LinkedType {
+    Identified(TypeId),
+    BlockFn(LinkedFnType),
 }
 
-/// Type representation of functions in protosnirk
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct FnType {
-    /// Return type of the function
-    return_type: Box<Type>,
-    /// Argument types. Both order and names are important.
-    args: Vec<(Identifier, Type)>
+pub struct LinkedFnType {
+    args: Vec<(ScopedId, LinkedType)>,
+    return_: Box<LinkedType>
 }
-impl FnType {
-    pub fn new(return_type: Box<Type>, args: Vec<(String, Type)>) -> FnType {
-        FnType { return_type: return_type, args: args }
+
+pub type TypeTable = HashMap<ScopedId, ConstructedType>;
+
+/// Concrete information about a type created after inference is complete.
+///
+///
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct ConstructedType {
+
+}
+
+/// Represents a description of a type.
+#[derive(Debug, PartialEq, Clone, Hash)]
+pub enum ProjectedType<'env> {
+    Empty,
+    Float(&'env TypeId),
+    Bool(&'env TypeId),
+    Function {
+        params: Vec<(&'env ScopedId, &'env TypeId)>,
+        return_type: ProjectedType<'env>
     }
-    pub fn get_return(&self) -> &Type {
-        &self.return_type
+}
+impl<'env> ProjectedType<'env> {
+    pub fn from_id(env: &'env TypeEnvironment,
+                   id: TypeId)
+                   -> Option<ProjectedType<'env>> {
+
     }
-    pub fn get_args(&self) -> &[(String, Type)] {
-        &self.args
-    }
-    pub fn get_arg(&self, name: &str) -> Option<(usize, Type)> {
-        for (ix, arg) in self.args.iter().enumerate() {
-            if arg.0 == name {
-                return Some((ix, arg.1.clone()))
-            }
-        }
-        return None
+    pub fn from_known_id(env: &'env TypeEnvironment,
+                         id: &'env TypeId)
+                         -> ProjectedType<'env> {
+
     }
 }
