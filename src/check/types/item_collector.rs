@@ -38,7 +38,9 @@ pub struct ItemTypeCollector<'err, 'env> {
     errors: &'err mut ErrorCollector,
     environment: &'env mut TypeEnvironment,
     // `TypeId` obtained by visiting a type.
-    current_id: TypeId
+    current_id: TypeId,
+    // ScopedId of the current item that is being type collected.
+    current_scope: ScopedId
 }
 impl<'err, 'env> ItemTypeCollector<'err, 'env> {
     pub fn new(errors: &'err mut ErrorCollector,
@@ -76,7 +78,9 @@ impl<'err, 'env> ItemVisitor for ItemTypeCollector<'err, 'env> {
 
         // Declare the ident to have a fn type.
         let fn_scope_id = inline_fn.get_ident().get_id();
+        self.current_scope = fn_scope_id.clone();
         self.environment.add_constraint(
+            fn_scope_id.clone(),
             TypeConstraint::DeclaredFn(
                 fn_scope_id,
                 inline_fn.get_params()
@@ -93,6 +97,7 @@ impl<'err, 'env> ItemVisitor for ItemTypeCollector<'err, 'env> {
             self.visit_type_expression(param_type);
             let param_type = self.current_id;
             self.environment.add_constraint(
+                fn_scope_id.clone(),
                 TypeConstraint::VarIdentKnownType(param_id, param_type),
                 ConstraintSource::ParamDecl
             );
@@ -106,7 +111,9 @@ impl<'err, 'env> ItemVisitor for ItemTypeCollector<'err, 'env> {
         // - constrain `foo` to declared: DeclaredFn(args)
         // - constrain `foo` to return its type.
         let fn_scope_id = block_fn.get_ident().get_id();
+        self.current_scope = fn_scope_id.clone();
         self.environment.add_constraint(
+            fn_scope_id.clone(),
             TypeConstraint::DeclaredFn(
                 fn_scope_id,
                 block_fn.get_params()
@@ -141,6 +148,16 @@ impl<'err, 'env> TypeVisitor for ItemTypeCollector<'err, 'env> {
         // We're just looking at an identified type and adding a
         // `scoped = type` bound.
         let scoped_id = named_ty.get_ident().get_id();
+        // If the type ident isn't scoped, it was redundantly declared.
+        // For now we use `TypeId::default` and assume the errors will be
+        // revealed and the invalid state propagation doesn't get too much
+        // worse.
+        // This is the main reason for having more semantic error objects;
+        // to allow different compiler stages to better work around errors.
+        if scoped_id.is_default() {
+            self.found_id = TypeId::default();
+            return
+        }
         if let Some(type_id) = self.environment.get_type_def(scoped_id) {
             // we have a `TypeId` corresponding to this type.
             // save that so we can associate it with a variable.

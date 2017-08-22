@@ -16,8 +16,9 @@ pub struct TypeEnvironment {
     known_types: HashMap<TypeId, ScopedId>,
     /// `TypeId`s of given type identifiers.
     known_type_defs: HashMap<ScopedId, TypeId>,
-    /// Set of bounds on types.
-    constraints: Vec<(TypeConstraint, ConstraintSource)>,
+    /// Bounds on types. Each is mapped to a top-level scope in which it may
+    /// apply, i.e. the scope of its declared function.
+    constraints: HashMap<ScopedId, (TypeConstraint, ConstraintSource)>,
     /// Current `TypeId` for creating new relations.
     curr_type_id: TypeId
 }
@@ -46,8 +47,8 @@ impl TypeEnvironment {
         // `()` (which by the way can't be parsed), or the result of a fun which
         // does not declare a return type. Inline fns which are a call to an
         // undeclared fn will also return ().
-        debug_assert_eq!(known_type_defs.len(), 2,
-            "Expected to create TypeEnvironment with 2 known/std types");
+        debug_assert_eq!(known_type_defs.len() >= 2,
+            "Expected to create TypeEnvironment with at least 2 std types");
         TypeEnvironment {
             known_types,
             known_type_defs,
@@ -80,11 +81,12 @@ impl TypeEnvironment {
 
     /// Add a new `TypeConstraint` to the type environment.
     pub fn add_constraint(&mut self,
+                          top_scope: ScopedId,
                           constraint: TypeConstraint,
                           source: ConstraintSource) {
         // TODO do some auto-replace/optimizing of the constraint, i.e.
         // check for ids in `known_defs`/`known_types`?
-        self.constraints.push((constraint, source));
+        self.constraints.insert(top_scope, (constraint, source));
     }
 }
 
@@ -130,6 +132,8 @@ pub enum TypeConstraint {
     FnReturnsUnit(ScopedId),
     /// The type of an expression is that of the return type of a fn.
     TypeIsFnReturned(TypeId, ScopedId),
+    /// The given block may have the given type.
+    BlockHasType(ScopedId, TypeId),
 }
 
 /// Source of a type constraint.
