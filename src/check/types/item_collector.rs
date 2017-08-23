@@ -70,39 +70,6 @@ enum CollectorState {
 impl<'err, 'env> DefaultUnitVisitor for ItemTypeCollector<'err, 'env> { }
 
 impl<'err, 'env> ItemVisitor for ItemTypeCollector<'err, 'env> {
-    fn visit_inline_fn_decl(&mut self, inline_fn: &InlineFnDeclaration) {
-        // inline fn:
-        // fn foo(x: Type, y: Type) => expr
-        // - constrain args: ident(`x`)->TypeId
-        // - constrain `foo` to declared: DeclaredFn(args)
-
-        // Declare the ident to have a fn type.
-        let fn_scope_id = inline_fn.get_ident().get_id();
-        self.current_scope = fn_scope_id.clone();
-        self.environment.add_constraint(
-            fn_scope_id.clone(),
-            TypeConstraint::DeclaredFn(
-                fn_scope_id,
-                inline_fn.get_params()
-                    .map(|(ident, _)| ident.get_id().clone())
-                    .collect()
-            ),
-            ConstraintSource::InlineSignature
-        );
-
-        // Declare the parameters to have known types.
-        let fn_type = inline_fn.get_type_expr();
-        for (param_ident, param_type) in fn_type.get_params() {
-            let param_id = param_ident.get_id();
-            self.visit_type_expression(param_type);
-            let param_type = self.current_id;
-            self.environment.add_constraint(
-                fn_scope_id.clone(),
-                TypeConstraint::VarIdentKnownType(param_id, param_type),
-                ConstraintSource::ParamDecl
-            );
-        }
-    }
     fn visit_block_fn_decl(&mut self, block_fn: &BlockFnDeclaration) {
         // block fn:
         // fn foo(x: Type, y: Type) -> RetType
@@ -175,13 +142,5 @@ impl<'err, 'env> TypeVisitor for ItemTypeCollector<'err, 'env> {
     fn visit_fn_type_expr(&mut self, fn_ty: &FnTypeExpression) {
         // This is where first class fns would go if the AST supported them.
         unreachable!("ItemTypeCollector cannot visit FnTypeExpressions");
-    }
-
-    /// TODO remove `InlineFnTypeExpression` from `TypeExpression`
-    /// Inline fns are items, not valid type expressions. We consider fn types
-    /// to be valid fn expressions in the case of first class fns, but there
-    /// should be no need for this in a `TypeVisitor` API.
-    fn visit_inline_fn_ty_expr(&mut self, fn_ty: &InlineFnTypeExpression) {
-        unreachable!("ItemTypeCollector canot visit InlineFnTypeExpressions");
     }
 }

@@ -22,26 +22,36 @@ use check::visitor::*;
 pub struct ExpressionTypeCollector<'err, 'env> {
     errors: &'err mut ErrorCollector,
     environment: &'env mut TypeEnvironment,
+    /// Unique, incrementing `TypeId`.
+    unique_type_id: TypeId,
     /// TypeId of expression rvalues
-    current_id: TypeId,
+    current_type: TypeId,
     /// Keep a stack of the IDs of which block we're in.
     /// The top of the stack can be used for the return statement of a block.
-    block_type_id_stack: Vec<TypeId>,
-    /// ScopeId of the enclosing block or fn
-    current_scope: ScopedId,
+    block_scopes: Vec<TypeId>,
+    /// ScopeId of the enclosing block or fn.
+    ///
+    /// This corresponds to the fn's ident. For the top-level block, use the
+    /// first of `block_scopes`.
+    enclosing_fn_id: ScopedId,
+    /// Whether we've returned from the fn yet.
+    /// I guess this needs to take branching into account?
+    return_complete: bool
 }
 
 impl<'err, 'env> ExpressionTypeCollector<'err, 'env> {
     pub fn new(errors: &'err mut ErrorCollector,
-               environment: &'env mut TypeEnvironment)
+               environment: &'env mut TypeEnvironment,
+               unique_type_id: TypeId)
                -> ExpressionTypeCollector<'err, 'env> {
         ExpressionTypeCollector {
             errors,
             environment,
-            current_id: TypeId::default(),
-            expr_match_id: TypeId::default(),
-            block_type_id_stack: Vec::new(),
-            current_scope: ScopedId::default(),
+            unique_type_id,
+            enclosing_fn_id: ScopedId::default(),
+            block_scopes: Vec::new(),
+            current_type: TypeId::default(),
+            return_complete: false
         }
     }
 
@@ -55,29 +65,27 @@ impl<'err, 'env> ExpressionTypeCollector<'err, 'env> {
 impl<'err, 'env> DefaultUnitVisitor for ExpressionTypeCollector<'err, 'env> { }
 
 impl<'err, 'env> ItemVisitor for ExpressionTypeCollector<'err, 'env> {
-    fn visit_inline_fn_decl(&mut self, inline_fn: &InlineFnDeclaration) {
-        let top_scope = inline_fn.get_ident().get_id();
-        if top_scope.is_default() {
+    fn visit_block_fn_decl(&mut self, block_fn: &BlockFnDeclaration) {
+        let fn_id = block_fn.get_ident().get_id();
+        if fn_id.is_default() {
             return
         }
 
-        self.current_scope = top_scope.clone();
-        self.block_type_id_stack.clear();
-        self.block_type_id_stack.push(top_scope.clone());
+        self.enclosing_fn_id = fn_id;
 
-        self.visit_expression(inline_fn.get_expression());
-    }
-    fn visit_block_fn_decl(&mut self, block_fn: &FnDeclaration) {
-        let top_scope = block_fn.get_ident().get_id();
-        if top_scope.is_default() {
-            return
-        }
-
-        self.current_scope = top_scope.clone();
-        self.block_type_id_stack.clear();
-        self.block_type_id_stack.push(top_scope.clone());
+        self.block_scopes.clear();
+        self.block_scopes.push(block_fn.get_block().get_id().clone());
+        self.return_value_set = false;
 
         visit::walk_block(block_fn.get_block());
+
+        // Make sure the last expr of a fn is set as the return if needed.
+        if !self.return_complete {
+            // Don't do the check if the fn returns `()` anyway.
+            if !block_fn.get_type_expr().get_return_type().is_empty() {
+                // block.check_for_return_expr()
+            }
+        }
     }
 }
 
@@ -160,7 +168,7 @@ impl<'err, 'env> ExpressionVisitor for ExpressionTypeCollector<'err, 'env> {
         self.visit_expression(decl.get_value());
         let expr_type_id = self.current_id;
         debug_assert!(!expr_type_id.is_default(),
-            "No type ID from visiting an expression");
+            "No type ID from visiting an expression in declaration rvalue");
 
     }
 }
