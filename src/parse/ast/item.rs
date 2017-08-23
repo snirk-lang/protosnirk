@@ -8,8 +8,7 @@ use lex::{Token};
 use parse::Id;
 use parse::ast::{Identifier, Block, Expression};
 use parse::ast::types::{TypeExpression,
-                        FnTypeExpression,
-                        InlineFnTypeExpression};
+                        FnTypeExpression};
 
 /// A single "unit" of parsed code.
 #[derive(Debug, PartialEq, Clone)]
@@ -32,66 +31,7 @@ impl Unit {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Item {
     /// Declaraion of a function
-    FnDeclaration(FnDeclaration)
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum FnDeclaration {
-    /// Function is declared inline with `=>`
-    InlineFnDeclaration(InlineFnDeclaration),
-    /// Function is declared as a block
     BlockFnDeclaration(BlockFnDeclaration)
-}
-
-/// Inline fn declaration.
-///
-/// Functions can be declared inline using the inline arrow. Inline
-/// fn declarations are only allowed one expression, but the return
-/// type is inferred.
-///
-/// # Example
-/// ```snirk
-/// fn foo(arg: float) => arg + 1
-/// ```
-#[derive(Debug, PartialEq, Clone)]
-pub struct InlineFnDeclaration {
-    fn_token: Token,
-    ident: Identifier,
-    type_expr: InlineFnTypeExpression,
-    expr: Expression,
-}
-impl InlineFnDeclaration {
-    /// Create a new `InlineFnDeclaration`
-    pub fn new(fn_token: Token,
-               ident: Identifier,
-               type_expr: InlineFnTypeExpression,
-               expr: Expression)
-               -> BlockFnDeclaration {
-        BlockFnDeclaration {
-            fn_token, ident, type_expr, expr,
-            type_id: Cell::new(Id::default())
-        }
-    }
-    /// Get the `fn` token
-    pub fn get_token(&self) -> &Token {
-        &self.fn_token
-    }
-    /// Get the identifier of the function
-    pub fn get_ident(&self) -> &Identifier {
-        &self.name
-    }
-    /// Get the textual name of the function
-    pub fn get_name(&self) -> &str {
-        &self.name.get_name()
-    }
-    /// Get the type expression of the function
-    pub fn get_type_expr(&self) -> &InlineFnTypeExpression {
-        &self.type_expr
-    }
-    /// Get the expression of the function
-    pub fn get_expr(&self) -> &Expression {
-        &self.block
-    }
 }
 
 /// Declaration of a function

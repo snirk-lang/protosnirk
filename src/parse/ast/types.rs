@@ -20,8 +20,6 @@ pub enum TypeExpression {
     Named(NamedTypeExpression),
     /// Function type, such as `(x: float) -> bool`
     Function(FnTypeExpression),
-    /// Inline function type such as `(x: float) => `
-    InlineFn(InlineFnTypeExpression)
 }
 impl TypeExpression {
     /// Get the `TypeId` of this type.
@@ -130,47 +128,6 @@ impl FnTypeExpression {
     }
 
     /// Set the `TypeId` of this type expression.
-    pub fn set_type_id(&self, new_id: TypeId) {
-        self.type_id.set(new_id);
-    }
-}
-
-/// An inline fn type expression.
-///
-/// It's the `FnTypeExpression` without the return type.
-#[derive(Debug, PartialEq, Clone)]
-pub struct InlineFnTypeExpression {
-    params: Vec<(Identifier, TypeExpression)>,
-    type_id: Cell<TypeId>
-}
-impl InlineFnTypeExpression {
-    /// Create a new `InlineFnTypeExpression` with the given parameter list
-    /// and default `TypeId`.
-    pub fn new(params: Vec<(Identifier, TypeExpression)>)
-              -> InlineFnTypeExpression {
-        InlineFnTypeExpression {
-            params, type_id: TypeId::default()
-        }
-    }
-
-    /// Create a new `InlineFnTypeExpression` with the given parameter list
-    /// and `TypeId`.
-    pub fn with_id(params: Vec<(Identifier, TypeExpression)>,
-                   type_id: TypeId) -> FnTypeExpression {
-        InlineFnTypeExpression { params, type_id }
-    }
-
-    /// Get the parameter list of this function type.
-    pub fn get_params(&self) -> &[(Identifier, TypeExpression)] {
-        &self.params
-    }
-
-    /// Get the `TypeId` of this function type.
-    pub fn get_type_id(&self) -> TypeId {
-        *self.type_id.get()
-    }
-
-    /// Set the `TypeId` of this function type.
     pub fn set_type_id(&self, new_id: TypeId) {
         self.type_id.set(new_id);
     }

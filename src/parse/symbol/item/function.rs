@@ -15,7 +15,6 @@ use parse::symbol::{PrefixParser, Precedence, AssignmentParser, InfixParser};
 ///     stmt*
 ///
 /// fn foo (bar, baz, \+ bliz) -> int \- \+ stmt* \-
-/// fn foo(arg1, arg2, argn) => expr
 /// ```
 #[derive(Debug, PartialEq, Clone)]
 pub struct FnDeclarationParser { }
@@ -62,7 +61,7 @@ impl<T: Tokenizer> PrefixParser<Item, T> for FnDeclarationParser {
 
         // Explicitly differentiating between omitted return type for block fns
         // This is gonna be `None` for inline fns
-        let return_type = if parser.next_type() == TokenType::Colon {
+        let return_type = if parser.next_type() == TokenType::Arrow {
             parser.consume();
             Some(try!(parser.type_expr()))
         }
@@ -70,24 +69,12 @@ impl<T: Tokenizer> PrefixParser<Item, T> for FnDeclarationParser {
             None
         };
 
-        // Inline fn
-        if parser.next_type() == TokenType::InlineArrow {
-            parser.consume();
-            let expr = try!(parser.expression(Precedence::Min));
-            let inline_type = InlineFnTypeExpression::new(params);
-            Ok(Item::InlineFnDeclaration(InlineFnDeclaration::new(
-                token, name, inline_type, expr
-            )))
-        }
-        // Indented fn
-        else {
-            // This is gonna require a comment in the place of Python's `pass`.
-            try!(parser.consume_type(TokenType::BeginBlock));
-            let block = try!(parser.block());
-            let fn_type = FnTypeExpression::new(params, return_type);
-            Ok(Item::BlockFnDeclaration(BlockFnDeclaration::new(
-                token, name, fn_type, block
-            )))
-        }
+        // This is gonna require a comment in the place of Python's `pass`.
+        try!(parser.consume_type(TokenType::BeginBlock));
+        let block = try!(parser.block());
+        let fn_type = FnTypeExpression::new(params, return_type);
+        Ok(Item::FnDeclaration(BlockFnDeclaration::new(
+            token, name, fn_type, block
+        )))
     }
 }

@@ -18,16 +18,12 @@ pub trait UnitVisitor {
 pub trait ItemVisitor {
     fn visit_item(&mut self, item: &Item) {
         match *item {
-            Item::InlineFnDeclaration(inline_fn_decl) => {
-                self.visit_inline_fn_decl(inline_fn_decl);
-            },
             Item::BlockFnDeclaration(block_fn_decl) => {
                 self.visit_block_fn_decl(block_fn_decl);
             }
         }
     }
 
-    fn visit_inline_fn_decl(&mut self, inline_fn_decl: &InlineFnDeclaration);
     fn visit_block_fn_decl(&mut self, block_fn_decl: &BlockFnDeclaration);
 }
 
@@ -41,15 +37,11 @@ pub trait TypeVisitor {
             TypeExpression::Function(block_fn_ty) => {
                 self.visit_block_fn_ty_expr(block_fn_ty);
             },
-            TypeExpression::InlineFn(inline_fn_ty) => {
-                self.visit_inline_fn_ty(inline_fn_ty);
-            }
         }
     }
 
     fn visit_named_type_expr(&mut self, named_ty: &NamedTypeExpression);
     fn visit_fn_type_expr(&mut self, fn_ty: &FnTypeExpression);
-    fn visit_inline_fn_ty_expr(&mut self, inline_fn_ty: &InlineFnTypeExpression);
 }
 
 /// A visitor which can visit blocks of code.
@@ -139,10 +131,7 @@ impl UnitVisitor for DefaultUnitVisitor { }
 
 pub trait DefaultItemVisitor : BlockVisitor { }
 impl ItemVisitor for DefaultItemVisitor {
-    fn visit_inline_fn_decl(&mut self, fn_decl: &mut InlineFnDeclaration) {
-        visit::walk_inline_fn_decl(self, fn_decl);
-    }
-    fn visit_block_fn_decl(&mut self, fn_decl: &mut FnDeclaration) {
+    fn visit_block_fn_decl(&mut self, fn_decl: &BlockFnDeclaration) {
         visit::walk_fn_decl(self, fn_decl);
     }
 }
@@ -191,16 +180,9 @@ pub mod visit {
     }
 
     #[inline]
-    pub fn walk_fn_decl<V>(visitor: &mut V, fn_decl: &FnDeclaration)
+    pub fn walk_fn_decl<V>(visitor: &mut V, fn_decl: &BlockFnDeclaration)
                         where V: BlockVisitor {
         visitor.visit_block(fn_decl.get_block());
-    }
-
-    #[inline]
-    pub fn walk_inline_fn_decl<V>(visitor: &mut V,
-                                  fn_decl: &InlineFnDeclaration)
-                                  where V: BlockVisitor + ExpressionVisitor {
-        visitor.visit_expression(fn_decl.get_expression());
     }
 
     #[inline]
@@ -255,15 +237,6 @@ pub mod visit {
         }
         if let Some((_, block)) = if_block.get_else() {
             visitor.visit_block(block);
-        }
-    }
-
-    #[inline]
-    pub fn walk_inline_fn_type<V>(visitor: &mut V,
-                                  fn_type: &InlineFnTypeExpression)
-                                  where V: TypeVisitor {
-        for (_param_name, param_type) in fn_type.get_params() {
-            visitor.visit_type(param_type);
         }
     }
 
