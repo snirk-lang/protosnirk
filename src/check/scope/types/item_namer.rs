@@ -31,11 +31,6 @@ impl<'err, 'builder> DefaultUnitVisitor
     for ItemTypeIdentifier<'err, 'builder> { }
 
 impl<'err, 'builder> ItemVisitor for ItemTypeIdentifier<'err, 'builder> {
-    fn visit_inline_fn_decl(&mut self, fn_decl: &mut InlineFnDeclaration) {
-        // Don't need to look at param name idents.
-        visit::walk_inline_fn_type(self, fn_decl.get_type_expr());
-    }
-
     fn visit_block_fn_decl(&mut self, fn_decl: &mut BlockFnDeclaration) {
         // Don't need to look at param name idents.
         visit::walk_fn_type(self, fn_decl.get_type_expr());
@@ -57,11 +52,6 @@ impl<'err, 'builder> TypeVisitor for ItemTypeIdentifier<'err, 'builder> {
         }
     }
     fn visit_fn_type_expr(&mut self, fn_ty: &FnTypeExpression) {
-        // Skipping over this type by `visit`ing while handling the item itself
-        unreachable!()
-    }
-    fn visit_inline_fn_ty_expr(&mut self,
-                               inline_fn_ty: &InlineFnTypeExpression) {
         // Skipping over this type by `visit`ing while handling the item itself
         unreachable!()
     }

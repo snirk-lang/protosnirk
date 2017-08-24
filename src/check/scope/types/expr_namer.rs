@@ -84,9 +84,4 @@ impl <'err, 'builder> TypeVisitor
     fn visit_fn_type_expr(&self, fn_type: &FnTypeExpression) {
         visit::walk_fn_type(self, fn_type);
     }
-
-    fn visit_inline_fn_ty_expr(&mut self,
-                               inline_fn_ty: &InlineFnTypeExpression) {
-        visit::walk_inline_fn_type(self, inline_fn_ty)
-    }
 }

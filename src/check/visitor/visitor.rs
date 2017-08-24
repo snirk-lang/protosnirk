@@ -35,7 +35,7 @@ pub trait TypeVisitor {
                 self.visit_named_type_expr(named_ty);
             },
             TypeExpression::Function(block_fn_ty) => {
-                self.visit_block_fn_ty_expr(block_fn_ty);
+                self.visit_fn_ty_expr(block_fn_ty);
             },
         }
     }

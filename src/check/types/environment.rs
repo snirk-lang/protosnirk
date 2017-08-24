@@ -13,9 +13,9 @@ use check::types::*;
 pub struct TypeEnvironment {
     /// Known type variables: the resulting `ScopedId` is correlated to the
     /// AST type definition for use in emitting.
-    known_types: HashMap<TypeId, ScopedId>,
+    known_type_names: HashMap<TypeId, ScopedId>,
     /// `TypeId`s of given type identifiers.
-    known_type_defs: HashMap<ScopedId, TypeId>,
+    known_var_types: HashMap<ScopedId, TypeId>,
     /// Bounds on types. Each is mapped to a top-level scope in which it may
     /// apply, i.e. the scope of its declared function.
     constraints: HashMap<ScopedId, (TypeConstraint, ConstraintSource)>,
@@ -50,8 +50,8 @@ impl TypeEnvironment {
         debug_assert_eq!(known_type_defs.len() >= 2,
             "Expected to create TypeEnvironment with at least 2 std types");
         TypeEnvironment {
-            known_types,
-            known_type_defs,
+            known_type_names: known_types,
+            known_var_types: known_type_defs,
             constraints: Vec::new(),
             curr_type_id: type_id
         }
@@ -88,6 +88,11 @@ impl TypeEnvironment {
         // check for ids in `known_defs`/`known_types`?
         self.constraints.insert(top_scope, (constraint, source));
     }
+
+    /// Get the TypeId of a given variable, if known.
+    pub fn get_type_id_of_var(&self, var_id: &ScopedId) -> Option<TypeId> {
+        self.known_var_types.get(var_id)
+    }
 }
 
 /// Represents a unique type.
@@ -120,8 +125,8 @@ pub enum TypeConstraint {
     TypesAreSame(TypeId, TypeId),
     /// A variable `ScopedId` has a known type.
     VarIdentKnownType(ScopedId, TypeId),
-    /// Two identifiers have the same type.
-    IdentsSameType(ScopedId, ScopedId),
+    // /// Two identifiers have the same type.
+    // IdentsSameType(ScopedId, ScopedId),
     /// The identifier corresponds to a declared fn with named params.
     /// This would need a layer of indirection `(TypeId, Vec<ScopedId>)`
     /// once the AST starts working with first-class fns.
@@ -143,13 +148,13 @@ pub enum ConstraintSource {
     Unknown,
     /// This type constraint was a result of a fn signature
     FnSignature,
-    /// This type constraint was a result of an inline fn sigature
-    InlineFnSignature,
     /// This type constraint is known because a variable is declared as the
     /// parameter of a funcion.
     ParamDecl,
     /// A variable was declared with an explicit type.
     ExplicitVarDecl,
+    /// A variable was assigned to a value of a specific type.
+    VarAssignment,
     /// The type of a value was inferred because of a fn call.
     CalledFnReturnType,
     /// The type of a value was inferred because it is the conditional
@@ -163,5 +168,14 @@ pub enum ConstraintSource {
     ExplicitReturnMatch,
     /// The type of a value was inferred becuase it was used in an implicit
     /// return exoression and must match the signature of its declaring fn.
-    ImplicitReturnMatch
+    ImplicitReturnMatch,
+    /// The type of a value needs to be a number in order to be used in a
+    /// numeric operation.
+    NumericOperator,
+    /// The type of a value needs to be `bool` in order to be used in a
+    /// boolean operation.
+    BooleanOperator,
+    /// An equality or non-equality operator needs the operatees to be the same
+    /// type.
+    EqualityOperator,
 }
