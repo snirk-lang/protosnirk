@@ -8,6 +8,8 @@ use check::types::environment::{TypeEnvironment,
                                 ConstraintSource};
 use check::visitor::*;
 
+use check::types::{TYPE_ID_INT, TYPE_ID_BOOL};
+
 /// Collects type equations in expressions
 ///
 /// We can consider the `ItemTypeCollector` to have already visited the AST,
@@ -22,10 +24,8 @@ use check::visitor::*;
 pub struct ExpressionTypeCollector<'err, 'env> {
     errors: &'err mut ErrorCollector,
     environment: &'env mut TypeEnvironment,
-    /// Unique, incrementing `TypeId`.
-    unique_type_id: TypeId,
     /// TypeId of expression rvalues
-    current_type: TypeId,
+    expr_type: TypeId,
     /// Keep a stack of the IDs of which block we're in.
     /// The top of the stack can be used for the return statement of a block.
     block_scopes: Vec<TypeId>,
@@ -41,16 +41,14 @@ pub struct ExpressionTypeCollector<'err, 'env> {
 
 impl<'err, 'env> ExpressionTypeCollector<'err, 'env> {
     pub fn new(errors: &'err mut ErrorCollector,
-               environment: &'env mut TypeEnvironment,
-               unique_type_id: TypeId)
+               environment: &'env mut TypeEnvironment)
                -> ExpressionTypeCollector<'err, 'env> {
         ExpressionTypeCollector {
             errors,
             environment,
-            unique_type_id,
             enclosing_fn_id: ScopedId::default(),
             block_scopes: Vec::new(),
-            current_type: TypeId::default(),
+            expr_type: TypeId::default(),
             return_complete: false
         }
     }
@@ -79,12 +77,9 @@ impl<'err, 'env> ItemVisitor for ExpressionTypeCollector<'err, 'env> {
 
         visit::walk_block(block_fn.get_block());
 
-        // Make sure the last expr of a fn is set as the return if needed.
-        if !self.return_complete {
-            // Don't do the check if the fn returns `()` anyway.
-            if !block_fn.get_type_expr().get_return_type().is_empty() {
-                // block.check_for_return_expr()
-            }
+        // If the fn's return type isn't empty, we want to set up a return type.
+        if !block_fn.get_type_expr().get_return_type().is_empty() {
+
         }
     }
 }
@@ -136,39 +131,209 @@ impl<'err, 'env> StatementVisitor for ExpressionTypeCollector<'err, 'env> {
 impl<'err, 'env> ExpressionVisitor for ExpressionTypeCollector<'err, 'env> {
     fn visit_var_ref(&mut self, ident: &Identifier) {
         // Keep track of referred-to ident?
+        if let Some(known_type_id) = self.environment.get_type_id_of_var(ident.get_id()) {
+            trace!("Found {} ({:?}) to have type ID {:?}",
+                ident.get_name(), ident.get_id(), known_type_id);
+            self.expr_type = known_type_id;
+        }
+        else {
+            trace!("Declaring new type id for var {} ({:?})",
+                ident.get_name(), ident.get_id());
+            let type_id = self.environment.declare_var_new_type(ident.get_id().clone());
+            self.expr_type = type_id;
+        }
     }
 
     fn visit_if_expr(&mut self, if_expr: &IfExpression) {
         // condition must be boolean, exprs must match
+
+        self.visit_expression(if_expr.get_condition());
+        let cond_ty = self.expr_type;
+        TYPE_ID_BOOL.with(|bool_type_id| {
+            self.add_constraint(
+                TypeConstraint::TypesAreSame(cond_ty, bool_type_id),
+                ConstraintSource::IfConditionalBool
+            );
+        });
+
+        self.visit_expression(if_expr.get_true_expr());
+        let true_type_id = self.expr_type;
+        self.visit_expression(if_expr.get_else());
+        let else_type_id = self.expr_type;
+
+        self.add_constraint(
+            TypeConstraint::TypesAreSame(true_type_id, else_type_id),
+            ConstraintSource::IfBranchesSame
+        );
     }
 
     fn visit_unary_op(&mut self, un_op: &UnaryOperation) {
         // expr must be numeric
+        match un_op.get_operator() {
+            Operator::Subtraction | Operator::Addition => {
+                // We have to constrain the interior id to be TYPE_ID_INT.
+                self.visit_expression(un_op.get_inner());
+                let inner_type_id = self.expr_type;
+                TYPE_ID_INT.with(|type_id_int| {
+                    self.add_constraint(
+                        TypeConstraint::TypesAreSame(
+                            inner_type_id, type_id_int),
+                        ConstraintSource::NumericOperator);
+                    self.inner_type_id = type_id_int;
+                });
+            },
+            // This should be exhaustive.
+            // https://github.com/immington-industries/protosnirk/issues/29
+            _ => {
+                unreachable!("Unexpected unary operation {:?}", un_op);
+            }
+        }
     }
 
-    fn visit_binary_op(&mut self, bin_up: &BinaryOperation) {
-        // exprs must match (no coersion here)
+    fn visit_binary_op(&mut self, bin_op: &BinaryOperation) {
+        use parse::ast::Operator::*;
+
+        self.visit_expression(bin_op.get_left());
+        let left_type_id = self.expr_type;
+        self.visit_expression(bin_op.get_right());
+        let right_type_id = self.expr_type;
+
+        match bin_op.get_operator() {
+            Equality | NonEquality => {
+                // lhs and rhs are same, result is bool.
+                TYPE_ID_BOOL.with(|type_id_bool| {
+                    self.add_constraint(
+                        TypeConstraint::TypesAreSame(left_type_id, right_type_id),
+                        ConstraintSource::EqualityOperator
+                    );
+                    self.expr_type = type_id_bool;
+                });
+            },
+            LessThan | GreaterThan | GreaterThanEquals | LessThanEquals => {
+                // lhs and rhs are numeric, result is bool.
+                let type_id_bool = TYPE_ID_BOOL.with(|ty_bool| ty_bool);
+                TYPE_ID_INT.with(|type_id_int| {
+                    self.add_constraint(
+                        TypeConstraint::TypesAreSame(left_type_id, type_id_int),
+                        ConstraintSource::NumericOperator
+                    );
+                    self.add_constraint(
+                        TypeConstraint::TypesAreSame(right_type_id, type_id_int),
+                        ConstraintSource::NumericOperator
+                    );
+                    self.expr_type = type_id_bool;
+                });
+            },
+            Addition | Subtraction | Multiplication | Division | Modulus => {
+                // lhs and rhs are numeric, result is numeric.
+                TYPE_ID_INT.with(|type_id_int| {
+                    self.add_constraint(
+                        TypeConstraint::TypesAreSame(left_type_id, type_id_int),
+                        ConstraintSource::NumericOperator
+                    );
+                    self.add_constraint(
+                        TypeConstraint::TypesAreSame(right_type_id, type_id_int),
+                        ConstraintSource::NumericOperator
+                    );
+                    self.expr_type = type_id_int;
+                });
+            },
+            Custom => unreachable!("Unexpected binary operation {:?}", bin_op)
+        }
     }
 
     fn visit_fn_call(&mut self, fn_call: &FnCall) {
         // exprs must match fn type.
+
+        // Params must be alingned with fn params - have those been set up yet?
+        
     }
 
     fn visit_assignment(&mut self, assignment: &Assignment) {
         // var must match assignment type
+        let lvalue_scoped_id = assignment.get_lvalue().get_id();
+        let lvalue_type_id = self.environment.get_type_id_of_var(lvalue_scoped_id)
+            .expect("Could not find type ID of assignment, lvalue undeclared");
+        self.visit_expression(assignment.get_rvalue());
+        let rvalue_type_id = self.expr_type;
+        self.add_constraint(
+            TypeConstraint::TypesAreSame(lvalue_type_id, rvalue_type_id),
+            ConstraintSource::VarAssignment
+        );
+        self.expr_type = TypeId::default();
     }
 
     fn visit_declaration(&mut self, decl: &Declaration) {
         // var must match decl type.
         // decl must match var declared type.
         let var_scope_id = decl.get_ident().get_id();
+        let var_type_id = self.environment.declare_var_new_type(var_scope_id);
+
+        // also restrict var_scope_id to the type decl.
         if let Some(type_decl) = decl.get_type_decl() {
-            // also restrict var_scope_id to the type decl.
+            // This is going to require more work with type visiting in the future.
+            let declared_type_id = ExpressionTypeVisitor::new(&self.environment)
+                .visit_type_expr(type_decl)
+                .into();
+            self.add_constraint(
+                TypeConstraint::TypesAreSame(var_type_id, declared_type_id),
+                ConstraintSource::ExplicitVarDecl
+            );
         }
         self.visit_expression(decl.get_value());
-        let expr_type_id = self.current_id;
+        let expr_type_id = self.expr_type;
         debug_assert!(!expr_type_id.is_default(),
             "No type ID from visiting an expression in declaration rvalue");
+        self.adadd_constraint(
+            TypeConstraint::TypesAreSame(var_type_id, expr_type_id),
+            ConstraintSource::VarDeclValue
+        );
+    }
+}
 
+/// Simple visitor which uses the `TypeEnvironment` to place a `TypeId` for a given
+/// `TypeExpression`.
+///
+/// This is used in places where a type is explicitly declared within a statement,
+/// such as a declaration. In the future this wlll be used when generics are
+/// explicily declared, or to resolve the `TypeId` of expressions like `Vector<String>`.
+struct ExpressionTypeVisitor<'env, 'err> {
+    errors: &'err ErrorCollector,
+    environment: &'env mut TypeEnvironment,
+    current_id: TypeId,
+    current_scope: ScopedId
+}
+
+impl<'env, 'err> ExpressionTypeVisitor<'err, 'env> {
+    pub fn new(errors: &'err ErrorCollector,
+           environment: &'env mut TypeEnvironment)
+           -> ExpressionTypeVisitor<'err, 'env> {
+        ExpressionTypeVisitor {
+            errors,
+            environment,
+            current_id: TypeId::default(),
+            current_scope: ScopedId::default()
+        }
+    }
+}
+
+impl <'err, 'env> Into<TypeId> for ExpressionTypeVisitor<'err, 'env> {
+    fn into(self) -> TypeId {
+        self.current_id
+    }
+}
+
+impl<'err, 'env> TypeVisitor for ExpressionTypeVisitor<'err, 'env> {
+    fn visit_named_type_expr(&mut self, named_ty: &NamedTypeExpression) {
+        if let Some(type_id) =
+                self.environment.get_type_id_of_var(named_ty.get_ident()) {
+            self.current_id = type_id;
+        }
+        else {
+            // Unknown type here - need to figure out how to handle errors!
+        }
+    }
+    fn visit_fn_type_expr(fn_ty: &FnTypeExpression) {
+        unreachable!("ExpressionTypeVisitor should not be visiting fn types");
     }
 }
