@@ -25,41 +25,6 @@ impl<'err, 'builder> DefaultUnitVisitor
     for ExpressionVarIdentifier<'err, 'builder> { }
 
 impl<'err, 'builder> ItemVisitor for ExpressionVarIdentifier<'err, 'builder> {
-    fn visit_inline_fn_decl(&mut self, inline_fn: &InlineFnDeclaration) {
-        if !inline_fn.get_ident().has_id() {
-            trace!("Skipping inline fn {} because it does not have an ID",
-                inline_fn.get_name());
-            return
-        }
-        trace!("Checking inline fn {} with id {:?}",
-            inline_fn.get_name(), inline_fn.get_ident().get_id());
-        self.current_id = inline_fn.get_ident().get_id().clone();
-        self.current_id.push();
-        for (param, _param_type) in inline_fn.get_params() {
-            if let Some(declared_ix) = self.builder.get(param.get_name()).cloned() {
-                trace!("Encountered duplicate param {} on {}",
-                    param.get_name(), inline_fn.get_name());
-                let err_text = format!("Argument {} is already declared",
-                    param.get_name());
-                self.errors.add_error(CheckerError::new(
-                    param.get_token().clone(), vec![], err_text
-                ));
-                // Skip adding an ID to this param
-                // -> giving IDs to error-defines and keeping track of which
-                // ids are in error is probably a better solution!
-                continue
-            }
-
-            self.current_id.increment();
-            let param_id = self.current_id.clone();
-            trace!("Identifying {} param {} with {:?}",
-                inline_fn.get_name(), param.get_name(), param_id);
-            param.set_id(param_id);
-        }
-        // Check the function block
-        self.visit_expression(inline_fn.get_expression());
-    }
-
     fn visit_block_fn_decl(&mut self, block_fn: &BlockFnDeclaration) {
         if !block_fn.get_ident().has_id() {
             trace!("Skipping block fn {} because it does not have an ID",
