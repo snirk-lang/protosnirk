@@ -182,7 +182,7 @@ impl<'err, 'env> ExpressionVisitor for ExpressionTypeCollector<'err, 'env> {
                     self.inner_type_id = type_id_int;
                 });
             },
-            // This should be exhaustive.
+            // This match should be exhaustive.
             // https://github.com/immington-industries/protosnirk/issues/29
             _ => {
                 unreachable!("Unexpected unary operation {:?}", un_op);
@@ -243,10 +243,49 @@ impl<'err, 'env> ExpressionVisitor for ExpressionTypeCollector<'err, 'env> {
     }
 
     fn visit_fn_call(&mut self, fn_call: &FnCall) {
-        // exprs must match fn type.
+        let fn_id = fn_call.get_name().get_id().clone();
+        // TODO: need to check for a lot more errors.
+        // Need type information about the fn in order to constrain the args.
+        // Should we add a specific map<scopedid, fnDefinition> to the env?
 
-        // Params must be alingned with fn params - have those been set up yet?
-        
+        // This section is kind of painful to deal with.
+        // Perhaps we should have a better definition of fn calling.
+
+        match fn_call.get_args() {
+            FnCallArgs::SingleExpr(call_expr) => {
+                self.visit_expression(call_expr);
+                let expr_type = self.expr_type;
+                self.add_constraint(
+                    TypeConstraint::ValueForSingleFnArg(fn_id, expr_type),
+                    ConstraintSource::FnSignature
+                );
+            },
+            FnCallArgs::Arguments(call_args) => {
+                for call_arg in call_args {
+                    let param_ident = call_arg.get_name().get_scoped_id().clone();
+                    if let Some(ref call_expr) = call_arg.get_expr() {
+                        self.visit_expression(call_expr);
+                        let arg_expr_type = self.expr_type;
+                        self.add_constraint(
+                            TypeConstraint::ValueForFnArg(
+                                fn_id.clone(), param_ident, arg_expr_type
+                            ),
+                            ConstraintSource::FnSignature
+                        );
+                    }
+                }
+            }
+        }
+
+        // Create a new `TypeId` for a fn return type?
+        // Note that right now we have a few extra vars. We could be a little simpler,
+        // given the simplicity of the language right now.
+        let ret_type_id = self.environment.declare_new_type();
+        self.add_constraint(
+            TypeConstraint::TypeIsFnReturned(ret_type_id, fn_id),
+            ConstraintSource::FnSignature
+        );
+        self.expr_type = ret_type_id;
     }
 
     fn visit_assignment(&mut self, assignment: &Assignment) {

@@ -16,6 +16,11 @@ pub struct TypeEnvironment {
     known_type_names: HashMap<TypeId, ScopedId>,
     /// `TypeId`s of given type identifiers.
     known_var_types: HashMap<ScopedId, TypeId>,
+    /// Classical table of type defintions.
+    ///
+    /// For now, this is a lookup for fn signatures. In the future, this
+    /// would have information for identifying fields of types, or
+    type_defintions: HashMap<ScopedId, i32>,
     /// Bounds on types. Each is mapped to a top-level scope in which it may
     /// apply, i.e. the scope of its declared function.
     constraints: HashMap<ScopedId, (TypeConstraint, ConstraintSource)>,
@@ -93,6 +98,12 @@ impl TypeEnvironment {
     pub fn get_type_id_of_var(&self, var_id: &ScopedId) -> Option<TypeId> {
         self.known_var_types.get(var_id)
     }
+
+    /// Get a
+    pub fn get_constraint_by_scope(&self, scope_id: &ScopedId)
+                                   -> Option<TypeConstraint> {
+        self.constraints.get(scope_id)
+    }
 }
 
 /// Represents a unique type.
@@ -139,6 +150,9 @@ pub enum TypeConstraint {
     TypeIsFnReturned(TypeId, ScopedId),
     /// The given block may have the given type.
     BlockHasType(ScopedId, TypeId),
+    /// The type of the expression is constrained by being the single argument
+    /// in a fn call.
+    ValueForSingleFnArg(ScopedId, TypeId)
 }
 
 /// Source of a type constraint.
