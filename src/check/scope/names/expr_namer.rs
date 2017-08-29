@@ -6,6 +6,7 @@ use check::scope::NameScopeBuilder;
 use check::visitor::*;
 
 /// Identifies variables in blocks.
+#[derive(Debug)]
 pub struct ExpressionVarIdentifier<'err, 'builder> {
     errors: &'err mut ErrorCollector,
     builder: &'builder mut NameScopeBuilder,
@@ -16,7 +17,9 @@ impl<'err, 'builder> ExpressionVarIdentifier<'err, 'builder> {
                builder: &'builder mut NameScopeBuilder)
                -> ExpressionVarIdentifier<'err, 'builder> {
         ExpressionVarIdentifier {
-            errors, builder
+            errors,
+            builder,
+            item_id: ScopedId::default()
         }
     }
 }
@@ -34,28 +37,8 @@ impl<'err, 'builder> ItemVisitor for ExpressionVarIdentifier<'err, 'builder> {
         trace!("Checking block fn {} with id {:?}",
             block_fn.get_name(), block_fn.get_ident().get_id());
         self.current_id = block_fn.get_ident().get_id().clone();
-        self.current_id.push();
-        for (param, _param_type) in block_fn.get_params() {
-            if let Some(declared_ix) = self.builder.get(param.get_name()).cloned() {
-                trace!("Encountered duplicate param {} on {}",
-                    param.get_name(), block_fn.get_name());
-                let err_text = format!("Argument {} is already declared",
-                    param.get_name());
-                self.errors.add_error(CheckerError::new(
-                    param.get_token().clone(), vec![], err_text
-                ));
-                // Skip adding an ID to this param
-                // -> giving IDs to error-defines and keeping track of which
-                // ids are in error is probably a better solution!
-                continue
-            }
-
-            self.current_id.increment();
-            let param_id = self.current_id.clone();
-            trace!("Identifying {} param {} with {:?}",
-                block_fn.get_name(), param.get_name(), param_id);
-            param.set_id(param_id);
-        }
+        self.current_id.push(); // This puts it at param level
+        self.current_id.push(); // This puts it at entry block level.
         // Check the function block
         self.visit_block(block_fn.get_block());
     }
@@ -158,13 +141,27 @@ impl<'err, 'builder> ExpressionVisitor
                 },
                 FnCallArgs::Arguments(args) => {
                     for arg in args {
-                        // Check arg expressions
-                        if let Some(expr) = arg.get_expr() {
-                            self.check_expression(expr);
+                        let arg_name = arg.get_name();
+                        let full_param_name = format!("{}:{}", fn_call.get_text(), arg_name);
+                        if let Some(param_id) = self.builder.get(full_param_name) {
+                            arg_name.set_id(param_id);
                         }
-                        // Check implicit names as local idents.
                         else {
-                            self.check_var_ref(arg.get_ident());
+                            let error_text = format!("Unknown parameter {} of {}",
+                                arg_name.get_text(), fn_call.get_text());
+                            self.builder.add_error(
+                                arg_name.get_token().clone(), vec![], error_text
+                            );
+                            return // Stop checking expression
+                        }
+                        match arg.get_value() {
+                            CallArgumentValue::LocalVar(var_ident) => {
+                                // Set the id of the `value` to be the local var.
+                                self.check_var_ref(var_ident);
+                            },
+                            CallArgumentValue::Expression(arg_expr) => {
+                                self.check_expression(arg_expr);
+                            }
                         }
                     }
                 }
