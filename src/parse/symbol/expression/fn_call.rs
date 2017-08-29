@@ -40,11 +40,11 @@ impl<T: Tokenizer> InfixParser<Expression, T> for FnCallParser {
                         trace!("Argument {} is a named arg", ident.get_name());
                         parser.consume();
                         let arg_value = try!(parser.expression(Precedence::Min));
-                        called_args.push(CallArgument::var_value(ident, arg_value));
+                        called_args.push(CallArgument::named(ident, arg_value));
                     }
                     else {
                         trace!("Adding inferred `{0} = {0}`", ident.get_name());
-                        called_args.push(CallArgument::var_name(ident));
+                        called_args.push(CallArgument::implicit_name(ident));
                     }
                 }
                 // TODO need to give better errors/handle multiple exprs

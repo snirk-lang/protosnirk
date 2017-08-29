@@ -337,29 +337,44 @@ impl FnCallArgs {
     }
 }
 
+/// The value of an argument to a function call.
+///
+/// This is either the implicit local variable or an expression.
+#[derive(Debug, PartialEq, Clone)]
+pub enum CallArgumentValue {
+    /// Argument is just a name that refers to both the param and a local name.
+    ///
+    /// This `Identifier` has the `ScopedId` of the local variable.
+    LocalVar(Identifier),
+    /// Argument is an expression.
+    Expression(Expression)
+}
+
 /// Represents arguments given to call a function with
 #[derive(Debug, PartialEq, Clone)]
 pub struct CallArgument {
-    name: Identifier,
-    expr: Option<Expression>
+    param: Identifier,
+    value: CallArgumentValue
 }
 impl CallArgument {
-    pub fn var_name(name: Identifier) -> CallArgument {
-        CallArgument { name: name, expr: None }
+    pub fn implicit_name(name: Identifier) -> CallArgument {
+        CallArgument { name: name, expr: CallArgumentValue::LocalVar(name.clone()) }
     }
-    pub fn var_value(name: Identifier, expr: Expression) -> CallArgument {
-        CallArgument { name: name, expr: Some(expr) }
+    pub fn named(name: Identifier, expr: Expression) -> CallArgument {
+        CallArgument { name: name, expr: CallArgumentValue::Expression(expr) }
     }
+
+    /// Gets the name of the param being referenced.
+    ///
+    /// The `ScopedId` of this `Identifier` should match the fn param.
     pub fn get_name(&self) -> &Identifier {
         &self.name
     }
     pub fn get_text(&self) -> &str {
         self.name.get_name()
     }
-    pub fn has_value(&self) -> bool {
-        self.expr.is_some()
-    }
-    pub fn get_expr(&self) -> Option<&Expression> {
-        self.expr.as_ref()
+    /// Gets the value of the CallArgument.
+    pub fn get_value(&self) -> &CallArgumentValue {
+        &self.value
     }
 }
