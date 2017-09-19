@@ -74,9 +74,9 @@ impl<'err, 'builder> ItemVisitor for ItemVarIdentifier<'err, 'builder> {
                 return // Stop checking params if there's a dupe.
             }
 
+            param_id.increment();
             trace!("Created id {:?} for {} param {}",
                 param_id, block_fn.get_name(), param.get_text());
-            param_id.increment();
             self.builder.define_local(param_name, param_id.clone());
             param.set_id(param_id.clone());
         }

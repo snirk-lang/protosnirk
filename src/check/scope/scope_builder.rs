@@ -1,5 +1,5 @@
 use std::borrow::Borrow;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
 use std::hash::Hash;
 
@@ -34,7 +34,8 @@ pub type NameScopeBuilder = ScopeBuilder<String>;
 /// on module scoping.
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct ScopeBuilder<T: Debug + Hash + Eq> {
-    scopes: Vec<HashMap<T, ScopedId>>
+    scopes: Vec<HashMap<T, ScopedId>>,
+    defined: HashSet<ScopedId>
 }
 
 impl<T> ScopeBuilder<T> {
@@ -59,6 +60,7 @@ impl<T> ScopeBuilder<T> {
             "Attempted to define {:?} with no scopes", key);
         let last_ix = self.scopes.len() - 1usize;
         trace!("Defining {:?} in scope {}", &key, last_ix);
+        self.defined.insert(value.clone());
         &mut self.scopes[last_ix].insert(key, value);
     }
 
@@ -66,6 +68,7 @@ impl<T> ScopeBuilder<T> {
     pub fn define_global(&mut self, key: T, value: ScopedId) {
         debug_assert!(!self.scopes.is_empty(),
             "Attempted to define a global {:?} with no scopes", key);
+        self.defined.insert(value.clone());
         &mut self.scopes[0].insert(key, value);
     }
 
@@ -82,6 +85,12 @@ impl<T> ScopeBuilder<T> {
         }
         trace!("Didn't find {:?}", key);
         None
+    }
+
+    /// Check if the `ScopedId` has been defined.
+    pub fn contains_id(&self, id: &ScopedId) -> bool {
+        trace!("Checking if {:?} is defined", id);
+        self.defined.contains(id)
     }
 
     /// Get a variable defined in local scopeh
