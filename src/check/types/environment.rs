@@ -146,8 +146,6 @@ pub enum TypeConstraint {
     FnReturnType(ScopedId, TypeId),
     /// The return type of an identified fn is unit.
     FnReturnsUnit(ScopedId),
-    /// The type of an expression is that of the return type of a fn.
-    TypeIsFnReturned(TypeId, ScopedId),
     /// The given block may have the given type.
     BlockHasType(ScopedId, TypeId),
     /// The type of the expression is constrained by being the single argument

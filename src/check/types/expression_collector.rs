@@ -28,11 +28,18 @@ pub struct ExpressionTypeCollector<'err, 'env> {
     expr_type: TypeId,
     /// Keep a stack of the IDs of which block we're in.
     /// The top of the stack can be used for the return statement of a block.
-    block_scopes: Vec<TypeId>,
+    return_blocks: Vec<TypeId>,
+    /// Stack of blocks which require a return stmt.
+    ///
+    /// AST nodes which cause a need for subnodes to return a value, such as
+    /// lvalues in expressions, push a `ScopedId` to this stack. `return`
+    /// expressions will probably target the top of the stack, whereas the last
+    /// expression in a block will return a value for that block.
+    return_require_stack: Vec<ScopedId>,
     /// ScopeId of the enclosing block or fn.
     ///
     /// This corresponds to the fn's ident. For the top-level block, use the
-    /// first of `block_scopes`.
+    /// first of `return_blocks`.
     enclosing_fn_id: ScopedId,
     /// Whether we've returned from the fn yet.
     /// I guess this needs to take branching into account?
@@ -47,7 +54,7 @@ impl<'err, 'env> ExpressionTypeCollector<'err, 'env> {
             errors,
             environment,
             enclosing_fn_id: ScopedId::default(),
-            block_scopes: Vec::new(),
+            return_blocks: Vec::new(),
             expr_type: TypeId::default(),
             return_complete: false
         }
@@ -66,21 +73,36 @@ impl<'err, 'env> ItemVisitor for ExpressionTypeCollector<'err, 'env> {
     fn visit_block_fn_decl(&mut self, block_fn: &BlockFnDeclaration) {
         let fn_id = block_fn.get_ident().get_id();
         if fn_id.is_default() {
-            return
+            return // redundant fn is not checked.
         }
 
-        self.enclosing_fn_id = fn_id;
+        self.enclosing_fn_id = fn_id.clone();
 
-        self.block_scopes.clear();
-        self.block_scopes.push(block_fn.get_block().get_id().clone());
+        self.return_blocks.push(block_fn.get_block().get_id().clone());
         self.return_value_set = false;
 
+        // If the fn's return type isn't empty, we want to set up a return type.
+        if let Some(return_ty_expr) = block_fn.get_type_expr().get_return_type() {
+            self.return_require_stack.push(
+                block_fn.get_block().get_id().clone());
+            let mut visitor =
+                ExpressionTypeVisitor::new(&self.errors, &mut self.environment);
+            visitor.visit_type_expr(return_ty_expr);
+            let return_ty_id = visitor.into();
+            self.curr_type_id = return_ty_id;
+        }
+        else {
+            // fn returns ().
+            self.add_constraint(
+                TypeConstraint::FnReturnsUnit(fn_id.clone()),
+                ConstraintSource::FnSignature
+            );
+        }
         visit::walk_block(block_fn.get_block());
 
-        // If the fn's return type isn't empty, we want to set up a return type.
-        if !block_fn.get_type_expr().get_return_type().is_empty() {
+        self.return_blocks.clear();
+        self.return_require_stack.clear();
 
-        }
     }
 }
 
@@ -94,8 +116,8 @@ impl<'err, 'env> BlockVisitor for ExpressionTypeCollector<'err, 'env> {
         // Correlate the last expr type with the block ID.
         // This information only matters if the block is being used as a value.
         let last_ix = block.statements.len() - 1usize;
-        let last_stmt_id: TypeId = TypeId::default();
         for (ix, stmt) in block.statements().iter().enumerate() {
+            self.current_id = TypeId::default();
             self.visit_statement(stmt);
             if ix == last_ix {
                 let last_stmt_ty_id = self.current_id;
@@ -104,8 +126,9 @@ impl<'err, 'env> BlockVisitor for ExpressionTypeCollector<'err, 'env> {
                 if !last_stmt_ty_id.is_default() {
                     self.environment.add_constraint(
                         block.get_scope_id().clone(),
-                        TypeConstraint::BlockHasType(block.get_scope_id.clone())
-                    )
+                        TypeConstraint::BlockHasType(block.get_scope_id.clone(),
+                        ConstraintSource::ImplicitReturnMatch)
+                    );
                 }
             }
         }
@@ -119,12 +142,64 @@ impl<'err, 'env> StatementVisitor for ExpressionTypeCollector<'err, 'env> {
     }
 
     fn visit_if_block(&mut self, if_block: &IfBlock) {
-        // conditional must be bool
+        trace!("Visiting an if block");
+        // The whole block is given a type id anyway and it's ignored/invalidated
+        // if needed.
+        let if_block_ty = self.environment.declare_new_type();
+        // If there's no else, we can't return a value anyway.
+        let block_has_else = if_block.has_else();
         // branches must match up
+        for conditional in if_block.get_conditionals() {
+            trace!("Checking if conditional expr");
+            self.visit_expression(conditional.get_condition());
+            if self.current_id.is_default() { return }
+            let cond_ty_id = self.current_id;
+            TYPE_ID_BOOL.with(|bool_type_id| {
+                self.add_constraint(
+                    TypeConstraint::TypesAreSame(cond_ty_id, bool_type_id),
+                    ConstraintSource::IfConditionalBool
+                );
+            });
+            self.current_id = TypeId::default();
+            trace!("Checking if conditional block");
+            self.visit_block(conditional.get_block());
+            let this_arm_ty = self.current_id;
+
+            // Require the arms to match only if there's an else.
+            if block_has_else {
+                self.add_constraint(
+                    TypeConstraint::TypesAreSame(if_block_ty, this_arm_ty),
+                    ConstraintSource::IfBranchesSame
+                );
+            }
+        }
+        if let Some((_, block)) = if_block.get_else() {
+            trace!("Checking if conditional else");
+            self.current_id = TypeId::default();
+            self.visit_block(block);
+            if self.current_id.is_default() { return }
+            let else_block_ty = self.current_id;
+            self.add_constraint(
+                TypeConstraint::TypesAreSame(if_block_ty, else_block_ty),
+                ConstraintSource::IfBranchesSame
+            );
+        }
+        self.current_id = if_block_ty;
     }
 
     fn visit_return_stmt(&mut self, return_: &Return) {
         // expr matches block's return
+        if let Some(expr) = return_.get_value() {
+            self.visit_expression(expr);
+            let ret_expr_ty = self.current_id;
+            if ret_expr_ty.is_default() { return }
+            let ret_block_id = self.return_blocks.first()
+                .expect("Visiting return stmt without return blocks");
+            self.add_constraint(
+                TypeConstraint::FnReturnType(ret_expr_ty, ret_block_id.clone())
+                ConstraintSource::ExplicitReturnMatch
+            );
+        }
     }
 }
 
@@ -253,6 +328,10 @@ impl<'err, 'env> ExpressionVisitor for ExpressionTypeCollector<'err, 'env> {
 
         match fn_call.get_args() {
             FnCallArgs::SingleExpr(call_expr) => {
+                // This is what the previous pass would identify the first param as.
+                let mut first_expr_scoped_id = fn_call.get-name().get_id().pushed();
+                first_expr_scoped_id.push();
+                first_expr_scoped_id.increment();
                 self.visit_expression(call_expr);
                 let expr_type = self.expr_type;
                 self.add_constraint(

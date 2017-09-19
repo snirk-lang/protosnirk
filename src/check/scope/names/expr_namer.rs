@@ -38,7 +38,7 @@ impl<'err, 'builder> ItemVisitor for ExpressionVarIdentifier<'err, 'builder> {
             block_fn.get_name(), block_fn.get_ident().get_id());
         self.current_id = block_fn.get_ident().get_id().clone();
         self.current_id.push(); // This puts it at param level
-        self.current_id.push(); // This puts it at entry block level.
+        self.current_id.push(); // This defines the entry block level.
         // Check the function block
         self.visit_block(block_fn.get_block());
     }
@@ -60,7 +60,20 @@ impl<'err, 'builder> BlockVisitor for ExpressionVarIdentifier<'err, 'builder> {
 }
 
 impl<'err, 'builder> DefaultStmtVisitor
-    for ExpressionVarIdentifier<'err, 'builder> { }
+    for ExpressionVarIdentifier<'err, 'builder> {
+
+    fn visit_if_block(&mut self, if_block: &IfBlock) {
+        self.current_id.increment();
+        if_block.set_id(self.current_id.clone());
+        for condition in if_block.get_conditionals() {
+            self.visit_expression(condition.get_conditional());
+            self.visit_block(condition.get_block());
+        }
+        if let Some(_, else_block) = if_block.get_else() {
+            self.visit_block(else_block);
+        }
+    }
+}
 
 impl<'err, 'builder> ExpressionVisitor
     for ExpressionVarIdentifier<'err, 'builder> {
@@ -137,6 +150,19 @@ impl<'err, 'builder> ExpressionVisitor
             // Check args
             match fn_call.get_args() {
                 FnCallArgs::SingleExpr(expr) => {
+                    // Check that the param has been identified.
+                    let mut param_id = fn_call.get_id().pushed();
+                    param_id.increment();
+
+                    if !self.builder.contains_id(&param_id) {
+                        let error_text =
+                            format!("Function {} does not have parameters",
+                                fn_call.get_text());
+                        self.builder.add_error(
+                            fn_call.get_token().clone(), vec![], error_text
+                        );
+                        // Check call expression anyway
+                    }
                     self.check_expression(expr);
                 },
                 FnCallArgs::Arguments(args) => {
