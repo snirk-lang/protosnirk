@@ -86,6 +86,7 @@ impl DoBlock {
 pub struct IfBlock {
     pub conditionals: Vec<Conditional>,
     pub else_block: Option<(Token, Block)>,
+    scoped_id: RefCell<ScopedId>
 }
 
 /// A basic conditional
@@ -104,6 +105,7 @@ impl IfBlock {
         IfBlock {
             conditionals: conditionals,
             else_block: else_block,
+            scoped_id: RefCell::new(ScopedId::default())
         }
     }
     pub fn has_else_if(&self) -> bool {
@@ -131,6 +133,12 @@ impl IfBlock {
             }
         }
         self.else_block.as_ref().unwrap().1.has_value()
+    }
+    pub fn get_id(&self) -> ScopedId {
+        *self.id
+    }
+    pub fn set_id(&self, id: ScopedId) {
+        self.id = id;
     }
 }
 
