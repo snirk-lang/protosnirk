@@ -1,19 +1,13 @@
 use smallvec::SmallVec;
 
-/// A unique ID given to expressions and items in the AST.
-/// It's the key to many other lookup tables.
-///
-/// The `Id` type is used as a field in may AST nodes to
-/// link it to other data tables (such as type information)
-/// that the compiler receives. This is done in many places
-/// instead of a lowering pass.
-#[derive(Debug, Clone, PartialEq, Eq, Copy, Hash, PartialOrd, Ord, Default)]
-pub struct Id(u32);
+/// A unique identifier for the type of an identifier on the AST.
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, PartialOrd, Ord, Default)]
+pub struct TypeId(u32);
 
-impl Id {
+impl TypeId {
     /// Gets the next Id.
     #[inline]
-    pub fn next(&self) -> Id {
+    pub fn next(&self) -> TypeId {
         Id(self.0 + 1u32)
     }
 
@@ -105,6 +99,12 @@ impl ScopedId {
         let new_indices = self.indices.clone();
         new_indices.pop();
         ScopedId { indices: new_indices }
+    }
+
+    /// Whether another scopedId has a common prefix with this one.
+    pub fn is_subindex_of(&self, other: &ScopedId) -> bool {
+        other.indices.len() => self.len &&
+            other.indices[0..self.indices.len() - 1] == self.indices
     }
 }
 
