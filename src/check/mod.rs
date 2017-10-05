@@ -1,11 +1,9 @@
-//! Visitors which validate a parsed protosnirk program.
+//! This module is responsible for checking invariants on the AST to
+//! ensure an AST represents a legal program.
 //!
-//! This module is concerned with ensuring that the
-//! program accessed from the parser is legal: it passes type
-//! checking and lifetime checks.
-//!
-//! Checkers may attach metadata to the AST which will use each AST's
-//! `index`, such as a symbol table or type table.
+//! Checking passes may involve referencing data in the AST into another
+//! table, such as the type check pass which updates the mapping of
+//! identifiers to types.
 //!
 //! ## Verifier Results
 //! The verifier will either give a successful `Program` (with metadata the
@@ -14,6 +12,7 @@
 //!
 //! ### Errors
 //! These are errors that are identified by various checks.
+//!
 //! #### Unknown Identifier
 //! Probably a typo
 //! ```text
@@ -28,14 +27,16 @@
 //! ```
 //! #### Variable of wrong type
 //! ```text
-//! fn foo() => 1
-//! let x = 1 + foo
-//!             ^ `foo`: expected integer type (for addition expression)
-//!               `foo` is of type `fn() -> int`
+//! fn foo() -> bool
+//!    true
+//! let x = 1 + foo()
+//!             ^ `foo()`: expected integer type (for addition expression)
+//!               `foo()` is of type `bool`
 //! ```
 //! ### Warnings
 //! If a checked `Program` has only warnings,
 //! it is considered compileable.
+//!
 //! #### Unused mutable
 //! ```text
 //! let mut var = 0
@@ -48,6 +49,13 @@
 //!     ^ `x` is declared but not used
 //! return y
 //! ```
+//! #### Unused function
+//! ```text
+//! fn foo() -> bool
+//!    ^ `foo` is declared but not used
+//!     true
+//! ```
+//!
 
 mod program;
 pub mod visitor;
