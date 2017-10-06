@@ -5,7 +5,7 @@ pub use self::item_namer::ItemTypeIdentifier;
 pub use self::expr_namer::ExpressionTypeIdentifier;
 
 use parse::ScopedId;
-use check::scope::NameScopeBuilder;
+use identify::NameScopeBuilder;
 
 /// So the checking of declaring types is gonna have to happen before the
 /// items of a program in the future. We'll also have to consider things like
