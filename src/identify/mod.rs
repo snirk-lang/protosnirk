@@ -1,6 +1,8 @@
 //! Scope checking: giving `Identifier`s `ScopedId`s.
 //!
-//! The `scope` module of `check` primarily deals with giving identifiers
+//! # Overview
+//!
+//! The `identify` module of primarily deals with giving identifiers
 //! of various kinds unique `ID`s for the purpose of later analysis. This
 //! includes things like detecting whether some variable or name is being
 //! used without being declared (i.e. detecting a typo) and setting up
@@ -18,16 +20,32 @@
 //! `ID` to other symbolic data, such as types, scopes, lifetimes, symbols, etc
 //!
 //! Although some forms of errors can be detected this early, we may want to
-//! continue parsing until we can get a better picture
+//! continue parsing until we can get a better picture.
 //!
-//! In the future this module should be split up to deal with types and methods
-//! separately.
+//! # Relevant structures
+//!
+//! This module is based on use of `ASTScopedIdentifier`, which fills in the
+//! `ScopedId` of nodes with `Identifier`s in the parsed AST.
+//!
+//! This pass alters the `Unit` in-place (using `Cell` and `RefCell`).
+//!
+//! # Invariants from this pass
+//!
+//! - Calling `.get_id()` on an `Identifier` in the `AST` should yield a valid
+//! (non-default) `ScopedId` if the `Identifier` is being used in valid code.
+//! - Getting a default `ScopedId` from a call to `get_id()` is an indication of
+//! an identifer not being defined or possibly being defined twice.
+//! - Valid `ScopedIds` correctly identify `Identifier`s of `var`s for a given
+//! scope.
+//! - Valid `ScopedIds` correctly identify `Identifiers` of `ty`s for a given
+//! scope (although scope isn't relevant yet).
+//!
+//! In the future errors will be held in a `ScopeErrorMap` structure.
 
 mod names;
 mod types;
 mod scope_builder;
-
-pub use self::scope_builder::{ScopeBuilder, NameScopeBuilder};
+use self::scope_builder::NameScopeBuilder;
 
 use parse::ast::Unit;
 use check::ErrorCollector;
@@ -42,8 +60,8 @@ use self::types::*;
 /// The IDs take scoping rules into account, identifying
 /// types and variables with unique IDs.
 #[derive(Debug, PartialEq, Clone)]
-pub struct ASTIdentifier { }
-impl ASTIdentifier {
+pub struct ASTScopedIdentifier { }
+impl ASTScopedIdentifier {
     pub fn check_unit(&self, errors: &mut ErrorCollector, unit: &Unit) {
         let mut type_scope = types::default_type_scope();
         ItemVarIdentifier::new(errors, type_scope).visit_unit(unit);

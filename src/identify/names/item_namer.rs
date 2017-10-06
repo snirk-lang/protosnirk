@@ -2,8 +2,9 @@ use parse::ast::*;
 use parse::ScopedId;
 
 use check::{CheckerError, ErrorCollector};
-use check::scope::NameScopeBuilder;
-use check::visitor::*;
+use identify::NameScopeBuilder;
+use visit::visitor::*;
+use visit::*;
 
 /// Identifies names of items that can be used in expressions,
 /// namely function definitions.

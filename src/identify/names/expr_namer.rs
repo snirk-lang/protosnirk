@@ -2,8 +2,9 @@ use parse::ScopedId;
 use parse::ast::*;
 
 use check::{CheckerError, ErrorCollector};
-use check::scope::NameScopeBuilder;
-use check::visitor::*;
+use identify::NameScopeBuilder;
+use visit;
+use visit::visitor::*;
 
 /// Identifies variables in blocks.
 #[derive(Debug)]

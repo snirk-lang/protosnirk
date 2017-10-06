@@ -2,8 +2,9 @@ use parse::ScopedId;
 use parse::ast::*;
 
 use check::{CheckerError, ErrorCollector};
-use check::visitor::*;
-use check::scope::NameScopeBuilder;
+use identify::NameScopeBuilder;
+use visit;
+use visit::visitor::*;
 
 /// Does the first pass of scope checking to ensure
 /// items can be used before being declared.
