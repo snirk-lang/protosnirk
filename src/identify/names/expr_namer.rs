@@ -59,7 +59,7 @@ impl<'err, 'builder> BlockVisitor for ExpressionVarIdentifier<'err, 'builder> {
     }
 }
 
-impl<'err, 'builder> DefaultStmtVisitor
+impl<'err, 'builder> StatementVisitor
     for ExpressionVarIdentifier<'err, 'builder> {
 
     fn visit_if_block(&mut self, if_block: &IfBlock) {
