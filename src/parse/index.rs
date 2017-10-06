@@ -29,7 +29,13 @@ impl TypeId {
 pub struct ScopedId {
     /// Cap on variables defined in one scope is `u16::MAX`,
     /// Cap on number of scopes is `usize::MAX`
-    indices: SmallVec<[u16; 4]>
+    ///
+    /// On 64-bit machines, the size/align of `SmallVec<[u16; 11]>` is the
+    /// same as `SmallVec<[u16; 1]>` so we don't save space by cacing fewer
+    /// indices before allocating.
+    /// TODO get numbers for this on 32-bit, if this data structure is to be
+    /// used.
+    indices: SmallVec<[u16; 11]>
 }
 
 impl ScopedId {
