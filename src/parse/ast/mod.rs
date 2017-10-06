@@ -27,18 +27,20 @@ use std::cell::RefCell;
 use lex::Token;
 use parse::{Id, ScopedId};
 
-/// A `TypeId` is an `Id` used for type inference.
-pub type TypeId = Id;
-
 /// Basic identifier type
 #[derive(Debug, PartialEq, Clone)]
 pub struct Identifier {
     pub token: Token,
-    pub id: RefCell<ScopedId>
+    pub id: RefCell<ScopedId>,
+    type_id: Cell<TypeId>
 }
 impl Identifier {
     pub fn new(token: Token) -> Self {
-        Identifier { token: token, index: RefCell::new(ScopedId::default()) }
+        Identifier {
+            token,
+            id: RefCell::default(),
+            type_id: Cell::default()
+        }
     }
     pub fn get_name(&self) -> &str {
         &self.token.text
@@ -54,6 +56,14 @@ impl Identifier {
     pub fn set_id(&self, index: ScopedId) {
         *self.index.borrow_mut() = index;
     }
+
+    pub fn get_type_id(&self) -> TypeId {
+        self.type_id.get()
+    }
+
+    pub fn set_type_id(&self, id: TypeId) {
+        self.ty_id.set(id)
+    }
 }
 impl Into<Token> for Identifier {
     fn into(self) -> Token {
@@ -67,7 +77,9 @@ pub struct Block {
     /// Statements in the block
     pub statements: Vec<Statement>,
     /// Identifier used for typechecking.
-    scope_id: RefCell<ScopedId>
+    scope_id: RefCell<ScopedId>,
+    /// `TypeId` used for typechecking.
+    type_id: Cell<TypeId>
 }
 impl Block {
     /// Create a new block from the given statements and scope id.
@@ -98,5 +110,11 @@ impl Block {
     }
     pub fn set_id(&self, id: ScopedId) {
         *self.scope_id.borrow_mut() = id;
+    }
+    pub fn get_typ_id(&self) -> TypeId {
+        self.type_id.get()
+    }
+    pub fn set_type_id(&self, value: TypeId) -> TypeId {
+        self.type_id = value;
     }
 }
