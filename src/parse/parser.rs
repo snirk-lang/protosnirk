@@ -11,6 +11,7 @@ use std::cell::Cell;
 use lex::{CowStr, Token, TokenType, TokenData, Tokenizer};
 use parse::{ParseError, ParseResult};
 use parse::ast::*;
+use parse::ast::types::*;
 use parse::symbol::*;
 
 /// Parser object which parses things
@@ -211,10 +212,18 @@ impl<T: Tokenizer> Parser<T> {
         // the specifics of the array brackets/generic angles are handled by those
         // prefix parsers anyway.
         // Generic bounds (like `T: Managed + Cloneable`) will also have infix parsing.
-        let parser = match next_type {
+        match next_type {
             TokenType::Identifier => {
                 trace!("Parsing named type expr");
-                NamedTypeParser { }
+                NamedTypeParser { }.parse(self, self.consume())
+            },
+            TokenType::Int => {
+                self.consume();
+                Ok(TypeExpression::Primitive(Primitive::Int))
+            },
+            TokenType::Bool => {
+                self.consume();
+                Ok(TypeExpression::Primitive(Primitive::Bool))
             },
             other => {
                 trace!("Invalid token for type expr");
@@ -223,7 +232,6 @@ impl<T: Tokenizer> Parser<T> {
                     "Unexpected token {:?} for type expression", next_type)))
             }
         };
-        parser.parse(self, self.consume())
     }
 
     /// Parses any expression with the given precedence.
