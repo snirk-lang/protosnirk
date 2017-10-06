@@ -64,6 +64,14 @@ impl Identifier {
     pub fn set_type_id(&self, id: TypeId) {
         self.type_id.set(id);
     }
+
+    pub fn get_type_id(&self) -> TypeId {
+        self.type_id.get()
+    }
+
+    pub fn set_type_id(&self, id: TypeId) {
+        self.ty_id.set(id)
+    }
 }
 impl Into<Token> for Identifier {
     fn into(self) -> Token {
@@ -115,7 +123,6 @@ impl Block {
     pub fn set_id(&self, id: ScopedId) {
         *self.scope_id.borrow_mut() = id;
     }
-
     pub fn get_type_id(&self) -> TypeId {
         self.type_id.get()
     }
