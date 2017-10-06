@@ -113,3 +113,14 @@ impl FnTypeExpression {
         self.type_id.set(new_id);
     }
 }
+
+/// Type expression for a primitive type.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum Primitive {
+    /// () or void
+    Unary,
+    /// `int` becomes `Int64`
+    Int,
+    /// `bool` becomes `Bool`
+    Bool,
+}
