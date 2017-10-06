@@ -11,6 +11,7 @@ macro_rules! declare_tokens {
         symbols { $($sym_name:ident : $sym_val:expr; $sym_rule:expr,)* }
         symparts { $($part_val:expr; $part_rule:expr,)* }
         keywords { $($kw_name:ident : $kw_val:expr,)* }
+        tynames { $($ty_name:ident : $ty_val:expr,)* }
     ) => {
         $(#[allow(non_upper_case_globals, dead_code)]
         pub const $kw_name : CowStr = Cow::Borrowed($kw_val);)*
@@ -24,6 +25,7 @@ macro_rules! declare_tokens {
                 $(Cow::Borrowed($kw_val)),*
             ]
         }
+
         /// Gets the default set of symbols in protosnirk
         pub fn default_symbols() -> HashMap<CowStr, TokenizerSymbolRule> {
             hashmap! [
@@ -52,6 +54,9 @@ macro_rules! declare_tokens {
             $(
                 $kw_name,
             )*
+            $(
+                $ty_name,
+            )*
             BeginBlock,
             EndBlock,
             EOF,
@@ -78,6 +83,14 @@ macro_rules! declare_tokens {
                                 $sym_val => TokenType::$sym_name,
                             )*
                             _ => unreachable!("Invalid token text for symbol")
+                        }
+                    },
+                    TokenData::TypeName => {
+                        match self.get_text() {
+                            $(
+                                $ty_val => TokenType::$ty_name,
+                            )*
+                            _ => unreachable!("Invalid token text for tyname")
                         }
                     }
                 }
@@ -131,5 +144,9 @@ declare_tokens! {
         If: "if",
         Else: "else",
         Fn: "fn",
+    }
+    tynames {
+        Int: "int",
+        Bool: "bool",
     }
 }

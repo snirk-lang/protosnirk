@@ -96,6 +96,8 @@ pub enum TokenData {
     Ident,
     /// Token is a keyword
     Keyword,
+    /// Token is a shortcut for the name of a type.
+    TypeName,
     /// Token is some symbol
     Symbol,
     /// Indendation of block
