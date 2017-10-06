@@ -5,7 +5,6 @@
 use std::cell::Cell;
 
 use lex::{Token};
-use parse::Id;
 use parse::ast::{Identifier, Block, Expression};
 use parse::ast::types::{TypeExpression,
                         FnTypeExpression};
@@ -50,8 +49,7 @@ impl BlockFnDeclaration {
                block: Block)
                -> BlockFnDeclaration {
         BlockFnDeclaration {
-            fn_token, ident, type_expr, block,
-            type_id: Cell::new(Id::default())
+            fn_token, ident, type_expr, block
         }
     }
     /// Get the `fn` token

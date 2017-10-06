@@ -5,7 +5,10 @@
 /// `Expression`s are because of their ability to use indentation.
 
 use lex::{CowStr, Token, TokenData, TokenType};
+use parse::{ScopedId, TypeId};
 use parse::ast::{Expression, Block, Identifier};
+
+use std::cell::{Cell, RefCell};
 
 /// Statement representation
 #[derive(Debug, PartialEq, Clone)]
@@ -34,7 +37,8 @@ pub struct Return {
     pub value: Option<Box<Expression>>
 }
 impl Return {
-    pub fn new<V: Into<Option<Box<Expression>>>>(token: Token, value: V) -> Return {
+    pub fn new<V: Into<Option<Box<Expression>>>>(token: Token,
+                                                 value: V) -> Return {
         Return { token: token, value: value.into() }
     }
     pub fn has_value(&self) -> bool {
@@ -86,7 +90,8 @@ impl DoBlock {
 pub struct IfBlock {
     pub conditionals: Vec<Conditional>,
     pub else_block: Option<(Token, Block)>,
-    scoped_id: RefCell<ScopedId>
+    scoped_id: RefCell<ScopedId>,
+    type_id: Cell<TypeId>
 }
 
 /// A basic conditional
@@ -143,7 +148,9 @@ impl IfBlock {
 }
 
 impl Conditional {
-    pub fn new(if_token: Token, condition: Expression, block: Block) -> Conditional {
+    pub fn new(if_token: Token,
+               condition: Expression,
+               block: Block) -> Conditional {
         Conditional {
             if_token: if_token,
             condition: condition,

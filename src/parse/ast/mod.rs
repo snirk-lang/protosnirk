@@ -22,10 +22,10 @@ pub use self::stmt::*;
 pub use self::types::*;
 pub use self::operator::Operator;
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 
 use lex::Token;
-use parse::{Id, ScopedId};
+use parse::{TypeId, ScopedId};
 
 /// Basic identifier type
 #[derive(Debug, PartialEq, Clone)]
@@ -111,7 +111,8 @@ impl Block {
     pub fn set_id(&self, id: ScopedId) {
         *self.scope_id.borrow_mut() = id;
     }
-    pub fn get_typ_id(&self) -> TypeId {
+
+    pub fn get_type_id(&self) -> TypeId {
         self.type_id.get()
     }
     pub fn set_type_id(&self, value: TypeId) -> TypeId {

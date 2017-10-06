@@ -14,26 +14,14 @@ use parse::ast::{TypeId, Literal, Identifier};
 /// Represents type expressions in protosnirk.
 #[derive(Debug, PartialEq, Clone)]
 pub enum TypeExpression {
-    // Inferred type, used when the type is not specified in source.
-    //Inferred(Cell<TypeId>),
-    /// Named type, such as `bool` or `String`
+    /// Expression for a primitive type.
+    Primtive(Primitive),
+    /// Named type, such as `String`
     Named(NamedTypeExpression),
     /// Function type, such as `(x: float) -> bool`
     Function(FnTypeExpression),
 }
 impl TypeExpression {
-    /// Get the `TypeId` of this type.
-    pub fn get_type_id(&self) -> TypeId {
-        match self {
-            any => any.get_id()
-        }
-    }
-    /// Set the `TypeId` of this type.
-    pub fn set_type_id(&self, new_id: TypeId) {
-        match self {
-            any => any.set_type_id(new_id)
-        }
-    }
 }
 
 /// A named type expression.
@@ -131,4 +119,15 @@ impl FnTypeExpression {
     pub fn set_type_id(&self, new_id: TypeId) {
         self.type_id.set(new_id);
     }
+}
+
+/// Type expression for a primitive type.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum Primitive {
+    /// () or void
+    Unary,
+    /// `int` becomes `Int64`
+    Int,
+    /// `bool` becomes `Bool`
+    Bool,
 }
