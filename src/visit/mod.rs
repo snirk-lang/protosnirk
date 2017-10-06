@@ -1,3 +1,5 @@
-mod visitor;
+//! Code for AST walking.
 
-pub use self::visitor::*;
+pub mod visitor;
+pub mod walk;
+pub mod default;
