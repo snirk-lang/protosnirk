@@ -1,7 +1,8 @@
 use std::collections::{HashMap, BTreeMap};
 
-use parse::{ASTVisitor, ScopeIndex, SymbolTable};
+use parse::{ScopedId};
 use parse::ast::*;
+use visit::visitor::UnitVisitor;
 use compile::{LLVMContext, ModuleProvider};
 
 use llvm_sys::{self, LLVMOpcode, LLVMRealPredicate};
@@ -227,7 +228,7 @@ impl<'ctx, 'b, M: ModuleProvider<'ctx>> ASTVisitor for ModuleCompiler<'ctx, 'b, 
         }
     }
 
-    fn check_fn_declaration(&mut self, fn_declaration: &FnDeclaration) {
+    fn check_fn_declaration(&mut self, fn_declaration: &BlockFnDeclaration) {
         trace!("Checking declaration of {}", fn_declaration.get_name().get_name());
 
         let float_type = Type::double(self.context.context());
