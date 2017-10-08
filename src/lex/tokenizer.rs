@@ -330,7 +330,7 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
                             None | Some(Complete) => unreachable!(),
                             // We stepped past a CompletePrefix token
                             Some(CompletePrefix) => {
-                                return Token::new_symbol(sym, location)
+                                return Token::new(sym, location, TokenData::Symbol)
                             },
                             // We stepped past a partial token but did not complete it
                             Some(Partial) => {
@@ -342,12 +342,12 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
                 // We found a complete symbol - consume what we peeked and return it.
                 Some(Complete) => {
                     self.iter.next();
-                    return Token::new_symbol(sym, location);
+                    return Token::new(sym, location, TokenData::Symbol);
                 },
                 // We have more to go, consume what we peeked and continue the loop
                 Some(CompletePrefix) | Some(Partial) => {
                     if !more {
-                        return Token::new_symbol(sym, location)
+                        return Token::new(sym, location, TokenData::Symbol)
                     }
                     self.iter.next();
                 }
@@ -361,7 +361,7 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
         let location = self.iter.get_location();
         let is_kw = self.take_while_ident(&mut token_string);
         if is_kw && self.keywords.get(&Cow::Borrowed(&*token_string)).is_some() {
-            Token::new_keyword(token_string, location)
+            Token::new(token_string, location, TokenData::Keyword)
         } else {
             Token::new_ident(token_string, location)
         }

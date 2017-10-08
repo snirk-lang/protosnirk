@@ -34,6 +34,12 @@ impl Token {
         &self.data
     }
 
+    pub fn new<T: Into<CowStr>>(text: T,
+                                location: TextLocation,
+                                data: TokenData) -> Token {
+        Token { text: text.into(), location, data }
+    }
+
     /// Creates a new token representing an identifier
     #[inline]
     pub fn new_ident<T: Into<CowStr>>(text: T, location: TextLocation) -> Token {
@@ -49,7 +55,7 @@ impl Token {
     pub fn new_indent(location: TextLocation) -> Token {
         Token {
             text: Cow::Borrowed(""),
-            data: TokenData::BeginBock,
+            data: TokenData::BeginBlock,
             location: location
         }
     }
@@ -77,7 +83,7 @@ impl Token {
 
 impl Display for Token {
     fn fmt(&self, f: &mut Formatter) -> FmtResult {
-        write!(f, "({:?}, {:?})", self.data.get_type(), self.text)
+        write!(f, "({:?}, {:?})", self.get_type(), self.text)
     }
 }
 
@@ -101,7 +107,7 @@ pub enum TokenData {
     /// Token is some symbol
     Symbol,
     /// Indendation of block
-    BeginBock,
+    BeginBlock,
     /// Outdendation of block
     EndBlock,
     /// Token is an EOF
