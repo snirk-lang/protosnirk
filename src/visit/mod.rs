@@ -1,5 +1,7 @@
 //! Code for AST walking.
 
 pub mod visitor;
-pub mod walk;
-pub mod default;
+mod default; // Default visitors are reexported in `visitor`.
+mod walk;
+
+pub use self::walk::*;
