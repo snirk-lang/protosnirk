@@ -1,6 +1,6 @@
 //! Checks that variables have been used in a symbol table.
 
-use check::{CheckerError, ErrorCollector, SymbolTable};
+use check::{CheckerError, ErrorCollector};
 
 /// Reports warnings for unused variables and un-mutated mutable variables.
 #[derive(Debug)]
@@ -16,14 +16,14 @@ impl UsageChecker {
                     sym.get_source().get_name(),
                     sym.get_declaration().text);
                 warns.add_warning(
-                    VerifyError::new(sym.get_declaration().clone(), vec![], err_message));
+                    CheckerError::new(sym.get_declaration().clone(), vec![], err_message));
             }
             if sym.is_mutable() && !sym.is_mutated() {
                 let err_message = format!("{} {} is declared mutable but never mutated",
                     sym.get_source().get_name(),
                     sym.get_declaration().text);
                 warns.add_warning(
-                    VerifyError::new(sym.get_declaration().clone(), vec![], err_message));
+                    CheckerError::new(sym.get_declaration().clone(), vec![], err_message));
             }
         }
     }
