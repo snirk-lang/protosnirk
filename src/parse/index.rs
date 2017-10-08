@@ -8,7 +8,7 @@ impl TypeId {
     /// Gets the next Id.
     #[inline]
     pub fn next(&self) -> TypeId {
-        Id(self.0 + 1u32)
+        TypeId(self.0 + 1u32)
     }
 
     /// Increments this Id.
@@ -20,7 +20,7 @@ impl TypeId {
     /// Whether this ID is the default ID
     #[inline]
     pub fn is_default(&self) -> bool {
-        self.0 == Id::default().0
+        self.0 == TypeId::default().0
     }
 }
 
@@ -33,8 +33,7 @@ pub struct ScopedId {
     /// On 64-bit machines, the size/align of `SmallVec<[u16; 11]>` is the
     /// same as `SmallVec<[u16; 1]>` so we don't save space by cacing fewer
     /// indices before allocating.
-    /// TODO get numbers for this on 32-bit, if this data structure is to be
-    /// used.
+    /// TODO get numbers for this on 32-bit.
     indices: SmallVec<[u16; 11]>
 }
 
@@ -50,7 +49,7 @@ impl ScopedId {
     #[inline]
     pub fn incremented(&self) -> ScopedId {
         let ix = self.indices.len() - 1;
-        let new_indices = self.inices.clone();
+        let mut new_indices = self.indices.clone();
         new_indices[ix] += 1;
         ScopedId { indices: new_indices }
     }
@@ -58,7 +57,7 @@ impl ScopedId {
     /// Decrements this ID to the previous `ScopedId` within this scope.
     #[inline]
     pub fn decrement(&mut self) {
-        let ix = self.indiceslen() - 1;
+        let ix = self.indices.len() - 1;
         debug_assert!(self.indices[ix] != 0,
             "Attempt to decrement {:?}", self);
         self.indices[ix] -= 1;
@@ -66,11 +65,11 @@ impl ScopedId {
 
     /// Gets the previous `ScopedId` within this scope.
     #[inline]
-    pub fn decremented(&self) {
+    pub fn decremented(&self) -> ScopedId {
         let ix = self.indices.len() - 1;
         debug_assert!(self.indices[ix] != 0,
             "Attempt to get decremented {:?}", self);
-        let new_indices = self.indices.clone();
+        let mut new_indices = self.indices.clone();
         new_indices[ix] -= 1;
         ScopedId { indices: new_indices }
     }
@@ -84,7 +83,7 @@ impl ScopedId {
     /// Gets a `ScopedId` pushed to the next scope.
     #[inline]
     pub fn pushed(&self) -> ScopedId {
-        let new_indices = self.indices.clone();
+        let mut new_indices = self.indices.clone();
         new_indices.push(0);
         ScopedId { indices: new_indices }
     }
@@ -102,15 +101,19 @@ impl ScopedId {
     pub fn popped(&self) -> ScopedId {
         debug_assert!(!self.indices.is_empty(),
             "Attempt to get popped empty ScopedId");
-        let new_indices = self.indices.clone();
+        let mut new_indices = self.indices.clone();
         new_indices.pop();
         ScopedId { indices: new_indices }
     }
 
     /// Whether another scopedId has a common prefix with this one.
     pub fn is_subindex_of(&self, other: &ScopedId) -> bool {
-        other.indices.len() => self.len &&
-            other.indices[0..self.indices.len() - 1] == self.indices
+        other.indices.len() >= self.indices.len() &&
+            &other.indices[0..self.indices.len() - 1] == &*self.indices
+    }
+
+    pub fn is_default(&self) -> bool {
+        *self.indices == [0]
     }
 }
 
