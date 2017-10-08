@@ -8,7 +8,7 @@ use visit::visitor::*;
 
 /// Does the second pass of scope checking
 /// to identify item `Identifier`s in expressions.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq)]
 pub struct ExpressionTypeIdentifier<'err, 'builder> {
     // Only need to look at type defs
     builder: &'builder NameScopeBuilder,
@@ -62,27 +62,35 @@ impl<'err, 'builder> ExpressionVisitor
             self.visit_type_expr(type_decl);
         }
     }
+
+    fn visit_if_expr(&mut self, if_expr: &IfExpression) { }
 }
 
 impl <'err, 'builder> TypeVisitor
     for ExpressionTypeIdentifier<'err, 'builder> {
 
-    fn visit_named_type_expr(&self, named_ty: &NamedTypeExpression) {
+    fn visit_named_type_expr(&mut self, named_ty: &NamedTypeExpression) {
         // Code here is basically duplicated from `item_namer`.
         // They'll diverge once the item namer also identifies new types.
-        if let Some(type_id) = self.builder.get(named_ty.get_name()) {
-            named_ty.get_ident().set_id(type_id);
+        if let Some(type_id) = self.builder.get(named_ty.get_ident().get_name()) {
+            named_ty.get_ident().set_id(type_id.clone());
         }
         else {
-            trace!("Encountered unexpected type name {}", named_ty.get_name());
-            let err_text = format!("Unknown type {}", named_ty.get_name());
+            trace!("Encountered unexpected type name {}",
+                named_ty.get_ident().get_name());
+            let err_text = format!("Unknown type {}",
+            named_ty.get_ident().get_name());
             self.errors.add_error(CheckerError::new(
                 named_ty.get_ident().get_token().clone(), vec![], err_text
             ));
         }
     }
 
-    fn visit_fn_type_expr(&self, fn_type: &FnTypeExpression) {
+    fn visit_primitive_type_expr(&mut self, prim: &Primitive) {
+
+    }
+
+    fn visit_fn_type_expr(&mut self, fn_type: &FnTypeExpression) {
         visit::walk_fn_type(self, fn_type);
     }
 }
