@@ -19,11 +19,11 @@ pub struct NamedTypeParser { }
 impl<T: Tokenizer> PrefixParser<TypeExpression, T> for NamedTypeParser {
     fn parse(&self, parser: &mut Parser<T>, token: Token)
              -> ParseResult<TypeExpression> {
-        debug_assert!(token.get_type() == TokenType::Identifier,
+        debug_assert!(token.get_type() == TokenType::Ident,
             "NamedTypeParser called with non-name token {:?}", token);
         trace!("Parsing named type {}", token.get_text());
         Ok(TypeExpression::Named(NamedTypeExpression::new(
             Identifier::new(token)
-        )));
+        )))
     }
 }

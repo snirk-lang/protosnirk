@@ -24,7 +24,7 @@ impl<T: Tokenizer> PrefixParser<Statement, T> for ReturnParser {
         if parser.peek_is_newline(&token) {
             return Ok(Statement::Return(Return::new(token, None)))
         }
-        else if parser.peek().data.get_type() == TokenType::EOF {
+        else if parser.peek().get_type() == TokenType::EOF {
             return Ok(Statement::Return(Return::new(token, None)))
         }
         let inner_expr = try!(parser.expression(Precedence::Return));

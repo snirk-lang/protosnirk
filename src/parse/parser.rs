@@ -44,7 +44,7 @@ impl<T: Tokenizer> Parser<T> {
     pub fn peek_indented(&mut self) -> (bool, &Token) {
         let mut indent = false;
         for size in 1usize.. {
-            let peeked_type = self.look_ahead(size).data.get_type();
+            let peeked_type = self.look_ahead(size).get_type();
             if peeked_type != TokenType::BeginBlock {
                 return (indent, self.look_ahead(size))
             }
@@ -73,7 +73,7 @@ impl<T: Tokenizer> Parser<T> {
     /// applied.
     pub fn consume_indented(&mut self, rule: IndentationRule) -> (bool, Token) {
         let next = self.consume();
-        if next.data.get_type() == TokenType::BeginBlock {
+        if next.get_type() == TokenType::BeginBlock {
             self.indent_rules.push(rule);
             (true, self.consume())
         } else {
@@ -106,18 +106,18 @@ impl<T: Tokenizer> Parser<T> {
                     // Ignore indentation until match found
                     IndentationRule::DisableUntil(indent_data) => {
                         // If match is found, disable this rule, return the match
-                        if next.data.get_type() == indent_data {
+                        if next.get_type() == indent_data {
                             self.indent_rules.pop();
                         }
                         // If indentation is found, skip it
-                        else if next.data.get_type() == TokenType::BeginBlock
-                                || next.data.get_type() == TokenType::EndBlock {
+                        else if next.get_type() == TokenType::BeginBlock
+                                || next.get_type() == TokenType::EndBlock {
                             continue
                         }
                     },
                     // Negate the next EndBlock
                     IndentationRule::NegateDeindent => {
-                        if next.data.get_type() == TokenType::EndBlock {
+                        if next.get_type() == TokenType::EndBlock {
                             // Remove this rule so it won't trigger next time
                             // and go onto the next token.
                             self.indent_rules.pop();
@@ -126,8 +126,8 @@ impl<T: Tokenizer> Parser<T> {
                     },
                     // Negate all the indentation
                     IndentationRule::DisableIndentation => {
-                        if next.data.get_type() == TokenType::BeginBlock
-                            || next.data.get_type() == TokenType::EndBlock {
+                        if next.get_type() == TokenType::BeginBlock
+                            || next.get_type() == TokenType::EndBlock {
                             continue
                         }
                     },
@@ -142,7 +142,7 @@ impl<T: Tokenizer> Parser<T> {
     pub fn consume_type(&mut self, expected_type: TokenType) -> Result<Token, ParseError> {
         trace!("Consuming type {:?}", expected_type);
         let token = self.consume();
-        if token.data.get_type() != expected_type {
+        if token.get_type() != expected_type {
             Err(ParseError::ExpectedToken {
                 expected: expected_type,
                 got: token.into()
@@ -189,7 +189,7 @@ impl<T: Tokenizer> Parser<T> {
 
     /// Peek at the next token without consuming it.
     pub fn next_type(&mut self) -> TokenType {
-        self.peek().data.get_type()
+        self.peek().get_type()
     }
 
     /// Push an indentation rule manually onto the stack
@@ -206,16 +206,17 @@ impl<T: Tokenizer> Parser<T> {
     pub fn type_expr(&mut self) -> Result<TypeExpression, ParseError> {
         use parse::symbol::types::*;
         let next_type = self.next_type();
-        trace!("Parsing type expression with {}", next_type);
+        trace!("Parsing type expression with {:?}", next_type);
 
         // Type expressions don't really have infixes so we just parse them -
         // the specifics of the array brackets/generic angles are handled by those
         // prefix parsers anyway.
         // Generic bounds (like `T: Managed + Cloneable`) will also have infix parsing.
         match next_type {
-            TokenType::Identifier => {
+            TokenType::Ident => {
                 trace!("Parsing named type expr");
-                NamedTypeParser { }.parse(self, self.consume())
+                let consumed = self.consume();
+                NamedTypeParser { }.parse(self, consumed)
             },
             TokenType::Int => {
                 self.consume();
@@ -231,7 +232,7 @@ impl<T: Tokenizer> Parser<T> {
                 return Err(ParseError::LazyString(format!(
                     "Unexpected token {:?} for type expression", next_type)))
             }
-        };
+        }
     }
 
     /// Parses any expression with the given precedence.
@@ -252,9 +253,10 @@ impl<T: Tokenizer> Parser<T> {
                 trace!("Unexpected EndBlock parsing expression");
                 return Err(ParseError::EOF);
             },
+            _ => { /* We don't need to return early. */ }
         }
-        if let Some(found_parser) = self.expr_prefix_parsers.get(token_type) {
-            trace!("Found a parser to parse ({:?}, {:?})", token.data.get_type(), token.text);
+        if let Some(found_parser) = self.expr_prefix_parsers.get(&token_type) {
+            trace!("Found a parser to parse ({:?}, {:?})", token.get_type(), token.text);
             prefix = found_parser.clone();
         }
         else {
@@ -270,7 +272,7 @@ impl<T: Tokenizer> Parser<T> {
             trace!("Consumed {:?}, indentation: {}", new_token, _infix_indented);
             token = new_token;
             let token_type = token.get_type();
-            if let Some(infix) = self.expr_infix_parsers.get(token_type).map(Rc::clone) {
+            if let Some(infix) = self.expr_infix_parsers.get(&token_type).map(Rc::clone) {
                 trace!("Parsing via infix parser!");
                 left = try!(infix.parse(self, left, token));
             }
@@ -288,7 +290,7 @@ impl<T: Tokenizer> Parser<T> {
     /// Parse a single statement.
     pub fn statement(&mut self) -> Result<Statement, ParseError> {
         let peek_type = self.next_type();
-        if let Some(stmt_parser) = self.stmt_prefix_parsers.get(&peek_type) {
+        if let Some(stmt_parser) = self.stmt_prefix_parsers.get(&peek_type).cloned() {
             trace!("Found statement parser for {:?}", &peek_type);
             let token = self.consume();
             stmt_parser.parse(self, token)
@@ -323,13 +325,14 @@ impl<T: Tokenizer> Parser<T> {
     /// Parse an item from a program (a function definition)
     pub fn item(&mut self) -> Result<Item, ParseError> {
         let peek_type = self.next_type();
-        if let Some(item_parser) = self.item_parsers.get(&peek_type) {
-            trace!("Found item parser for {}", &peek_type);
+        if let Some(item_parser) = self.item_parsers.get(&peek_type).cloned() {
+            trace!("Found item parser for {:?}", &peek_type);
             let token = self.consume();
             item_parser.parse(self, token)
         }
         else {
-            Err(ParseError::LaxyString(format!("Unexpected item token `{}`", &peek_type)))
+            Err(ParseError::LazyString(format!("Unexpected item token `{:?}`",
+                &peek_type)))
         }
     }
 
@@ -337,7 +340,7 @@ impl<T: Tokenizer> Parser<T> {
     pub fn lvalue(&mut self) -> Result<Identifier, ParseError> {
         let token = self.consume();
         trace!("Getting an lvalue from {}", token);
-        if token.data.get_type() == TokenType::Ident {
+        if token.get_type() == TokenType::Ident {
             IdentifierParser { }.parse(self, token)
                 .and_then(|e| e.expect_identifier())
         } else {
@@ -449,19 +452,14 @@ impl<T: Tokenizer> Parser<T> {
         trace!("Parsed {} items", items.len());
         let unit = Unit::new(items);
         trace!("Parsed unit {:#?}", unit);
-        unit
+        Ok(unit)
     }
 
     /// Get the current precedence
     fn current_precedence(&mut self) -> Precedence {
         use std::ops::Deref;
-        let lookup: (TokenType, CowStr);
-        {
-            let looked_ahead = self.look_ahead(1);
-            lookup = (looked_ahead.data.get_type(),
-                      Cow::Owned(looked_ahead.text.deref().into()));
-        }
-        if let Some(infix_parser) = self.expr_infix_parsers.get(&lookup) {
+            let looked_ahead = self.look_ahead(1).get_type();
+        if let Some(infix_parser) = self.expr_infix_parsers.get(&looked_ahead).cloned() {
             infix_parser.get_precedence()
         } else {
             Precedence::Min

@@ -23,7 +23,7 @@ impl<T: Tokenizer> InfixParser<Expression, T> for AssignOpParser {
         let lvalue = try!(left.expect_identifier());
         let right_expr = try!(parser.expression(Precedence::Min));
         let right_value = try!(right_expr.expect_value());
-        let operator = try!(parser.operator(token.data.get_type(), &token.text));
+        let operator = try!(parser.operator(token.get_type(), &token.text));
         // We parse it here into an expanded expression.
         let right_expr = Expression::BinaryOp(BinaryOperation::new(
             operator,

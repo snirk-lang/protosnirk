@@ -1,6 +1,6 @@
 //! If block/inline if parser.
 
-use lex::{tokens, Token, Tokenizer, TokenData, TokenType};
+use lex::{Token, Tokenizer, TokenData, TokenType};
 use parse::ast::*;
 use parse::{Parser, ParseError, ParseResult};
 use parse::symbol::{PrefixParser, Precedence};
@@ -22,18 +22,18 @@ use parse::symbol::{PrefixParser, Precedence};
 pub struct IfBlockParser { }
 impl<T: Tokenizer> PrefixParser<Statement, T> for IfBlockParser {
     fn parse(&self, parser: &mut Parser<T>, token: Token) -> ParseResult<Statement> {
-        debug_assert!(token.get_text() == "if",
+        debug_assert!(token.get_type() == TokenType::If,
             "Invalid token {:?} in IfBlockParser", token);
         trace!("Parsing conditional of if statement");
         let condition = try!(parser.expression(Precedence::Min));
         trace!("Parsed conditional");
-        if parser.peek().get_text() == tokens::InlineArrow {
+        if parser.peek().get_type() == TokenType::InlineArrow {
             trace!("Next char is =>, doing infix expr");
             parser.consume();
             let true_expr = try!(parser.expression(Precedence::Min));
             trace!("Parsed infix if true expr");
-            try!(parser.consume_name(TokenType::Keyword, tokens::Else));
-            if parser.peek().get_text() == tokens::If {
+            try!(parser.consume_type(TokenType::Else));
+            if parser.next_type() == TokenType::If {
                 let error = "Cannot have an `else if` via inline if expression";
                 return Err(ParseError::LazyString(error.to_string()))
             }
@@ -53,13 +53,13 @@ impl<T: Tokenizer> PrefixParser<Statement, T> for IfBlockParser {
         loop {
             // keep parsing else ifs. Break on a lone else.
             // If there isn't an `else` after the if, it's done
-            if parser.peek().get_text() != tokens::Else {
+            if parser.next_type() != TokenType::Else {
                 return Ok(Statement::IfBlock(IfBlock::new(conditionals, None)))
             }
             let else_token = parser.consume(); // else token
             trace!("Got an else token {:?}", else_token);
             // we have else \+ ... so we have an else block
-            if parser.peek().data.get_type() == TokenType::BeginBlock {
+            if parser.next_type() == TokenType::BeginBlock {
                 trace!("Found an empty else, parsing else block");
                 parser.consume();
                 let else_block = try!(parser.block());
@@ -68,10 +68,10 @@ impl<T: Tokenizer> PrefixParser<Statement, T> for IfBlockParser {
                 ))
             }
             // we have else if ... so we have an else if expr
-            else if parser.peek().get_text() == tokens::If {
+            else if parser.next_type() == TokenType::If {
                 let if_token = parser.consume();
                 let else_if_condition = try!(parser.expression(Precedence::Min));
-                if parser.peek().get_text() == tokens::InlineArrow {
+                if parser.next_type() == TokenType::InlineArrow {
                     let error = "Cannot have an inline `else if` via if block";
                     return Err(ParseError::LazyString(error.to_string()))
                 }

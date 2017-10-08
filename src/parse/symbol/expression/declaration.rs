@@ -3,7 +3,7 @@
 // This will become more complex with tuple declarations
 // and other pattern declaration types.
 
-use lex::{tokens, Token, Tokenizer, TokenType, TokenData};
+use lex::{Token, Tokenizer, TokenType, TokenData};
 use parse::{Parser, ParseResult, ParseError};
 use parse::ast::*;
 use parse::symbol::{PrefixParser, Precedence};
@@ -18,10 +18,10 @@ use parse::symbol::{PrefixParser, Precedence};
 pub struct DeclarationParser { }
 impl<T: Tokenizer> PrefixParser<Expression, T> for DeclarationParser {
     fn parse(&self, parser: &mut Parser<T>, token: Token) -> ParseResult<Expression> {
-        debug_assert!(token.text == tokens::Let,
+        debug_assert!(token.get_type() == TokenType::Let,
                       "Let parser called with non-let token {:?}", token);
         trace!("Parsing declaration for {}", token);
-        let is_mutable = parser.peek().text == tokens::Mut;
+        let is_mutable = parser.next_type() == TokenType::Mut;
         if is_mutable {
             parser.consume();
         }
@@ -37,13 +37,13 @@ impl<T: Tokenizer> PrefixParser<Expression, T> for DeclarationParser {
             trace!("No type declaration");
             None
         };
-        try!(parser.consume_name(TokenType::Symbol, tokens::Equals));
+        try!(parser.consume_type(TokenType::Equals));
         trace!("Consumed =, parsing rvalue");
         let value_expr = try!(parser.expression(Precedence::Min));
         let value = try!(value_expr.expect_value());
         trace!("Got rvalue {:?}", value);
         Ok(Expression::Declaration(Declaration::new(
-            token, is_mutable, name, decl_type, Box::new(value)
+            name, is_mutable, decl_type, Box::new(value)
         )))
     }
 }

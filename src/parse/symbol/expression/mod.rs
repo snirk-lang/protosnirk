@@ -35,7 +35,7 @@ impl<T: Tokenizer> InfixParser<Expression, T> for BinOpExprSymbol {
     fn parse(&self, parser: &mut Parser<T>,
              left: Expression, token: Token) -> ParseResult<Expression> {
         let right: Expression = try!(parser.expression(self.precedence));
-        let bin_operator = try!(parser.operator(token.data.get_type(), &token.text));
+        let bin_operator = try!(parser.operator(token.get_type(), &token.text));
         Ok(Expression::BinaryOp(
             BinaryOperation::new(bin_operator, token, Box::new(left), Box::new(right))))
     }
@@ -62,7 +62,7 @@ impl<T: Tokenizer> PrefixParser<Expression, T> for UnaryOpExprSymbol {
              parser: &mut Parser<T>, token: Token) -> ParseResult<Expression> {
         let right_expr = try!(parser.expression(self.precedence));
         let right_value = try!(right_expr.expect_value());
-        let operator = try!(parser.operator(token.data.get_type(), &token.text));
+        let operator = try!(parser.operator(token.get_type(), &token.text));
         Ok(Expression::UnaryOp(UnaryOperation::new(operator, token, Box::new(right_value))))
     }
 }

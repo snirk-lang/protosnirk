@@ -3,7 +3,7 @@
 // This parser will be one of the first to be heavily
 // overloaded (tuple parsing vs expression recedence in expr prefix).
 
-use lex::{tokens, Token, Tokenizer, TokenType, TokenData};
+use lex::{Token, Tokenizer, TokenType, TokenData};
 use parse::{Parser, ParseResult, ParseError};
 use parse::ast::*;
 use parse::symbol::{PrefixParser, Precedence};
@@ -19,11 +19,11 @@ use parse::symbol::{PrefixParser, Precedence};
 pub struct ParensParser { }
 impl<T: Tokenizer> PrefixParser<Expression, T> for ParensParser {
     fn parse(&self, parser: &mut Parser<T>, _token: Token) -> ParseResult<Expression> {
-        debug_assert!(_token.text == tokens::LeftParen,
+        debug_assert!(_token.get_type() == TokenType::LeftParen,
                       "Parens parser called with non-left-paren {:?}", _token);
         let inner_expr = try!(parser.expression(Precedence::Min));
         let inner = try!(inner_expr.expect_value());
-        try!(parser.consume_name(TokenType::Symbol, tokens::RightParen));
+        try!(parser.consume_type(TokenType::RightParen));
         Ok(inner)
     }
 }
