@@ -22,16 +22,16 @@ pub use self::stmt::*;
 pub use self::types::*;
 pub use self::operator::Operator;
 
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, RefCell, Ref};
 
 use lex::Token;
 use parse::{TypeId, ScopedId};
 
 /// Basic identifier type
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Identifier {
     pub token: Token,
-    pub id: RefCell<ScopedId>,
+    id: RefCell<ScopedId>,
     type_id: Cell<TypeId>
 }
 impl Identifier {
@@ -49,12 +49,12 @@ impl Identifier {
         &self.token
     }
 
-    pub fn get_id(&self) -> &ScopedId {
-        self.index.borrow()
+    pub fn get_id<'a>(&'a self) -> Ref<'a, ScopedId> {
+        self.id.borrow()
     }
 
     pub fn set_id(&self, index: ScopedId) {
-        *self.index.borrow_mut() = index;
+        *self.id.borrow_mut() = index;
     }
 
     pub fn get_type_id(&self) -> TypeId {
@@ -62,7 +62,7 @@ impl Identifier {
     }
 
     pub fn set_type_id(&self, id: TypeId) {
-        self.ty_id.set(id)
+        self.type_id.set(id);
     }
 }
 impl Into<Token> for Identifier {
@@ -83,8 +83,12 @@ pub struct Block {
 }
 impl Block {
     /// Create a new block from the given statements and scope id.
-    pub fn new(statements: Vec<Statement>, scope_id: ScopedId) -> Block {
-        Block { statements, scope_id }
+    pub fn new(statements: Vec<Statement>) -> Block {
+        Block {
+            statements,
+            scope_id: RefCell::default(),
+            type_id: Cell::default()
+        }
     }
     pub fn has_value(&self) -> bool {
         if self.statements.len() == 0 {
@@ -105,7 +109,7 @@ impl Block {
     pub fn get_stmts(&self) -> &[Statement] {
         &self.statements
     }
-    pub fn get_id(&self) -> &ScopedId {
+    pub fn get_id<'a>(&'a self) -> Ref<'a, ScopedId> {
         self.scope_id.borrow()
     }
     pub fn set_id(&self, id: ScopedId) {
@@ -115,7 +119,7 @@ impl Block {
     pub fn get_type_id(&self) -> TypeId {
         self.type_id.get()
     }
-    pub fn set_type_id(&self, value: TypeId) -> TypeId {
-        self.type_id = value;
+    pub fn set_type_id(&self, value: TypeId) {
+        self.type_id.set(value);
     }
 }

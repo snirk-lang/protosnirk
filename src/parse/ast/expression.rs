@@ -4,9 +4,11 @@
 //! They are usually emitted as asm instructions operating on variables.
 
 use lex::{Token, TokenType, TokenData};
-use parse::{ParseResult, ParseError, ExpectedNextType};
+use parse::{ParseResult, ParseError, ExpectedNextType, ScopedId};
 use parse::ast::{Statement, Identifier, Operator, Block};
 use parse::ast::types::TypeExpression;
+
+use std::cell::Ref;
 
 /// Expression types
 #[derive(Debug, PartialEq, Clone)]
@@ -97,12 +99,12 @@ impl Literal {
     /// Creates a new boolean literal from the given token and boolean value.
     pub fn new_bool(token: Token, value: bool) -> Literal {
         debug_assert!(
-            match token.get_data() {
+            match *token.get_data() {
                 TokenData::BoolLiteral(_) => true, _ => false
             },
             "Literal bool created with bad token {:?}", token);
         Literal {
-            toekn: token,
+            token: token,
             value: LiteralValue::Bool(value)
         }
     }
@@ -110,7 +112,7 @@ impl Literal {
     /// Creates a new unit type literal `()` from the given token.
     pub fn new_unit(token: Token) -> Literal {
         debug_assert!(
-            match token.get_data() {
+            match *token.get_data() {
                 TokenData::UnitLiteral => true, _ => false
             },
             "Literal unit created with bad token {:?}", token);
@@ -123,7 +125,7 @@ impl Literal {
     /// Creates a new floating point literal from the given token and value.
     pub fn new_f64(token: Token, value: f64) -> Literal {
         debug_assert!(
-            match token.get_data() {
+            match *token.get_data() {
                 TokenData::NumberLiteral(_) => true, _ => false
             },
             "Literal f64 called with bad token {:?}", token);
@@ -200,7 +202,6 @@ impl UnaryOperation {
 #[derive(Debug, PartialEq, Clone)]
 pub struct Declaration {
     pub mutable: bool,
-    pub token: Token,
     pub ident: Identifier,
     pub value: Box<Expression>,
     type_decl: Option<TypeExpression>
@@ -307,17 +308,24 @@ impl FnCall {
             args: FnCallArgs::SingleExpr(Box::new(arg))
         }
     }
-    pub fn get_name(&self) -> &Identifier {
+    pub fn get_ident(&self) -> &Identifier {
         &self.lvalue
     }
     pub fn get_text(&self) -> &str {
-        self.get_name().get_name()
+        self.get_ident().get_name()
     }
     pub fn get_token(&self) -> &Token {
         &self.paren_token
     }
     pub fn get_args(&self) -> &FnCallArgs {
         &self.args
+    }
+
+    pub fn get_id<'a>(&'a self) -> Ref<'a, ScopedId> {
+        self.get_ident().get_id()
+    }
+    pub fn set_id(&self, id: ScopedId) {
+        self.get_ident().set_id(id);
     }
 }
 
@@ -357,24 +365,32 @@ pub struct CallArgument {
     value: CallArgumentValue
 }
 impl CallArgument {
-    pub fn implicit_name(name: Identifier) -> CallArgument {
-        CallArgument { name: name, expr: CallArgumentValue::LocalVar(name.clone()) }
+    pub fn implicit_name(param: Identifier) -> CallArgument {
+        CallArgument { param: param.clone(), value: CallArgumentValue::LocalVar(param.clone()) }
     }
-    pub fn named(name: Identifier, expr: Expression) -> CallArgument {
-        CallArgument { name: name, expr: CallArgumentValue::Expression(expr) }
+    pub fn named(param: Identifier, value: Expression) -> CallArgument {
+        CallArgument { param, value: CallArgumentValue::Expression(value) }
     }
 
     /// Gets the name of the param being referenced.
     ///
     /// The `ScopedId` of this `Identifier` should match the fn param.
-    pub fn get_name(&self) -> &Identifier {
-        &self.name
+    pub fn get_ident(&self) -> &Identifier {
+        &self.param
     }
-    pub fn get_text(&self) -> &str {
-        self.name.get_name()
+    pub fn get_name(&self) -> &str {
+        self.param.get_name()
     }
     /// Gets the value of the CallArgument.
     pub fn get_value(&self) -> &CallArgumentValue {
         &self.value
+    }
+
+    pub fn get_id<'a>(&'a self) -> Ref<'a, ScopedId> {
+        self.param.get_id()
+    }
+
+    pub fn set_id(&self, id: ScopedId) {
+        self.param.set_id(id);
     }
 }

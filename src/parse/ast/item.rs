@@ -2,10 +2,10 @@
 //!
 //! An `Item` is a declaration made in the root context of a program
 //! -- namely declarations such as `class`, `enum`, `struct`.
-use std::cell::Cell;
+use std::cell::{Cell, Ref};
 
 use lex::{Token};
-use parse::ast::{Identifier, Block, Expression};
+use parse::ast::{Identifier, Block, Expression, ScopedId};
 use parse::ast::types::{TypeExpression,
                         FnTypeExpression};
 
@@ -38,18 +38,20 @@ pub enum Item {
 pub struct BlockFnDeclaration {
     fn_token: Token,
     ident: Identifier,
-    type_expr: FnTypeExpression,
+    params: Vec<(Identifier, TypeExpression)>,
+    ret_ty: Option<TypeExpression>,
     block: Block,
 }
 impl BlockFnDeclaration {
     /// Create a new FnDeclaration
     pub fn new(fn_token: Token,
                ident: Identifier,
-               type_expr: FnTypeExpression,
+               params: Vec<(Identifier, TypeExpression)>,
+               ret_ty: Option<TypeExpression>,
                block: Block)
                -> BlockFnDeclaration {
         BlockFnDeclaration {
-            fn_token, ident, type_expr, block
+            fn_token, ident, params, ret_ty, block
         }
     }
     /// Get the `fn` token
@@ -58,15 +60,23 @@ impl BlockFnDeclaration {
     }
     /// Get the identifier of the function
     pub fn get_ident(&self) -> &Identifier {
-        &self.name
+        &self.ident
+    }
+    pub fn get_params(&self) -> &[(Identifier, TypeExpression)] {
+        &self.params
+    }
+    pub fn get_return_type(&self) -> Option<&TypeExpression> {
+        self.ret_ty.as_ref()
+    }
+    pub fn get_id<'a>(&'a self) -> Ref<'a, ScopedId> {
+        self.ident.get_id()
+    }
+    pub fn set_id(&self, id: ScopedId) {
+        self.ident.set_id(id);
     }
     /// Get the textual name of the function
     pub fn get_name(&self) -> &str {
-        &self.name.get_name()
-    }
-    /// Get the parameters of the function
-    pub fn get_type_expr(&self) -> &FnTypeExpression {
-        &self.type_expr
+        &self.ident.get_name()
     }
     /// Get the block inside the function
     pub fn get_block(&self) -> &Block {

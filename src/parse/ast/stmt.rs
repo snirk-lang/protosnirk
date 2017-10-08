@@ -8,7 +8,8 @@ use lex::{CowStr, Token, TokenData, TokenType};
 use parse::{ScopedId, TypeId};
 use parse::ast::{Expression, Block, Identifier};
 
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, RefCell, Ref};
+use std::ops::Deref;
 
 /// Statement representation
 #[derive(Debug, PartialEq, Clone)]
@@ -33,7 +34,7 @@ impl Statement {
 /// Explicit return statement
 #[derive(Debug, PartialEq, Clone)]
 pub struct Return {
-    pub token: Token,
+    token: Token,
     pub value: Option<Box<Expression>>
 }
 impl Return {
@@ -49,8 +50,11 @@ impl Return {
             false
         }
     }
-    pub fn get_value(&self) -> &Option<Box<Expression>> {
-        &self.value
+    pub fn get_value(&self) -> Option<&Expression> {
+        self.value.as_ref().map(|expr| expr.as_ref())
+    }
+    pub fn get_token(&self) -> &Token {
+        &self.token
     }
 }
 
@@ -99,7 +103,7 @@ pub struct IfBlock {
 pub struct Conditional {
     pub if_token: Token,
     pub condition: Expression,
-    pub block: Block
+    pub block: Block,
 }
 
 impl IfBlock {
@@ -110,7 +114,8 @@ impl IfBlock {
         IfBlock {
             conditionals: conditionals,
             else_block: else_block,
-            scoped_id: RefCell::new(ScopedId::default())
+            scoped_id: RefCell::new(ScopedId::default()),
+            type_id: Cell::default()
         }
     }
     pub fn has_else_if(&self) -> bool {
@@ -139,11 +144,17 @@ impl IfBlock {
         }
         self.else_block.as_ref().unwrap().1.has_value()
     }
-    pub fn get_id(&self) -> ScopedId {
-        *self.id
+    pub fn get_id<'a>(&'a self) -> Ref<'a, ScopedId> {
+        self.scoped_id.borrow()
     }
     pub fn set_id(&self, id: ScopedId) {
-        self.id = id;
+        *self.scoped_id.borrow_mut() = id;
+    }
+    pub fn get_type_id(&self) -> TypeId {
+        self.type_id.get()
+    }
+    pub fn set_type_id(&self, id: TypeId) {
+        self.type_id.set(id);
     }
 }
 
@@ -165,5 +176,8 @@ impl Conditional {
     }
     pub fn has_value(&self) -> bool {
         self.block.has_value()
+    }
+    pub fn get_token(&self) -> &Token {
+        &self.if_token
     }
 }
