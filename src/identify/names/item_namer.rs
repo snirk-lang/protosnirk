@@ -58,12 +58,10 @@ impl<'err, 'builder> ItemVisitor for ItemVarIdentifier<'err, 'builder> {
         // Also name the params here
         let mut param_id = self.current_id.pushed();
         //self.builder.new_scope()
-        for (param, _param_type) in block_fn.get_params() {
+        for &(ref param, ref _param_type) in block_fn.get_params() {
             // Identify params internally with {fn_name}:{param_name}.
-            let mut param_name = String::new();
-            param_name.push(block_fn.get_name());
-            param_name.push(":");
-            param_name.push(param.get_text());
+            let param_name = format!("{}:{}",
+                block_fn.get_name(), param.get_name());
 
             if let Some(previous_def) = self.builder.get(&param_name) {
                 let error_text = format!(
@@ -77,7 +75,7 @@ impl<'err, 'builder> ItemVisitor for ItemVarIdentifier<'err, 'builder> {
 
             param_id.increment();
             trace!("Created id {:?} for {} param {}",
-                param_id, block_fn.get_name(), param.get_text());
+                param_id, block_fn.get_name(), param.get_name());
             self.builder.define_local(param_name, param_id.clone());
             param.set_id(param_id.clone());
         }

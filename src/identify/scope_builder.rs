@@ -38,10 +38,10 @@ pub struct ScopeBuilder<T: Debug + Hash + Eq> {
     defined: HashSet<ScopedId>
 }
 
-impl<T> ScopeBuilder<T> {
+impl<T: Debug + Hash + Eq> ScopeBuilder<T> {
     /// Create a new empty lexical scope manager
     pub fn new() -> ScopeBuilder<T> {
-        ScopeBuilder { scopes: vec![] }
+        ScopeBuilder { scopes: vec![], defined: hashset![] }
     }
 
     /// Create a new scope
@@ -73,13 +73,14 @@ impl<T> ScopeBuilder<T> {
     }
 
     /// Get a variable from any scope
-    pub fn get<K: Borrow<T> + Debug>(&self, key: &K) -> Option<&ScopedId> {
-        trace!("Searching for {} in {:#?}", key, self);
+    pub fn get<K: ?Sized + Debug>(&self, key: &K) -> Option<&ScopedId>
+        where T: Borrow<K>, K: Hash + Eq + Debug {
+        trace!("Searching for {:?} in {:#?}", key, self);
         debug_assert!(!self.scopes.is_empty(),
             "Attempted to search for a variable {:?} with no scopes", key);
         for scope in self.scopes.iter().rev() {
             trace!("Checking for {:?} in scope {:?}", key, scope);
-            if let Some(var_ref) = scope.get(key) {
+            if let Some(var_ref) = scope.get(key.borrow()) {
                 return Some(var_ref)
             }
         }
@@ -99,7 +100,7 @@ impl<T> ScopeBuilder<T> {
         debug_assert!(!self.scopes.is_empty(),
             "Attempted to get local var {:?} with no scopes", key);
         let local_scope_ix = self.scopes.len() - 1usize;
-        self.scopes[local_scope_ix].get(key)
+        self.scopes[local_scope_ix].get(key.borrow())
     }
 
     /// Get a variable, starting from the given scope
@@ -109,7 +110,7 @@ impl<T> ScopeBuilder<T> {
             "Do not have {} scopes to search, only have {}",
             scope_level, self.scopes.len());
         for scope in self.scopes[0..scope_level].iter().rev() {
-            if let Some(var_ref) = scope.get(key) {
+            if let Some(var_ref) = scope.get(key.borrow()) {
                 return Some(var_ref)
             }
         }

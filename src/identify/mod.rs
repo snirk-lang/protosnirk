@@ -47,8 +47,10 @@ mod types;
 mod scope_builder;
 use self::scope_builder::NameScopeBuilder;
 
+use parse::ScopedId;
 use parse::ast::Unit;
 use check::ErrorCollector;
+use visit::visitor::UnitVisitor;
 
 use self::names::*;
 use self::types::*;
@@ -59,14 +61,24 @@ use self::types::*;
 /// it appears in an expression context or type context.
 /// The IDs take scoping rules into account, identifying
 /// types and variables with unique IDs.
-#[derive(Debug, PartialEq, Clone)]
-pub struct ASTScopedIdentifier { }
-impl ASTScopedIdentifier {
-    pub fn check_unit(&self, errors: &mut ErrorCollector, unit: &Unit) {
-        let mut type_scope = types::default_type_scope();
-        ItemVarIdentifier::new(errors, type_scope).visit_unit(unit);
-        ItemTypeIdentifier::new(errors).visit_unit(unit);
-        ExpressionVarIdentifier::new(errors).visit_unit(unit);
-        ExpressionTypeIdentifier::new(errors, type_scope).visit_unit(unit);
+#[derive(Debug, PartialEq)]
+pub struct ASTScopedIdentifier<'scope, 'err> {
+    type_scope: &'scope mut NameScopeBuilder,
+    errors: &'err mut ErrorCollector
+}
+impl<'scope, 'err> ASTScopedIdentifier<'scope, 'err> {
+    pub fn new(type_scope: &'scope mut NameScopeBuilder,
+               errors: &'err mut ErrorCollector)
+               -> ASTScopedIdentifier<'scope, 'err> {
+        ASTScopedIdentifier { type_scope, errors }
+    }
+}
+
+impl<'scope, 'err> UnitVisitor for ASTScopedIdentifier<'scope, 'err> {
+    fn visit_unit(&mut self, unit: &Unit) {
+        ItemVarIdentifier::new(self.errors, self.type_scope, ScopedId::default()).visit_unit(unit);
+        ItemTypeIdentifier::new(self.errors, self.type_scope).visit_unit(unit);
+        ExpressionVarIdentifier::new(self.errors, self.type_scope).visit_unit(unit);
+        ExpressionTypeIdentifier::new(self.errors, self.type_scope).visit_unit(unit);
     }
 }
