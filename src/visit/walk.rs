@@ -1,7 +1,7 @@
 //! Methods for walking the AST.
 
 use parse::ast::*;
-use super::*;
+use visit::visitor::*;
 
 /// Visit each item in a `Unit`.
 #[inline]
@@ -47,13 +47,13 @@ pub fn walk_bin_op<V>(visitor: &mut V, bin_op: &BinaryOperation)
 #[inline]
 pub fn walk_unary_op<V>(visitor: &mut V, un_op: &UnaryOperation)
                     where V: ExpressionVisitor {
-    visitor.visit_expression(un_op.get_expr());
+    visitor.visit_expression(un_op.get_inner());
 }
 
 #[inline]
 pub fn walk_return<V>(visitor: &mut V, ret: &Return)
                      where V: ExpressionVisitor {
-    if let Some(expr) = ret.get_expr() {
+    if let Some(expr) = ret.get_value() {
         visitor.visit_expression(expr);
     }
 }
@@ -61,7 +61,7 @@ pub fn walk_return<V>(visitor: &mut V, ret: &Return)
 #[inline]
 pub fn walk_do_block<V>(visitor: &mut V, block: &DoBlock)
                         where V: BlockVisitor {
-    visitor.visit_block(block);
+    visitor.visit_block(block.get_block());
 }
 
 #[inline]
@@ -71,7 +71,7 @@ pub fn walk_if_block<V>(visitor: &mut V, if_block: &IfBlock)
         visitor.visit_expression(cond.get_condition());
         visitor.visit_block(cond.get_block());
     }
-    if let Some((_, block)) = if_block.get_else() {
+    if let Some(&(_, ref block)) = if_block.get_else() {
         visitor.visit_block(block);
     }
 }
@@ -79,8 +79,10 @@ pub fn walk_if_block<V>(visitor: &mut V, if_block: &IfBlock)
 #[inline]
 pub fn walk_fn_type<V>(visitor: &mut V, fn_type: &FnTypeExpression)
                        where V: TypeVisitor {
-    for (_param_name, param_type) in fn_type.get_params() {
-        visitor.visit_type(param_type);
+    for &(ref _param_name, ref param_type) in fn_type.get_params() {
+        visitor.visit_type_expr(param_type);
     }
-    visitor.visit_type(fn_type.get_return_type());
+    if let Some(ref return_type) = fn_type.get_return_type() {
+        visitor.visit_type_expr(return_type);
+    }
 }

@@ -1,41 +1,37 @@
 //! Default visitors.
 
-use super::*;
+use visit;
+use visit::visitor::*;
 use parse::ast::*;
 
 /// A trait which allows a `ItemVisitor` to become a `UnitVisitor`
 /// by visiting all items in a unit.
-pub trait DefaultUnitVisitor : ItemVisitor {
-    #[inline]
-    fn visit_unit(&self, unit: &Unit) {
-        visit::walk_unit(self, unit);
-    }
+pub trait DefaultUnitVisitor : ItemVisitor { }
+impl<T: DefaultUnitVisitor + ItemVisitor> UnitVisitor for T {
+    fn visit_unit(&mut self, unit: &Unit) { visit::walk_unit(self, unit); }
 }
-impl UnitVisitor for DefaultUnitVisitor { }
 
+/// A trait which allows a `BlockVisitor` to become an `ItemVisitor`
+/// by just looking at block fns.
 pub trait DefaultItemVisitor : BlockVisitor { }
-impl ItemVisitor for DefaultItemVisitor {
-    fn visit_block_fn_decl(&mut self, fn_decl: &BlockFnDeclaration) {
-        visit::walk_fn_decl(self, fn_decl);
+impl<T: DefaultItemVisitor + BlockVisitor + StatementVisitor + ExpressionVisitor> ItemVisitor for T {
+    fn visit_block_fn_decl(&mut self, block_fn: &BlockFnDeclaration) {
+        visit::walk_block(self, block_fn.get_block());
     }
 }
 
 /// A trait which allows a `StatementVisitor` to become a
 /// `BlockVisitor` by visiting all statments in a block.
-pub trait DefaultBlockVisitor : StatementVisitor {
+pub trait DefaultBlockVisitor : StatementVisitor { }
+impl<T: DefaultBlockVisitor> BlockVisitor for T {
     #[inline]
     fn visit_block(&mut self, block: &Block) {
         visit::walk_block(self, block);
     }
 }
-impl BlockVisitor for DefaultBlockVisitor { }
 
 pub trait DefaultStmtVisitor : ExpressionVisitor { }
-impl<V: DefaultStmtVisitor + ExpressionVisitor> StatementVisitor for V {
-    #[inline]
-    fn visit_expression(&mut self, expr: &Expression) {
-        ExpressionVisitor::visit_expression(self, expr);
-    }
+impl<V: DefaultStmtVisitor + ExpressionVisitor + BlockVisitor> StatementVisitor for V {
     #[inline]
     fn visit_do_block(&mut self, do_block: &DoBlock) {
         visit::walk_do_block(self, do_block);

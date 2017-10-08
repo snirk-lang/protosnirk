@@ -6,9 +6,11 @@ use lex::Token;
 use parse::ast::*;
 use parse::ast::Expression as BaseExpression;
 
+pub use visit::default::*; // Reexport `DefaultVisitor`s here.
+
 /// A visitor which can visit a unit of code.
 pub trait UnitVisitor {
-    fn visit_unit(&self, unit: &Unit);
+    fn visit_unit(&mut self, unit: &Unit);
 }
 
 /// A visitor which can visit items in code.
@@ -17,7 +19,7 @@ pub trait UnitVisitor {
 pub trait ItemVisitor {
     fn visit_item(&mut self, item: &Item) {
         match *item {
-            Item::BlockFnDeclaration(block_fn_decl) => {
+            Item::BlockFnDeclaration(ref block_fn_decl) => {
                 self.visit_block_fn_decl(block_fn_decl);
             }
         }
@@ -30,17 +32,21 @@ pub trait ItemVisitor {
 pub trait TypeVisitor {
     fn visit_type_expr(&mut self, expr: &TypeExpression) {
         match *expr {
-            TypeExpression::Named(named_ty) => {
+            TypeExpression::Named(ref named_ty) => {
                 self.visit_named_type_expr(named_ty);
             },
-            TypeExpression::Function(block_fn_ty) => {
-                self.visit_fn_ty_expr(block_fn_ty);
+            TypeExpression::Function(ref block_fn_ty) => {
+                self.visit_fn_type_expr(block_fn_ty);
             },
+            TypeExpression::Primitive(ref prim) => {
+                self.visit_primitive_type_expr(prim);
+            }
         }
     }
 
     fn visit_named_type_expr(&mut self, named_ty: &NamedTypeExpression);
     fn visit_fn_type_expr(&mut self, fn_ty: &FnTypeExpression);
+    fn visit_primitive_type_expr(&mut self, prim: &Primitive);
 }
 
 /// A visitor which can visit blocks of code.
@@ -55,19 +61,19 @@ pub trait BlockVisitor {
 ///
 /// See also `DefaultBlockVisitor` which allows this
 /// visitor to become a `BlockVisitor`.
-pub trait StatementVisitor {
+pub trait StatementVisitor : ExpressionVisitor {
     fn visit_stmt(&mut self, stmt: &Statement) {
         match *stmt {
-            Statement::Expression(expr) => {
+            Statement::Expression(ref expr) => {
                 self.visit_expression(expr);
             },
-            Statement::Return(return_) => {
+            Statement::Return(ref return_) => {
                 self.visit_return_stmt(return_);
             },
-            Statement::DoBlock(do_block) => {
+            Statement::DoBlock(ref do_block) => {
                 self.visit_do_block(do_block);
             },
-            Statement::IfBlock(if_block) => {
+            Statement::IfBlock(ref if_block) => {
                 self.visit_if_block(if_block);
             }
         }
@@ -75,35 +81,34 @@ pub trait StatementVisitor {
     fn visit_return_stmt(&mut self, return_: &Return);
     fn visit_if_block(&mut self, if_block: &IfBlock);
     fn visit_do_block(&mut self, do_block: &DoBlock);
-    fn visit_expression(&mut self, expr: &Expression);
 }
 
 /// A visitor which can visit expressions of code.
 pub trait ExpressionVisitor {
     fn visit_expression(&mut self, expr: &Expression) {
-        match expr {
-            Expression::Literal(literal) => {
+        match *expr {
+            Expression::Literal(ref literal) => {
                 self.visit_literal_expr(literal);
             },
-            Expression::VariableRef(ident) => {
+            Expression::VariableRef(ref ident) => {
                 self.visit_var_ref(ident);
             },
-            Expression::BinaryOp(bin_op) => {
+            Expression::BinaryOp(ref bin_op) => {
                 self.visit_binary_op(bin_op);
             },
-            Expression::UnaryOp(un_op) => {
+            Expression::UnaryOp(ref un_op) => {
                 self.visit_unary_op(un_op);
             },
-            Expression::IfExpression(if_expr) => {
+            Expression::IfExpression(ref if_expr) => {
                 self.visit_if_expr(if_expr);
             },
-            Expression::FnCall(fn_call) => {
+            Expression::FnCall(ref fn_call) => {
                 self.visit_fn_call(fn_call);
             },
-            Expression::Assignment(assign) => {
+            Expression::Assignment(ref assign) => {
                 self.visit_assignment(assign);
             },
-            Expression::Declaration(declare) => {
+            Expression::Declaration(ref declare) => {
                 self.visit_declaration(declare);
             }
         }
