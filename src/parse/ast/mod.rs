@@ -70,7 +70,7 @@ impl Identifier {
     }
 
     pub fn set_type_id(&self, id: TypeId) {
-        self.ty_id.set(id)
+        self.type_id.set(id);
     }
 }
 impl Into<Token> for Identifier {
