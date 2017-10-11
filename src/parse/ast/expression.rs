@@ -190,8 +190,8 @@ impl UnaryOperation {
             expression: expression
         }
     }
-    pub fn get_operator(&self) -> &Operator {
-        &self.operator
+    pub fn get_operator(&self) -> Operator {
+        self.operator
     }
     pub fn get_inner(&self) -> &Expression {
         &self.expression
