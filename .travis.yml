@@ -49,5 +49,7 @@ install:
   - sudo ln -s /usr/bin/llvm-config-6.0 /usr/bin/llvm-config
 
 script:
+  - find /usr/bin -name "*llvm*" | sort
+  - llvm-config --version
   - cargo check --verbose
   - cargo test --verbose
