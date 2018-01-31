@@ -172,10 +172,9 @@ fn fact(n)
     factHelper(n: n, acc: 1)
 "#,
 ];
-    ::env_logger::LogBuilder::new()
+    ::env_logger::Builder::new()
         .parse("TRACE")
-        .init()
-        .unwrap();
+        .init();
     for input in inputs {
         let mut parser = parser(input);
         trace!("Parsing input {:?}", input);

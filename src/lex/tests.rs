@@ -3,6 +3,7 @@
 
 use std::borrow::Cow;
 use std::str::Chars;
+use std::io::Write;
 
 use lex::{Token, TokenType, TokenData, TextLocation, Tokenizer, IterTokenizer};
 
@@ -564,17 +565,17 @@ fn foo2 args
 "#,
     ];
 
-    let format = |record: &::log::LogRecord| {
-        format!("[{} {}] {}",
-            &record.location().module_path()[12..],
-            record.location().line(), record.args())
+    let format = |buf: &mut ::env_logger::Formatter, record: &::log::Record| {
+        writeln!(buf, "[{:?} {:?}] {:?}",
+            record.module_path(),
+            record.line(),
+            record.args())
     };
 
-    ::env_logger::LogBuilder::new()
+    ::env_logger::Builder::new()
         .parse("TRACE")
         .format(format)
-        .init()
-        .unwrap();
+        .init();
 
     for input in inputs {
         log_parses(input);
