@@ -26,13 +26,14 @@ notifications:
 addons:
   apt:
     packages:
+      - cmake
       - libffi-dev
       - libncursesw5
       - libncursesw5-dev
 
 install:
   - sh build/install-llvm.sh
-  - sh build/install-cmake.sh
+  #- sh build/install-cmake.sh
   # Clone the fork of llvm-sys with bugfixes
   - hg clone https://snirkimmington@bitbucket.org/snirkimmington/llvm-sys.rs $HOME/llvm-sys.rs
   # Super duper hacky to get ncurses6
