@@ -42,7 +42,9 @@ install:
 
 script:
   - export PATH=$HOME/llvm-4.0.0/bin:$PATH
+  - export LLVM_SYS_40_FFI_WORKAROUND=1
   - echo $PATH
+  - echo $LLVM_SYS_40_FFI_WORKAROUND
   - ldd $(which llvm-config)
   - llvm-config --version
   - PATH=$HOME/llvm-4.0.0/bin:$PATH cargo test --verbose compile_example
