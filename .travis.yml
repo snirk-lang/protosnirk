@@ -26,13 +26,14 @@ notifications:
 addons:
   apt:
     packages:
+      - cmake
       - libffi-dev
       - libncursesw5
       - libncursesw5-dev
 
 install:
   - sh build/install-llvm.sh
-  - sh build/install-cmake.sh
+  #- sh build/install-cmake.sh
   # Clone the fork of llvm-sys with bugfixes
   - hg clone https://snirkimmington@bitbucket.org/snirkimmington/llvm-sys.rs $HOME/llvm-sys.rs
   # Super duper hacky to get ncurses6
@@ -41,7 +42,9 @@ install:
 
 script:
   - export PATH=$HOME/llvm-4.0.0/bin:$PATH
+  - export LLVM_SYS_40_FFI_WORKAROUND=1
   - echo $PATH
+  - echo $LLVM_SYS_40_FFI_WORKAROUND
   - ldd $(which llvm-config)
   - llvm-config --version
   - PATH=$HOME/llvm-4.0.0/bin:$PATH cargo test --verbose compile_example

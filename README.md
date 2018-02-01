@@ -43,3 +43,6 @@ languages right now that are worth checking out.
 - Classes, traits, algebraic-data-type-`enum`s
 - Object onwership model and thread safety
 - Compile-time-constants
+
+## Building and Running
+- `LLVM_SYS_40_FFI_WORKAROUND=1` must be set as an environment variable
