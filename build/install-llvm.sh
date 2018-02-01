@@ -2,6 +2,7 @@
 set -e
 
 if [ -d $HOME/llvm-4.0.0 ]
+then
     echo "LLVM already installed (cache)";
     exit;
 fi
