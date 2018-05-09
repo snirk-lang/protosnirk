@@ -555,6 +555,9 @@ fn it_tokenizes_complex_input() {
 
 #[test]
 fn lex_example() {
+    use std::io::Write;
+    use env_logger;
+    use env_logger::fmt as log_fmt;
     let inputs = &[
 r#"
 fn foo args
@@ -564,17 +567,16 @@ fn foo2 args
 "#,
     ];
 
-    let format = |record: &::log::LogRecord| {
-        format!("[{} {}] {}",
-            &record.location().module_path()[12..],
-            record.location().line(), record.args())
+    let format = |buffer: &mut log_fmt::Formatter, record: &::log::Record| {
+        write!(buffer, "[{} {}] {}",
+            &record.module_path().unwrap_or("____________<somewhere>")[12..],
+            record.line().unwrap_or(0), record.args())
     };
 
-    ::env_logger::LogBuilder::new()
+    env_logger::Builder::new()
         .parse("TRACE")
         .format(format)
-        .init()
-        .unwrap();
+        .init();
 
     for input in inputs {
         log_parses(input);
