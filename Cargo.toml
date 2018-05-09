@@ -11,13 +11,9 @@ license = "MIT"
 [dependencies]
 maplit = "*"
 unicode_categories = "0.1"
-llvm-sys = "40.0.2"
+llvm-sys = "^60"
 log = "0.4"
 env_logger = "0.5"
 
 [dev-dependencies]
 lazy_static = "1"
-
-[dependencies.iron_llvm]
-git = "https://github.com/immington-industries/iron-llvm"
-branch = "llvm-4.0"
