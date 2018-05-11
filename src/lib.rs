@@ -7,13 +7,15 @@ extern crate env_logger;
 #[macro_use]
 extern crate maplit;
 extern crate unicode_categories;
-extern crate iron_llvm;
 extern crate llvm_sys;
+
+extern crate libc;
 
 pub mod lex;
 pub mod parse;
+#[macro_use]
+pub mod llvm;
 pub mod compile;
-pub mod run;
 
 #[cfg(test)]
 mod tests;
