@@ -1,4 +1,4 @@
-use iron_llvm::core::{Module, FunctionPassManager};
+use llvm::{Module, FunctionPassManager};
 
 pub trait ModuleProvider {
     fn get_module(&self) -> &Module;
@@ -12,7 +12,7 @@ pub struct SimpleModuleProvider {
 }
 impl SimpleModuleProvider {
     pub fn new(name: &str, optimizations: bool) -> SimpleModuleProvider {
-        let module = Module::new(name);
+        let module = Module::with_name(name);
         let mut pass_manager = FunctionPassManager::new(&module);
         if optimizations {
             pass_manager.add_basic_alias_analysis_pass();

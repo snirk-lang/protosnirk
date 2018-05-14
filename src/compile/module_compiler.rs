@@ -7,22 +7,16 @@ use compile::{LLVMContext, ModuleProvider};
 use llvm_sys::{self, LLVMOpcode, LLVMRealPredicate};
 use llvm_sys::prelude::*;
 use llvm_sys::analysis::LLVMVerifierFailureAction;
-use llvm_sys::core::LLVMFloatType;
-use iron_llvm::{LLVMRef, LLVMRefCtor};
-use iron_llvm::core::{Function, Builder};
-use iron_llvm::core::basic_block::BasicBlock;
-use iron_llvm::core::instruction::{PHINode, PHINodeRef};
-use iron_llvm::core::value::{RealConstRef, FunctionRef, Value};
-use iron_llvm::core::types::{RealTypeRef, FunctionTypeRef, FunctionTypeCtor, RealTypeCtor};
-use iron_llvm::core::value::{RealConstCtor, ConstCtor, FunctionCtor};
+
+use llvm::{Value, Type};
 
 pub struct ModuleCompiler<M: ModuleProvider> {
     module_provider: M,
     optimizations: bool,
     context: LLVMContext,
-    ir_code: Vec<LLVMValueRef>,
+    ir_code: Vec<Value>,
     symbols: SymbolTable,
-    scope_manager: HashMap<ScopeIndex, LLVMValueRef>
+    scope_manager: HashMap<ScopeIndex, Value>
 }
 impl<M: ModuleProvider> ModuleCompiler<M> {
     pub fn new(symbols: SymbolTable, provider: M, optimizations: bool) -> ModuleCompiler<M> {
@@ -42,12 +36,9 @@ impl<M: ModuleProvider> ModuleCompiler<M> {
 impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
     fn check_literal(&mut self, literal: &Literal) {
         trace!("Checking literal {}", literal.token);
-        let float_type = RealTypeRef::get_float();
-        debug_assert!(!float_type.to_ref().is_null());
         let float_value = literal.get_value();
-        let literal_value = RealConstRef::get(&float_type, float_value);
-        debug_assert!(!literal_value.to_ref().is_null());
-        self.ir_code.push(literal_value.to_ref());
+        let literal_value = Type::double().const_real(float_value as f64);
+        self.ir_code.push(literal_value);
     }
 
     fn check_var_ref(&mut self, ident_ref: &Identifier) {
@@ -66,9 +57,9 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
         let decl_value = self.ir_code.pop()
             .expect("Did not have rvalue of declaration");
         let mut builder = self.context.builder_mut();
-        let float_type = RealTypeRef::get_float();
-        let alloca = builder.build_alloca(float_type.to_ref(), decl.get_name());
-        self.scope_manager.insert(decl.ident.get_index(), alloca.to_ref());
+        let float_type = Type::double();
+        let alloca = builder.build_alloca(float_type, decl.get_name());
+        self.scope_manager.insert(decl.ident.get_index(), alloca);
         builder.build_store(decl_value, alloca);
     }
 
@@ -126,27 +117,27 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
             // when types are added
             Operator::Equality => {
                 let eq = builder.build_fcmp(LLVMRealOEQ, left_register, right_register, "eqtmp");
-                builder.build_ui_to_fp(eq, unsafe { LLVMFloatType() }, "eqcast")
+                builder.build_ui_to_fp(eq, Type::double(), "eqcast")
             },
             Operator::NonEquality => {
                 let neq = builder.build_fcmp(LLVMRealONE, left_register, right_register, "neqtmp");
-                builder.build_ui_to_fp(neq, unsafe { LLVMFloatType() }, "neqcast")
+                builder.build_ui_to_fp(neq, Type::double(), "neqcast")
             },
             Operator::LessThan => {
                 let lt = builder.build_fcmp(LLVMRealOLT, left_register, right_register, "lttmp");
-                builder.build_ui_to_fp(lt, unsafe { LLVMFloatType() }, "ltcast")
+                builder.build_ui_to_fp(lt, Type::double(), "ltcast")
             },
             Operator::LessThanEquals => {
                 let le = builder.build_fcmp(LLVMRealOLE, left_register, right_register, "letmp");
-                builder.build_ui_to_fp(le, unsafe { LLVMFloatType() }, "lecast")
+                builder.build_ui_to_fp(le, Type::double(), "lecast")
             },
             Operator::GreaterThan => {
                 let gt = builder.build_fcmp(LLVMRealOGT, left_register, right_register, "gttmp");
-                builder.build_ui_to_fp(gt, unsafe { LLVMFloatType() }, "gtcast")
+                builder.build_ui_to_fp(gt, Type::double(), "gtcast")
             },
             Operator::GreaterThanEquals => {
                 let ge = builder.build_fcmp(LLVMRealOGE, left_register, right_register, "getmp");
-                builder.build_ui_to_fp(ge, unsafe { LLVMFloatType() }, "gecast")
+                builder.build_ui_to_fp(ge, Type::double(), "gecast")
             }
             Operator::Custom => panic!("Cannot handle custom operator")
         };
@@ -196,7 +187,8 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
             }
         }
         trace!("Preparing arguments: {:?}", arg_map);
-        let mut arg_values = Vec::with_capacity(fn_call.get_args().len());
+        let mut arg_values: Vec<Value> =
+            Vec::with_capacity(fn_call.get_args().len());
         for (ix, value) in arg_map.into_iter() {
             trace!("Pushing arg {}: {:?}", ix, value);
             arg_values.push(value);
@@ -209,7 +201,8 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
         trace!("Fn call index: {:?}", fn_call.get_name().get_index());
         let fn_ref = self.scope_manager[&fn_call.get_name().get_index()];
         trace!("Got a function ref to call");
-        let call = self.context.builder_mut().build_call(fn_ref, arg_values.as_mut_slice(), &name);
+        let call = self.context.builder_mut()
+                               .build_call(fn_ref, arg_values, &name);
         self.ir_code.push(call);
     }
 
@@ -220,7 +213,7 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
             let return_val = self.ir_code.pop()
                 .expect("Could not generate value of return");
             let mut builder = self.context.builder_mut();
-            builder.build_ret(&return_val);
+            builder.build_ret(return_val);
         }
         else {
             warn!("Empty return statement, appending ret void");
@@ -233,31 +226,31 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
     fn check_fn_declaration(&mut self, fn_declaration: &FnDeclaration) {
         trace!("Checking declaration of {}", fn_declaration.get_name().get_name());
 
-        let float_type = RealTypeRef::get_float();
-        let mut arg_types = vec![float_type.to_ref(); fn_declaration.get_args().len()];
-        let fn_type = FunctionTypeRef::get(&float_type, arg_types.as_mut_slice(), false);
-        let mut fn_ref = FunctionRef::new(&mut self.module_provider.get_module_mut(),
-            fn_declaration.get_name().get_name(), &fn_type);
+        let float_type = Type::double();
+        let mut arg_types = vec![float_type; fn_declaration.get_args().len()];
+        let fn_type = Type::function(float_type, arg_types, false);
+        let mut fn_ref = self.module_provider.get_module().add_function(
+            fn_declaration.get_name().get_name(), fn_type);
 
         // Gotta insert the fn ref first so it can be called recursively
-        self.scope_manager.insert(fn_declaration.get_name().get_index(), fn_ref.to_ref());
+        self.scope_manager.insert(fn_declaration.get_name().get_index(), fn_ref);
         trace!("Inserted {} into the scope manager: {:?}",
             fn_declaration.get_name().get_name(), self.scope_manager);
 
         // Gonna be fancy and have a separate basic block for parameters
-        let mut entry_block = fn_ref.append_basic_block_in_context(self.context.global_context_mut(), "entry");
-        let mut start_block = fn_ref.append_basic_block_in_context(self.context.global_context_mut(), "start");
+        let mut entry_block = self.context.global_context().append_basic_block(&fn_ref, "entry");
+        let mut start_block = self.context.global_context().append_basic_block(&fn_ref, "start");
         self.context.builder_mut().position_at_end(&mut entry_block);
         trace!("Ready to build {}", fn_declaration.get_name().get_name());
 
         // Rename args to %argname, create+remember allocas and store the function values there.
         // This allows LLVM to mutate function params even if we don't allow it right now.
-        for (ir_param, ast_param) in fn_ref.params_iter().zip(fn_declaration.get_args()) {
+        for (ir_param, ast_param) in fn_ref.get_params().iter().zip(fn_declaration.get_args()) {
             trace!("Adding fn param {} (ix {:?})", ast_param.get_name(), ast_param.get_index());
             ir_param.set_name(ast_param.get_name());
-            let alloca = self.context.builder_mut().build_alloca(float_type.to_ref(), ast_param.get_name());
-            self.scope_manager.insert(ast_param.get_index(), alloca.to_ref());
-            self.context.builder_mut().build_store(ir_param.to_ref(), alloca);
+            let alloca = self.context.builder_mut().build_alloca(float_type, ast_param.get_name());
+            self.scope_manager.insert(ast_param.get_index(), alloca);
+            self.context.builder_mut().build_store(*ir_param, alloca);
         }
         self.context.builder_mut().build_br(&mut start_block);
         self.context.builder_mut().position_at_end(&mut start_block);
@@ -267,7 +260,7 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
 
         if let Some(remaining_expr) = self.ir_code.pop() {
             trace!("Found final expression, appending a return");
-            self.context.builder_mut().build_ret(&remaining_expr);
+            self.context.builder_mut().build_ret(remaining_expr);
             //self.module_provider.get_module().dump();
         }
 
@@ -296,18 +289,15 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
         self.check_expression(if_expr.get_condition());
         let condition_expr = self.ir_code.pop()
             .expect("Did not get value from if conditional");
-        let const_zero = RealConstRef::get(&unsafe {RealTypeRef::from_ref(LLVMFloatType())}, 0.0);
+        let const_zero = Type::double().const_real(0f64);
         // hack: compare it to 0, due to lack of booleans right now
         let condition = self.context.builder_mut()
-            .build_fcmp(LLVMRealPredicate::LLVMRealOEQ, condition_expr, const_zero.to_ref(), "ife_cond");
+            .build_fcmp(LLVMRealPredicate::LLVMRealOEQ, condition_expr, const_zero, "ife_cond");
         // Create basic blocks in the function
         let mut function = self.context.builder().get_insert_block().get_parent();
-        let mut then_block =
-            function.append_basic_block_in_context(self.context.global_context_mut(), "ife_then");
-        let mut else_block =
-            function.append_basic_block_in_context(self.context.global_context_mut(), "ife_else");
-        let mut end_block =
-            function.append_basic_block_in_context(self.context.global_context_mut(), "ife_end");
+        let then_block = self.context.global_context().append_basic_block(function, "ife_then");
+        let else_block = self.context.global_context().append_basic_block(function, "ife_else");
+        let mut end_block = self.context.global_context().append_basic_block(function, "ife_end");
         // Branch off of the `== 0` comparison
         self.context.builder_mut().build_cond_br(condition, &then_block, &else_block);
 
@@ -328,13 +318,11 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
         let else_end_block = self.context.builder_mut().get_insert_block();
 
         self.context.builder_mut().position_at_end(&mut end_block);
-        let mut phi = unsafe {
-            PHINodeRef::from_ref(self.context.builder_mut().build_phi(LLVMFloatType(), "ifephi"))
-        };
+        let phi = self.context.builder().build_phi(Type::double(), "ifephi");
 
-        phi.add_incoming(vec![then_value].as_mut_slice(), vec![then_end_block].as_mut_slice());
-        phi.add_incoming(vec![else_value].as_mut_slice(), vec![else_end_block].as_mut_slice());
-        self.ir_code.push(phi.to_ref());
+        phi.add_incoming(vec![then_value], vec![then_end_block]);
+        phi.add_incoming(vec![else_value], vec![else_end_block]);
+        self.ir_code.push(phi);
     }
 
     fn check_if_block(&mut self, if_block: &IfBlock) {
@@ -355,24 +343,26 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
             if ix != 0usize {
                 let name = format!("if_{}_cond", ix + 1);
                 condition_blocks.push(
-                    function.append_basic_block_in_context(self.context.global_context_mut(), &name)
+                    self.context.global_context_mut().append_basic_block(function, &name)
                 )
             }
             let name = format!("if_{}_then", ix + 1);
             condition_blocks.push(
-                function.append_basic_block_in_context(self.context.global_context_mut(), &name));
+                self.context.global_context_mut().append_basic_block(function, &name)
+            );
         }
         // If there's an else it needs a block
         if if_block.has_else() {
             trace!("Creating else block");
             condition_blocks.push(
-                function.append_basic_block_in_context(self.context.global_context_mut(), "else_block"));
+                self.context.global_context().append_basic_block(function, "else_block")
+            );
         }
 
-        let const_zero = RealConstRef::get(&unsafe { RealTypeRef::from_ref(LLVMFloatType())}, 0.0);
+        let const_zero = Type::double().const_real(0.0);
 
         trace!("Creating end block");
-        condition_blocks.push(function.append_basic_block_in_context(self.context.global_context_mut(),
+        condition_blocks.push(self.context.global_context().append_basic_block(function,
                                                                      "if_end"));
 
         let mut ix = 0;
@@ -383,7 +373,7 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
                 .expect("Did not get IR value from if block condition");
             let cond_cmp_name = format!("if_{}_cmp", ix);
             let cond_cmp = self.context.builder_mut()
-                .build_fcmp(LLVMRealPredicate::LLVMRealOEQ, cond_value, const_zero.to_ref(), &cond_cmp_name);
+                .build_fcmp(LLVMRealPredicate::LLVMRealOEQ, cond_value, const_zero, &cond_cmp_name);
 
             trace!("Building a break to next blocks {} -> {}, {}", cond_cmp_name, ix, ix + 1);
             self.context.builder_mut().build_cond_br(cond_cmp,
@@ -444,11 +434,9 @@ impl<M:ModuleProvider> ASTVisitor for ModuleCompiler<M> {
             self.module_provider.get_module().dump();
             trace!("Generating phi node with {} values and {} edges",
                 incoming_values.len(), incoming_conditions.len());
-            let mut phi = unsafe {
-                PHINodeRef::from_ref(self.context.builder_mut().build_phi(LLVMFloatType(), "if_phi"))
-            };
-            phi.add_incoming(incoming_values.as_mut_slice(), incoming_conditions.as_mut_slice());
-            self.ir_code.push(phi.to_ref());
+            let phi = self.context.builder().build_phi(Type::double(), "if_phi");
+            phi.add_incoming(incoming_values, incoming_conditions);
+            self.ir_code.push(phi);
         }
     }
 

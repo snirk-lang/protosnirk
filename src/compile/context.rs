@@ -1,12 +1,9 @@
 use std::collections::HashMap;
 
 use compile::ModuleProvider;
+use llvm::context::Context;
+use llvm::builder::Builder;
 
-use iron_llvm::LLVMRef;
-use iron_llvm::core::{Context, Builder, Function};
-use iron_llvm::core::types::{RealTypeRef, FunctionTypeRef};
-use iron_llvm::core::types::{RealTypeCtor, FunctionTypeCtor};
-use iron_llvm::core::value::{FunctionRef, FunctionCtor};
 use llvm_sys::prelude::LLVMValueRef;
 
 /// Contains structures pertaining to the LLVM's
@@ -21,7 +18,7 @@ impl LLVMContext {
     /// Creates a new LLVMContext with llvm's
     /// global Context
     pub fn new() -> LLVMContext {
-        let global_context = Context::get_global();
+        let global_context = Context::global();
         let builder = Builder::new();
         let named_values = HashMap::new();
 
