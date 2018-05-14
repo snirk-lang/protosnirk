@@ -677,162 +677,162 @@ impl Builder {
         }
     }
 
-    pub fn build_trunc(&self, v: Value, ty: LLVMTypeRef, name: &str) -> Value {
+    pub fn build_trunc(&self, v: Value, ty: Type, name: &str) -> Value {
         let name = CString::new(name).unwrap();
         let val_ref = unsafe {
-            LLVMBuildTrunc(**self, *v, ty, name.as_ptr() as *const c_char)
+            LLVMBuildTrunc(**self, *v, *ty, name.as_ptr() as *const c_char)
         };
         Value::from_ref(val_ref)
     }
 
-    pub fn build_zext(&self, v: Value, ty: LLVMTypeRef, name: &str) -> Value {
+    pub fn build_zext(&self, v: Value, ty: Type, name: &str) -> Value {
         let name = CString::new(name).unwrap();
         let val_ref = unsafe {
-            LLVMBuildZExt(**self, *v, ty, name.as_ptr() as *const c_char)
+            LLVMBuildZExt(**self, *v, *ty, name.as_ptr() as *const c_char)
         };
         Value::from_ref(val_ref)
     }
 
-    pub fn build_sext(&self, v: Value, ty: LLVMTypeRef, name: &str) -> Value {
+    pub fn build_sext(&self, v: Value, ty: Type, name: &str) -> Value {
         let name = CString::new(name).unwrap();
         let val_ref = unsafe {
-            LLVMBuildSExt(**self, *v, ty, name.as_ptr() as *const c_char)
+            LLVMBuildSExt(**self, *v, *ty, name.as_ptr() as *const c_char)
         };
         Value::from_ref(val_ref)
     }
 
-    pub fn build_fp_to_ui(&self, v: Value, ty: LLVMTypeRef, name: &str) -> Value {
+    pub fn build_fp_to_ui(&self, v: Value, ty: Type, name: &str) -> Value {
         let name = CString::new(name).unwrap();
         let val_ref = unsafe {
-            LLVMBuildFPToUI(**self, *v, ty, name.as_ptr() as *const c_char)
+            LLVMBuildFPToUI(**self, *v, *ty, name.as_ptr() as *const c_char)
         };
         Value::from_ref(val_ref)
     }
 
-    pub fn build_fp_to_si(&self, v: Value, ty: LLVMTypeRef, name: &str) -> Value {
+    pub fn build_fp_to_si(&self, v: Value, ty: Type, name: &str) -> Value {
         let name = CString::new(name).unwrap();
         let val_ref = unsafe {
-            LLVMBuildFPToSI(**self, *v, ty, name.as_ptr() as *const c_char)
+            LLVMBuildFPToSI(**self, *v, *ty, name.as_ptr() as *const c_char)
         };
         Value::from_ref(val_ref)
     }
 
-    pub fn build_ui_to_fp(&self, v: Value, ty: LLVMTypeRef, name: &str) -> Value {
+    pub fn build_ui_to_fp(&self, v: Value, ty: Type, name: &str) -> Value {
         let name = CString::new(name).unwrap();
         let val_ref = unsafe {
-            LLVMBuildUIToFP(**self, *v, ty, name.as_ptr() as *const c_char)
+            LLVMBuildUIToFP(**self, *v, *ty, name.as_ptr() as *const c_char)
         };
         Value::from_ref(val_ref)
     }
 
-    pub fn build_si_to_fp(&self, v: Value, ty: LLVMTypeRef, name: &str) -> Value {
+    pub fn build_si_to_fp(&self, v: Value, ty: Type, name: &str) -> Value {
         let name = CString::new(name).unwrap();
         let val_ref = unsafe {
-            LLVMBuildSIToFP(**self, *v, ty, name.as_ptr() as *const c_char)
+            LLVMBuildSIToFP(**self, *v, *ty, name.as_ptr() as *const c_char)
         };
         Value::from_ref(val_ref)
     }
 
-    pub fn build_fp_trunc(&self, v: Value, ty: LLVMTypeRef, name: &str) -> Value {
+    pub fn build_fp_trunc(&self, v: Value, ty: Type, name: &str) -> Value {
         let name = CString::new(name).unwrap();
         let val_ref = unsafe {
-            LLVMBuildFPTrunc(**self, *v, ty, name.as_ptr() as *const c_char)
+            LLVMBuildFPTrunc(**self, *v, *ty, name.as_ptr() as *const c_char)
         };
         Value::from_ref(val_ref)
     }
 
-    pub fn build_fp_ext(&self, v: Value, ty: LLVMTypeRef, name: &str) -> Value {
+    pub fn build_fp_ext(&self, v: Value, ty: Type, name: &str) -> Value {
         let name = CString::new(name).unwrap();
         let val_ref = unsafe {
-            LLVMBuildFPExt(**self, *v, ty, name.as_ptr() as *const c_char)
+            LLVMBuildFPExt(**self, *v, *ty, name.as_ptr() as *const c_char)
         };
         Value::from_ref(val_ref)
     }
 
-    pub fn build_ptr_to_int(&self, v: Value, ty: LLVMTypeRef, name: &str) -> Value {
+    pub fn build_ptr_to_int(&self, v: Value, ty: Type, name: &str) -> Value {
         let name = CString::new(name).unwrap();
         let val_ref = unsafe {
-            LLVMBuildPtrToInt(**self, *v, ty, name.as_ptr() as *const c_char)
+            LLVMBuildPtrToInt(**self, *v, *ty, name.as_ptr() as *const c_char)
         };
         Value::from_ref(val_ref)
     }
 
-    pub fn build_int_to_ptr(&self, v: Value, ty: LLVMTypeRef, name: &str) -> Value {
+    pub fn build_int_to_ptr(&self, v: Value, ty: Type, name: &str) -> Value {
         let name = CString::new(name).unwrap();
         let val_ref = unsafe {
-            LLVMBuildIntToPtr(**self, *v, ty, name.as_ptr() as *const c_char)
+            LLVMBuildIntToPtr(**self, *v, *ty, name.as_ptr() as *const c_char)
         };
         Value::from_ref(val_ref)
     }
 
-    pub fn build_bit_cast(&self, v: Value, ty: LLVMTypeRef, name: &str) -> Value {
+    pub fn build_bit_cast(&self, v: Value, ty: Type, name: &str) -> Value {
         let name = CString::new(name).unwrap();
         let val_ref = unsafe {
-            LLVMBuildBitCast(**self, *v, ty, name.as_ptr() as *const c_char)
+            LLVMBuildBitCast(**self, *v, *ty, name.as_ptr() as *const c_char)
         };
         Value::from_ref(val_ref)
     }
 
-    pub fn build_addr_space_cast(&self, v: Value, ty: LLVMTypeRef, name: &str) -> Value {
+    pub fn build_addr_space_cast(&self, v: Value, ty: Type, name: &str) -> Value {
         let name = CString::new(name).unwrap();
         let val_ref = unsafe {
-            LLVMBuildAddrSpaceCast(**self, *v, ty, name.as_ptr() as *const c_char)
+            LLVMBuildAddrSpaceCast(**self, *v, *ty, name.as_ptr() as *const c_char)
         };
         Value::from_ref(val_ref)
     }
 
-    pub fn build_zext_or_bit_cast(&self, v: Value, ty: LLVMTypeRef, name: &str) -> Value {
+    pub fn build_zext_or_bit_cast(&self, v: Value, ty: Type, name: &str) -> Value {
         let name = CString::new(name).unwrap();
         let val_ref = unsafe {
-            LLVMBuildZExtOrBitCast(**self, *v, ty, name.as_ptr() as *const c_char)
+            LLVMBuildZExtOrBitCast(**self, *v, *ty, name.as_ptr() as *const c_char)
         };
         Value::from_ref(val_ref)
     }
 
-    pub fn build_sext_or_bit_cast(&self, v: Value, ty: LLVMTypeRef, name: &str) -> Value {
+    pub fn build_sext_or_bit_cast(&self, v: Value, ty: Type, name: &str) -> Value {
         let name = CString::new(name).unwrap();
         let val_ref = unsafe {
-            LLVMBuildSExtOrBitCast(**self, *v, ty, name.as_ptr() as *const c_char)
+            LLVMBuildSExtOrBitCast(**self, *v, *ty, name.as_ptr() as *const c_char)
         };
         Value::from_ref(val_ref)
     }
 
-    pub fn build_trunc_or_bit_cast(&self, v: Value, ty: LLVMTypeRef, name: &str) -> Value {
+    pub fn build_trunc_or_bit_cast(&self, v: Value, ty: Type, name: &str) -> Value {
         let name = CString::new(name).unwrap();
         let val_ref = unsafe {
-            LLVMBuildTruncOrBitCast(**self, *v, ty, name.as_ptr() as *const c_char)
+            LLVMBuildTruncOrBitCast(**self, *v, *ty, name.as_ptr() as *const c_char)
         };
         Value::from_ref(val_ref)
     }
 
-    pub fn build_cast(&self, op: LLVMOpcode, v: Value, ty: LLVMTypeRef, name: &str) -> Value {
+    pub fn build_cast(&self, op: LLVMOpcode, v: Value, ty: Type, name: &str) -> Value {
         let name = CString::new(name).unwrap();
         let val_ref = unsafe {
-            LLVMBuildCast(**self, op, *v, ty, name.as_ptr() as *const c_char)
+            LLVMBuildCast(**self, op, *v, *ty, name.as_ptr() as *const c_char)
         };
         Value::from_ref(val_ref)
     }
 
-    pub fn build_pointer_cast(&self, v: Value, ty: LLVMTypeRef, name: &str) -> Value {
+    pub fn build_pointer_cast(&self, v: Value, ty: Type, name: &str) -> Value {
         let name = CString::new(name).unwrap();
         let val_ref = unsafe {
-            LLVMBuildPointerCast(**self, *v, ty, name.as_ptr() as *const c_char)
+            LLVMBuildPointerCast(**self, *v, *ty, name.as_ptr() as *const c_char)
         };
         Value::from_ref(val_ref)
     }
 
-    pub fn build_int_cast(&self, v: Value, ty: LLVMTypeRef, name: &str) -> Value {
+    pub fn build_int_cast(&self, v: Value, ty: Type, name: &str) -> Value {
         let name = CString::new(name).unwrap();
         let val_ref = unsafe {
-            LLVMBuildIntCast(**self, *v, ty, name.as_ptr() as *const c_char)
+            LLVMBuildIntCast(**self, *v, *ty, name.as_ptr() as *const c_char)
         };
         Value::from_ref(val_ref)
     }
 
-    pub fn build_fp_cast(&self, v: Value, ty: LLVMTypeRef, name: &str) -> Value {
+    pub fn build_fp_cast(&self, v: Value, ty: Type, name: &str) -> Value {
         let name = CString::new(name).unwrap();
         let val_ref = unsafe {
-            LLVMBuildFPCast(**self, *v, ty, name.as_ptr() as *const c_char)
+            LLVMBuildFPCast(**self, *v, *ty, name.as_ptr() as *const c_char)
         };
         Value::from_ref(val_ref)
     }
@@ -853,10 +853,10 @@ impl Builder {
         Value::from_ref(val_ref)
     }
 
-    pub fn build_phi(&self, ty: LLVMTypeRef, name: &str) -> Value {
+    pub fn build_phi(&self, ty: Type, name: &str) -> Value {
         let name = CString::new(name).unwrap();
         let val_ref = unsafe {
-            LLVMBuildPhi(**self, ty, name.as_ptr() as *const c_char)
+            LLVMBuildPhi(**self, *ty, name.as_ptr() as *const c_char)
         };
         Value::from_ref(val_ref)
     }
