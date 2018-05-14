@@ -16,9 +16,21 @@ macro_rules! llvm_wrapped {
             inner: $value
         }
 
+        impl Clone for $wrapped_name {
+            fn clone(&self) -> $wrapped_name {
+                $wrapped_name {
+                    inner: self.inner
+                }
+            }
+        }
+
         impl $wrapped_name {
             /// Wrap an existing LLVM value.
             pub fn from_ref(value: $value) -> $wrapped_name {
+                if value.is_null() {
+                    panic!("Attempt to construct a null {}",
+                        stringify!($value));
+                }
                 $wrapped_name {
                     inner: value
                 }
@@ -45,7 +57,7 @@ macro_rules! llvm_wrapped {
         }
 
         impl Drop for $wrapped_name {
-            // In csome cases LLVM will manage memory for us, such as for
+            // In some cases LLVM will manage memory for us, such as for
             // Value and Type references. In those cases we pass `drop` to the
             // macro and the compiler will elide away drop logic.
             #[inline]
