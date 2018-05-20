@@ -8,7 +8,7 @@ use parse::symbol::{PrefixParser, Precedence, AssignmentParser, InfixParser};
 /// Parses a function declaration.
 ///
 /// # Examples
-/// ```
+/// ```txt
 /// fn foo(bar, baz,
 ///        bliz)
 ///        -> int
