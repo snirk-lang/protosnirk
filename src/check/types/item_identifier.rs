@@ -8,7 +8,7 @@ use parse::{ScopedId, TypeId};
 use visit::visitor::{ItemVisitor, TypeVisitor, DefaultUnitVisitor};
 use identify::ConcreteType;
 use check::{CheckerError, ErrorCollector};
-use check::types::identify::{TypeEquationBuilder, TypeExprIdentifier};
+use check::types::{TypeGraph, TypeExprIdentifier};
 
 /// Assigns `TypeId`s on items.
 #[derive(Debug, PartialEq)]

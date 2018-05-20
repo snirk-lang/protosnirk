@@ -2,10 +2,11 @@
 
 use ast::types::*;
 use parse::{ScopedId, TypeId};
-use check::{ErrorCollector};
 use visit::visitor::TypeVisitor;
 use visit::*;
 use identify::ConcreteType;
+use check::{ErrorCollector};
+use check::types::TypeGraph;
 
 #[derive(Debug, PartialEq)]
 pub struct TypeExprIdentifier<'err, 'builder> {

@@ -7,7 +7,7 @@ use visit;
 use visit::visitor::*;
 use identify::ConcreteType;
 use check::{CheckerError, ErrorCollector};
-use check::types::identify::{TypeEquationBuilder, TypeExprIdentifier};
+use check::types::{TypeGraph, TypeExprIdentifier};
 
 use std::collections::HashMap;
 

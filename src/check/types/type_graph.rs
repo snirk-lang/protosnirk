@@ -2,7 +2,7 @@
 
 use lex::Token;
 use parse::{ScopedId, TypeId};
-use typeinfer::{ConcreteType, InferenceSource};
+use check::types::{ConcreteType, InferenceSource};
 
 use petgraph::Directed;
 use petgraph::graph::{Graph, NodeIndex, EdgeIndex};
