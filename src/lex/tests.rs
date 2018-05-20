@@ -553,8 +553,8 @@ fn it_tokenizes_complex_input() {
     });
 }
 
-#[test]
-fn lex_example() {
+//#[test]
+fn _lex_example() {
     use std::io::Write;
     use env_logger;
     use env_logger::fmt as log_fmt;

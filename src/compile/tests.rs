@@ -11,10 +11,10 @@ use llvm::{Context, Module, Builder, Value};
 macro_rules! llvm_example {
     ($name:ident => $input:expr) => {
         #[test]
-        fn $name() {
+        fn $name() {/*
             ::env_logger::Builder::new()
                 .filter(None, ::log::LevelFilter::Trace)
-                .init();
+                .init();*/
 
             let mut parser = parser($input);
             let program = parser.parse_unit()
@@ -41,7 +41,7 @@ macro_rules! llvm_example {
                     compiler.check_unit(&block);
 
                     let (provider, _context, _symbols) = compiler.decompose();
-                    provider.get_module().dump();
+                    //provider.get_module().dump();
                 }
             }
         }

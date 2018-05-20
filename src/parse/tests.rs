@@ -159,8 +159,8 @@ pub fn statement_match(expected: &Statement, got: &Statement) {
     }
 }
 
-#[test]
-fn parse_example() {
+//#[test]
+fn _parse_example() {
     let inputs = &[
 r#"
 fn factHelper(acc, n)
