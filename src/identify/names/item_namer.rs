@@ -37,8 +37,6 @@ impl<'err, 'builder> DefaultUnitVisitor
 
 impl<'err, 'builder> ItemVisitor for ItemVarIdentifier<'err, 'builder> {
     fn visit_block_fn_decl(&mut self, block_fn: &BlockFnDeclaration) {
-        debug_assert!(block_fn.get_ident().get_id().is_default(),
-            "Block fn {:?} already had an ID", block_fn);
         if let Some(previous_def) = self.builder.get(block_fn.get_name()) {
             // fn has been previously defined
             let error_text = format!("Function {} is already declared",
@@ -48,6 +46,8 @@ impl<'err, 'builder> ItemVisitor for ItemVarIdentifier<'err, 'builder> {
             ));
             return
         }
+        debug_assert!(block_fn.get_ident().get_id().is_default(),
+            "Block fn {:?} already had an ID", block_fn);
         self.current_id.increment();
         let fn_id = self.current_id.clone();
         trace!("Created id {:?} for block fn {}",

@@ -47,7 +47,9 @@ mod names;
 mod concrete_type;
 mod types;
 mod scope_builder;
+mod type_builder;
 pub use self::scope_builder::{ScopeBuilder, NameScopeBuilder};
+pub use self::type_builder::{TypeBuilder};
 pub use self::concrete_type::*;
 
 use ast::Unit;
@@ -58,9 +60,6 @@ use visit::visitor::UnitVisitor;
 use self::names::*;
 use self::types::*;
 
-/// A ScopeBuilder for matching `ScopedId`s to `ConcreteType`s.
-pub type TypeScopeBuilder = ScopeBuilder<ConcreteType>;
-
 /// Identifies `Ident`s in the AST.
 ///
 /// Each `Identifier`'s `ScopedId` is set based on whether
@@ -70,12 +69,12 @@ pub type TypeScopeBuilder = ScopeBuilder<ConcreteType>;
 #[derive(Debug, PartialEq)]
 pub struct ASTIdentifier<'var_scope, 'ty_scope, 'err> {
     var_scope: &'var_scope mut NameScopeBuilder,
-    type_scope: &'ty_scope mut TypeScopeBuilder,
+    type_scope: &'ty_scope mut TypeBuilder,
     errors: &'err mut ErrorCollector
 }
 impl<'var_scope, 'ty_scope, 'err> ASTIdentifier<'var_scope, 'ty_scope, 'err> {
     pub fn new(var_scope: &'var_scope mut NameScopeBuilder,
-               type_scope: &'ty_scope mut TypeScopeBuilder,
+               type_scope: &'ty_scope mut TypeBuilder,
                errors: &'err mut ErrorCollector)
                -> ASTIdentifier<'var_scope, 'ty_scope, 'err> {
         ASTIdentifier { var_scope, type_scope, errors }
@@ -85,13 +84,13 @@ impl<'var_scope, 'ty_scope, 'err> ASTIdentifier<'var_scope, 'ty_scope, 'err> {
 impl<'var_scope, 'ty_scope, 'err> UnitVisitor
                                 for ASTIdentifier<'var_scope, 'ty_scope, 'err> {
     fn visit_unit(&mut self, unit: &Unit) {
+        // The ItemVarIdentifier uses its ScopedId to set up actual scoping.
+        // This could be handled by ScopeBuilder.
         ItemVarIdentifier::new(self.errors, self.var_scope, ScopedId::default())
                           .visit_unit(unit);
         ItemTypeIdentifier::new(self.errors, self.type_scope)
                            .visit_unit(unit);
         ExpressionVarIdentifier::new(self.errors, self.var_scope)
-                                .visit_unit(unit);
-        ExpressionTypeIdentifier::new(self.errors, self.type_scope)
                                 .visit_unit(unit);
     }
 }
