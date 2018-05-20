@@ -2,72 +2,61 @@
 
 // Have to write the macro before the list of modules.
 
-/// Wraps an `LLVM{thing}Ref` to automatically call `Create` and
-/// `Dispose` methods on `Drop` with a reference counted inner value.
-#[macro_export]
-macro_rules! llvm_wrapped {
-    ($($(#[$attr:meta])*
-     pub struct $wrapped_name:ident {
-         value: $value:ty,
-         dispose: $dispose:ident
-     })+) => {
-        $($(#[$attr])*
-        pub struct $wrapped_name {
-            inner: $value
-        }
-
-        impl Clone for $wrapped_name {
-            fn clone(&self) -> $wrapped_name {
-                $wrapped_name {
-                    inner: self.inner
-                }
+/// Implement basic methods `from_ref` and `ptr()`.
+macro_rules! llvm_methods {
+    ($name:ty => $wrapped:ty) => {
+        /// Wrap an existing LLVM value.
+        pub unsafe fn from_ref(ptr: $wrapped) -> $name {
+            if cfg!(test) && ptr.is_null() {
+                panic!("Attempt to construct {} with a null {}",
+                    stringify!($name), stringify!($wrapped));
+            }
+            Self {
+                ptr, _lt: ::std::marker::PhantomData
             }
         }
 
-        impl $wrapped_name {
-            /// Wrap an existing LLVM value.
-            pub fn from_ref(value: $value) -> $wrapped_name {
-                if value.is_null() {
-                    panic!("Attempt to construct a null {}",
-                        stringify!($value));
-                }
-                $wrapped_name {
-                    inner: value
-                }
+        /// Access the wrapped value
+        pub fn ptr(&self) -> $wrapped {
+            self.ptr
+        }
+    }
+}
+
+macro_rules! llvm_passthrough {
+    ($(#[$attr:meta])* pub fn $fn_name:ident( $($arg_name:ident : $arg_ty:ty),* ) => $wrapped_name:ident; $($rest:tt)*) => {
+        $(#[$attr])*
+        pub fn $fn_name(&self
+                        $(
+                            , $arg_name : $arg_ty
+                        )*
+                       ) {
+            unsafe {
+                $wrapped_name(self.ptr()
+                    $(
+                        , $arg_name.ptr()
+                    )*
+                );
             }
         }
-
-        impl ::std::fmt::Debug for $wrapped_name {
-            fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-                write!(f, stringify!($value))
-            }
-        }
-
-        impl ::std::ops::Deref for $wrapped_name {
-            type Target = $value;
-            fn deref(&self) -> &$value {
-                &self.inner
-            }
-        }
-
-        impl ::std::ops::DerefMut for $wrapped_name {
-            fn deref_mut(&mut self) -> &mut $value {
-                &mut self.inner
-            }
-        }
-
-        impl Drop for $wrapped_name {
-            // In some cases LLVM will manage memory for us, such as for
-            // Value and Type references. In those cases we pass `drop` to the
-            // macro and the compiler will elide away drop logic.
-            #[inline]
-            fn drop(&mut self) {
-                unsafe {
-                    $dispose(self.inner);
-                }
-            }
-        })+
+        llvm_passthrough!($($rest)*);
     };
+    ($(#[$attr:meta])* pub fn $fn_name:ident( $($arg_name:ident : $arg_ty:ty),* )
+                           -> $ret_ty:ident <$lt:tt> => $wrapped_name:ident; $($rest:tt)*) => {
+        $(#[$attr])*
+        pub fn $fn_name(&self $(, $arg_name : $arg_ty)* ) -> $ret_ty  {
+            unsafe {
+                $ret_ty::from_ref($wrapped_name(self.ptr()
+                    $(
+                        , $arg_name.ptr()
+                    )*
+                ))
+            }
+        }
+
+        llvm_passthrough!($($rest)*);
+    };
+    () => {};
 }
 
 mod util;
@@ -81,5 +70,7 @@ pub mod basic_block;
 pub use self::basic_block::BasicBlock;
 pub mod value;
 pub use self::value::Value;
-mod types;
+pub mod types;
 pub use self::types::Type;
+pub mod pass_manager;
+pub use self::pass_manager::{PassManager, FunctionPassManager};

@@ -1,6 +1,8 @@
 //! Bindings to LLVM value objects
 
 use std::ffi::CString;
+use std::mem;
+
 use libc::{c_char, c_uint};
 
 use llvm_sys::core::*;
@@ -9,71 +11,87 @@ use llvm_sys::analysis::{LLVMVerifierFailureAction, LLVMVerifyFunction};
 
 use llvm::BasicBlock;
 
-llvm_wrapped! {
-    pub struct Value {
-        value: LLVMValueRef,
-        dispose: drop // Value is entirely owned by Context
-    }
+/// Represents many LLVM value types.
+///
+/// Currently incomplete. I only need floating type stuff right now,
+/// so a lot of things are not included.
+#[derive(Clone)]
+pub struct Value<'ctx> {
+    ptr: LLVMValueRef,
+    _lt: ::std::marker::PhantomData<&'ctx ()>
 }
 
-impl Value {
-    // general methods
+impl<'ctx> Value<'ctx> {
+    llvm_methods! { Value<'ctx> => LLVMValueRef }
 
     pub fn is_null_value(&self) -> bool {
         unsafe {
-            LLVMIsNull(**self) == 0
+            LLVMIsNull(self.ptr()) == 0
         }
     }
 
     // methods on FunctionValue
 
-    pub fn count_params(&self) -> usize {
+    pub fn count_params(&self) -> u32 {
         unsafe {
-            LLVMCountParams(**self) as usize
+            LLVMCountParams(self.ptr()) as u32
         }
     }
 
-    pub fn get_params(&self) -> Vec<Value> {
-        let param_count = self.count_params();
-        if param_count == 0 {
-            return vec![]
-        }
-        let mut params = Vec::with_capacity(param_count);
+    pub fn get_params(&self) -> Vec<Value<'ctx>> {
+        let params_count = self.count_params();
+        let mut buf : Vec<LLVMValueRef> = Vec::with_capacity(params_count as usize);
+        let p = buf.as_mut_ptr();
         unsafe {
-            LLVMGetParams(**self, params.as_mut_ptr());
+            mem::forget(buf);
+            LLVMGetParams(self.ptr(), p);
+            let raw = Vec::from_raw_parts(p, params_count as usize, params_count as usize);
+            mem::transmute::<Vec<LLVMValueRef>, Vec<Value<'ctx>>>(raw)
         }
-        // Could be done with a transmute, but this way we get null checks too.
-        params.iter().map(|value| Value::from_ref(*value)).collect()
     }
 
     pub fn set_name(&self, name: &str) {
         let c_name = CString::new(name).unwrap();
         unsafe {
-            LLVMSetValueName(**self, c_name.as_ptr() as *const c_char);
+            LLVMSetValueName(self.ptr(), c_name.as_ptr() as *const c_char);
         }
     }
 
     pub fn verify(&self, action: LLVMVerifierFailureAction) -> bool {
         unsafe {
-            LLVMVerifyFunction(**self, action) == 0
+            LLVMVerifyFunction(self.ptr(), action) == 0
         }
     }
+
+    // From Core / BasicBlock
 
     // methods on PhiNode
 
     pub fn add_incoming<V, B>(&self, values: V, blocks: B)
-    where V: IntoIterator<Item=Value>, B: IntoIterator<Item=BasicBlock> {
-        use std::ops::DerefMut;
-        let in_vals: Vec<_> = values.into_iter().map(|val| *val.deref_mut()).collect();
-        let in_blocks: Vec<_> = blocks.into_iter().map(|block| *block.deref_mut()).collect();
+    where V: IntoIterator<Item=Value<'ctx>>,
+          B: IntoIterator<Item=BasicBlock<'ctx>> {
 
-        debug_assert_eq!(in_vals.len(), in_blocks.len());
+        let mut values_vec: Vec<_> = values.into_iter().collect::<Vec<_>>();
+        let values_count = values_vec.len() as c_uint;
+        let values_ref = values_vec.as_mut_slice();
+        let values_ptrs = unsafe {
+            mem::transmute::<&mut [Value<'ctx>], &mut [LLVMValueRef]>(values_ref)
+        };
+
+        let mut blocks_vec: Vec<_> = blocks.into_iter().collect::<Vec<_>>();
+        let blocks_count = blocks_vec.len() as c_uint;
+        let blocks_ref = blocks_vec.as_mut_slice();
+        let blocks_ptrs = unsafe {
+            mem::transmute::<&mut [BasicBlock<'ctx>], &mut [LLVMBasicBlockRef]>(blocks_ref)
+        };
+
+        debug_assert_eq!(blocks_count, values_count);
 
         unsafe {
-            LLVMAddIncoming(**self,
-                            in_vals.as_mut_ptr(),
-                            in_blocks.as_mut_ptr(),
-                            in_vals.len() as c_uint)
+            LLVMAddIncoming(self.ptr(),
+                            values_ptrs.as_mut_ptr(),
+                            blocks_ptrs.as_mut_ptr(),
+                            values_count);
         }
     }
 
