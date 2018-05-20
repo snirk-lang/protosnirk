@@ -235,12 +235,6 @@ impl Declaration {
     pub fn has_declared_type(&self) -> bool {
         self.type_decl.is_some()
     }
-    pub fn get_type_decl(&self) -> Option<&TypeExpression> {
-        self.type_decl.as_ref()
-    }
-    pub fn has_declared_type(&self) -> bool {
-        self.type_decl.is_some()
-    }
 }
 
 /// An identifier is assigned to a value
