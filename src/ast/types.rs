@@ -115,7 +115,7 @@ impl FnTypeExpression {
 }
 
 /// Type expression for a primitive type.
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub enum Primitive {
     /// () or void
     Unary,
