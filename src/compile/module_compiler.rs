@@ -198,7 +198,7 @@ impl<'ctx, 'b, M: ModuleProvider<'ctx>> ASTVisitor for ModuleCompiler<'ctx, 'b, 
         }
         let mut arg_values: Vec<Value> =
             Vec::with_capacity(fn_call.get_args().len());
-        for (ix, value) in arg_map.into_iter() {
+        for (_ix, value) in arg_map.into_iter() {
             arg_values.push(value);
         }
         debug_assert_eq!(arg_values.len(), fn_type.get_args().len());
@@ -245,9 +245,9 @@ impl<'ctx, 'b, M: ModuleProvider<'ctx>> ASTVisitor for ModuleCompiler<'ctx, 'b, 
             fn_declaration.get_name().get_name());
 
         // Gonna be fancy and have a separate basic block for parameters
-        let mut entry_block = self.context.context().append_basic_block(&fn_ref, "entry");
-        let mut start_block = self.context.context().append_basic_block(&fn_ref, "start");
-        self.context.builder().position_at_end(&mut entry_block);
+        let entry_block = self.context.context().append_basic_block(&fn_ref, "entry");
+        let start_block = self.context.context().append_basic_block(&fn_ref, "start");
+        self.context.builder().position_at_end(&entry_block);
         trace!("Ready to build {}", fn_declaration.get_name().get_name());
 
         let fn_params = fn_ref.get_params();
@@ -262,8 +262,8 @@ impl<'ctx, 'b, M: ModuleProvider<'ctx>> ASTVisitor for ModuleCompiler<'ctx, 'b, 
             self.context.builder().build_store(&ir_param, &alloca);
             self.scope_manager.insert(ast_param.get_index(), alloca);
         }
-        self.context.builder().build_br(&mut start_block);
-        self.context.builder().position_at_end(&mut start_block);
+        self.context.builder().build_br(&start_block);
+        self.context.builder().position_at_end(&start_block);
 
         trace!("Moving to check the block");
 
@@ -308,10 +308,10 @@ impl<'ctx, 'b, M: ModuleProvider<'ctx>> ASTVisitor for ModuleCompiler<'ctx, 'b, 
         let condition = self.context.builder()
             .build_fcmp(LLVMRealPredicate::LLVMRealOEQ, &condition_expr, &const_zero, "ife_cond");
         // Create basic blocks in the function
-        let mut function = self.context.builder().insert_block().get_parent();
+        let function = self.context.builder().insert_block().get_parent();
         let then_block = self.context.context().append_basic_block(&function, "ife_then");
         let else_block = self.context.context().append_basic_block(&function, "ife_else");
-        let mut end_block = self.context.context().append_basic_block(&function, "ife_end");
+        let end_block = self.context.context().append_basic_block(&function, "ife_end");
         // Branch off of the `== 0` comparison
         self.context.builder().build_cond_br(&condition, &then_block, &else_block);
 
@@ -331,7 +331,7 @@ impl<'ctx, 'b, M: ModuleProvider<'ctx>> ASTVisitor for ModuleCompiler<'ctx, 'b, 
         self.context.builder().build_br(&end_block);
         let else_end_block = self.context.builder().insert_block();
 
-        self.context.builder().position_at_end(&mut end_block);
+        self.context.builder().position_at_end(&end_block);
         let phi = self.context.builder().build_phi(&float_type, "ifephi");
 
         phi.add_incoming(vec![then_value], vec![then_end_block]);
