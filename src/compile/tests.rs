@@ -40,7 +40,7 @@ macro_rules! llvm_example {
                         false);
                     compiler.check_unit(&block);
 
-                    let (provider, _context, _symbols) = compiler.decompose();
+                    let (_provider, _context, _symbols) = compiler.decompose();
                     //provider.get_module().dump();
                 }
             }

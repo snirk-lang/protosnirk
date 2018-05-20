@@ -305,7 +305,8 @@ impl<'ctx, 'b, M: ModuleProvider<'ctx>> ASTVisitor for ModuleCompiler<'ctx, 'b, 
         let condition = self.context.builder()
             .build_fcmp(LLVMRealPredicate::LLVMRealOEQ, &condition_expr, &const_zero, "ife_cond");
         // Create basic blocks in the function
-        let function = self.context.builder().insert_block().get_parent();
+        let function = self.context.builder().insert_block().get_parent()
+            .expect("Just now inserted a block");
         let then_block = self.context.context().append_basic_block(&function, "ife_then");
         let else_block = self.context.context().append_basic_block(&function, "ife_else");
         let end_block = self.context.context().append_basic_block(&function, "ife_end");
@@ -341,7 +342,8 @@ impl<'ctx, 'b, M: ModuleProvider<'ctx>> ASTVisitor for ModuleCompiler<'ctx, 'b, 
         // Create some lists of values to use later
         let condition_count = if_block.get_conditionals().len();
         let valued_if = if_block.has_value();
-        let function = self.context.builder().insert_block().get_parent();
+        let function = self.context.builder().insert_block().get_parent()
+            .expect("Just inserted a block");
 
         let mut condition_blocks = Vec::with_capacity(condition_count);
         let mut incoming_values =
