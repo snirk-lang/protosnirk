@@ -15,7 +15,7 @@ use self::expr_identifier::ExprTypeIdentifier;
 use ast::Unit;
 use check::ErrorCollector;
 use identify::ScopeBuilder;
-use identify::types::ConcreteType;
+use identify::ConcreteType;
 use visit::visitor::UnitVisitor;
 
 pub type TypeScopeBuilder = ScopeBuilder<ConcreteType>;

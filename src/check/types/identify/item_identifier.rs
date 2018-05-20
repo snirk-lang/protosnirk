@@ -6,8 +6,8 @@ use ast::*;
 use ast::types::*;
 use parse::{ScopedId, TypeId};
 use visit::visitor::{ItemVisitor, TypeVisitor, DefaultUnitVisitor};
+use identify::ConcreteType;
 use check::{CheckerError, ErrorCollector};
-use check::types::{ConcreteType, InferenceSource};
 use check::types::identify::{TypeEquationBuilder, TypeExprIdentifier};
 
 /// Assigns `TypeId`s on items.
