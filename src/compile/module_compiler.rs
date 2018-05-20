@@ -234,8 +234,6 @@ impl<'ctx, 'b, M: ModuleProvider<'ctx>> ASTVisitor for ModuleCompiler<'ctx, 'b, 
         let arg_types = vec![float_type; fn_declaration.get_args().len()];
         let float_type = Type::double(self.context.context());
         let fn_type = Type::function(&float_type, arg_types, false);
-        trace!("{}", fn_type.print_to_string());
-        //fn_type.dump();
         let fn_ref = self.module_provider.get_module().add_function(
             fn_declaration.get_name().get_name(), &fn_type);
 
@@ -273,7 +271,6 @@ impl<'ctx, 'b, M: ModuleProvider<'ctx>> ASTVisitor for ModuleCompiler<'ctx, 'b, 
         if let Some(remaining_expr) = self.ir_code.pop() {
             trace!("Found final expression, appending a return");
             self.context.builder().build_ret(&remaining_expr);
-            //self.module_provider.get_module().dump();
         }
 
         assert!(fn_ref.verify(LLVMVerifierFailureAction::LLVMPrintMessageAction));
@@ -446,7 +443,6 @@ impl<'ctx, 'b, M: ModuleProvider<'ctx>> ASTVisitor for ModuleCompiler<'ctx, 'b, 
                 .map(|c| c[0].clone())
                 .collect::<Vec<_>>();
             incoming_conditions.push(condition_blocks.pop().expect("No condition blocks"));
-            self.module_provider.get_module().dump();
             trace!("Generating phi node with {} values and {} edges",
                 incoming_values.len(), incoming_conditions.len());
             let phi = self.context.builder().build_phi(&double_type, "if_phi");

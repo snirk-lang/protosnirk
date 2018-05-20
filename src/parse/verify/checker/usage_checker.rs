@@ -56,7 +56,7 @@ mod tests {
                 data: TokenData::Ident
             },
             vec![],
-            "Variable x is declared but never used".to_string())
+            "variable x is declared but never used".to_string())
         ];
         assert_eq!(errors.get_warnings(), &*expected);
     }
@@ -125,7 +125,7 @@ mod tests {
                 data: TokenData::Ident
             },
             vec![],
-            "Variable y is declared but never used".to_string())
+            "variable y is declared but never used".to_string())
         ];
         assert_eq!(errors.get_warnings(), &*expected);
     }
@@ -146,7 +146,7 @@ mod tests {
                 data: TokenData::Ident
             },
             vec![],
-            "Variable x is declared but never used".to_string())
+            "variable x is declared but never used".to_string())
         ];
         assert_eq!(errors.get_warnings(), &*expected);
     }
