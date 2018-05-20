@@ -9,22 +9,23 @@
 //! later passes to resolve types, mapping the structure of declared types
 //! or pinning function signature types to invocations of the functions.
 //!
-//! Scoping is split into two parts: an initial `Item` pass which resolves
-//! global names (declared types in one id-space, declared names in another)
-//! and one which resolves identifiers within functions (and is thus able
-//! to recognize i.e. a function being called after it has been declared).
+//! Scoping is usually split into two parts: an initial `Item` pass which
+//! resolves global names (declared types in one id-space, declared names in
+//! another) and one which resolves identifiers within functions (and is thus
+//! able to recognize i.e. a function being called earlier in a file before
+//! being declared).
 //!
 //! The purpose of this system is to mitigate the need for some transformation
 //! passes. The `ScopedId` of identifiers is the only metadata which appears
 //! in the AST itself, and by using it we are able to create mappings of
-//! `ID` to other symbolic data, such as types, scopes, lifetimes, symbols, etc
+//! `ID` to other symbolic data, such as types, scopes, lifetimes, symbols, etc.
 //!
 //! Although some forms of errors can be detected this early, we may want to
 //! continue parsing until we can get a better picture.
 //!
 //! # Relevant structures
 //!
-//! This module is based on use of `ASTScopedIdentifier`, which fills in the
+//! This module is based on use of `ASTIdentifier`, which fills in the
 //! `ScopedId` of nodes with `Identifier`s in the parsed AST.
 //!
 //! This pass alters the `Unit` in-place (using `Cell` and `RefCell`).
@@ -37,8 +38,8 @@
 //! an identifer not being defined or possibly being defined twice.
 //! - Valid `ScopedIds` correctly identify `Identifier`s of `var`s for a given
 //! scope.
-//! - Valid `ScopedIds` correctly identify `Identifiers` of `ty`s for a given
-//! scope (although scope isn't relevant yet).
+//! - Valid `ScopedIds` ause used to uniquely identify type expressions. Each
+//! (declared) type and component is given a unique `ScopedId`.
 //!
 //! In the future errors will be held in a `ScopeErrorMap` structure.
 
@@ -62,19 +63,19 @@ use self::types::*;
 /// The IDs take scoping rules into account, identifying
 /// types and variables with unique IDs.
 #[derive(Debug, PartialEq)]
-pub struct ASTScopedIdentifier<'scope, 'err> {
+pub struct ASTIdentifier<'scope, 'err> {
     type_scope: &'scope mut NameScopeBuilder,
     errors: &'err mut ErrorCollector
 }
-impl<'scope, 'err> ASTScopedIdentifier<'scope, 'err> {
+impl<'scope, 'err> ASTIdentifier<'scope, 'err> {
     pub fn new(type_scope: &'scope mut NameScopeBuilder,
                errors: &'err mut ErrorCollector)
-               -> ASTScopedIdentifier<'scope, 'err> {
-        ASTScopedIdentifier { type_scope, errors }
+               -> ASTIdentifier<'scope, 'err> {
+        ASTIdentifier { type_scope, errors }
     }
 }
 
-impl<'scope, 'err> UnitVisitor for ASTScopedIdentifier<'scope, 'err> {
+impl<'scope, 'err> UnitVisitor for ASTIdentifier<'scope, 'err> {
     fn visit_unit(&mut self, unit: &Unit) {
         ItemVarIdentifier::new(self.errors, self.type_scope, ScopedId::default()).visit_unit(unit);
         ItemTypeIdentifier::new(self.errors, self.type_scope).visit_unit(unit);

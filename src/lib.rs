@@ -39,7 +39,7 @@
 //! This pass sets `ScopedId`s on the AST. This sets up lexical scoped naming
 //! of data in the AST, as well as setting up the names of types.
 //!
-//! See `identify::scope_builder`, `identify::ASTScopedIdentifier`.
+//! See `identify::scope_builder`, `identify::ASTIdentifier`.
 //!
 //! ## `TypeInfer`
 //!
