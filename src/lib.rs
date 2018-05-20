@@ -94,7 +94,6 @@ pub mod llvm;
 pub mod visit;
 pub mod identify;
 pub mod check;
-pub mod typeinfer;
 pub mod lint;
 //pub mod compile;
 
