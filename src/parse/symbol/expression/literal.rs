@@ -3,7 +3,7 @@
 use lex::{Token, Tokenizer, TokenData, TokenType};
 use parse::{Parser, ParseError, ParseResult};
 use parse::symbol::PrefixParser;
-use parse::ast::*;
+use ast::*;
 
 /// Returns a literal expression
 ///
@@ -29,7 +29,7 @@ impl<T: Tokenizer> PrefixParser<Expression, T> for LiteralParser {
 #[cfg(test)]
 mod tests {
     use lex::{Token, TokenData, TokenType};
-    use parse::ast::{Expression, Literal};
+    use ast::{Expression, Literal};
     use parse::symbol::{PrefixParser, LiteralParser};
     use parse::tests as parse_tests;
 

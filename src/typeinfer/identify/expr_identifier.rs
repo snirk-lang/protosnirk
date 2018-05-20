@@ -1,8 +1,8 @@
 //! Identifies `TypeId`s in expressions.
 
+use ast::*;
+use ast::types::*;
 use parse::{ScopedId, TypeId};
-use parse::ast::*;
-use parse::ast::types::*;
 use visit;
 use visit::visitor::*;
 use check::{CheckerError, ErrorCollector};
@@ -324,7 +324,7 @@ impl<'err, 'builder> ExpressionVisitor for ExprTypeIdentifier<'err, 'builder> {
     }
 
     fn visit_binary_op(&mut self, bin_op: &BinaryOperation) {
-        use parse::ast::Operator::*;
+        use ast::Operator::*;
         // Depending on the binary operation, we can infer types of each side.
         // Get the left and right TypeIds.
         self.visit_expression(bin_op.get_left());

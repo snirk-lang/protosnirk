@@ -1,7 +1,7 @@
 //! If block/inline if parser.
 
 use lex::{Token, Tokenizer, TokenData, TokenType};
-use parse::ast::*;
+use ast::*;
 use parse::{Parser, ParseError, ParseResult};
 use parse::symbol::{PrefixParser, Precedence};
 

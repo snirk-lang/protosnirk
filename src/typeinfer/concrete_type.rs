@@ -1,7 +1,7 @@
 //! Concrete type definitions.
 
 use parse::ScopedId;
-use parse::ast::{Identifier, Primitive};
+use ast::{Identifier, Primitive};
 
 /// A fully qualified type.
 #[derive(Debug, PartialEq, Eq, Clone)]

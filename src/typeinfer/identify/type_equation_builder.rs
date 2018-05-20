@@ -1,9 +1,9 @@
 //! A scope for defining types.
 
 use lex::Token;
+use ast::{Identifier, Literal};
+use ast::types::TypeExpression;
 use parse::{ScopedId, TypeId};
-use parse::ast::{Identifier, Literal};
-use parse::ast::types::TypeExpression;
 use typeinfer::{ConcreteType, InferredType, TypeEquation, InferenceSource};
 
 use std::collections::HashMap;

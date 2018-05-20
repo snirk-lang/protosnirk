@@ -9,8 +9,8 @@
 use std::cell::{Cell, Ref};
 
 use lex::{Token, TokenType, TokenData};
+use ast::{TypeId, Literal, Identifier};
 use parse::ScopedId;
-use parse::ast::{TypeId, Literal, Identifier};
 
 /// Represents type expressions in protosnirk.
 #[derive(Debug, PartialEq, Eq, Clone)]

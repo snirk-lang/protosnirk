@@ -5,7 +5,7 @@
 
 use lex::{Token, Tokenizer, TokenType, TokenData};
 use parse::{Parser, ParseResult, ParseError};
-use parse::ast::*;
+use ast::*;
 use parse::symbol::{PrefixParser, Precedence};
 
 /// Parses expressions wrapped in parentheses

@@ -1,7 +1,7 @@
 //! Assign operator parser.
 
 use lex::{Token, Tokenizer, TokenType, TokenData};
-use parse::ast::*;
+use ast::*;
 use parse::{Parser, ParseResult, ParseError};
 use parse::symbol::{InfixParser, Precedence};
 
@@ -41,7 +41,7 @@ impl<T: Tokenizer> InfixParser<Expression, T> for AssignOpParser {
 mod tests {
     use std::borrow::Cow;
     use lex::{Token, TokenData, TokenType};
-    use parse::ast::{Expression, Literal, Identifier};
+    use ast::{Expression, Literal, Identifier};
     use parse::symbol::{InfixParser, AssignOpParser};
     use parse::tests as parse_tests;
 

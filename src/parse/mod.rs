@@ -9,7 +9,6 @@ mod index;
 mod errors;
 mod parser;
 
-pub mod ast;
 pub mod symbol;
 
 #[cfg(test)]

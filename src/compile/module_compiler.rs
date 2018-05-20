@@ -1,7 +1,8 @@
 use std::collections::{HashMap, BTreeMap};
 
+use ast::*;
+
 use parse::{ScopedId};
-use parse::ast::*;
 use visit::visitor::UnitVisitor;
 use compile::{LLVMContext, ModuleProvider};
 
@@ -17,7 +18,7 @@ pub struct ModuleCompiler<'ctx, 'b, M: ModuleProvider<'ctx>> where 'ctx: 'b {
     context: LLVMContext<'ctx, 'b>,
     ir_code: &'b mut Vec<Value<'ctx>>,
     symbols: SymbolTable,
-    scope_manager: &'b mut HashMap<ScopeIndex, Value<'ctx>>
+    scope_manager: &'b mut HashMap<ScopedId, Value<'ctx>>
 }
 impl<'ctx, 'b, M: ModuleProvider<'ctx>> ModuleCompiler<'ctx, 'b, M> {
     pub fn new(symbols: SymbolTable,
@@ -26,7 +27,7 @@ impl<'ctx, 'b, M: ModuleProvider<'ctx>> ModuleCompiler<'ctx, 'b, M> {
                builder: &'ctx Builder<'ctx>,
                named_values: &'b HashMap<String, Value<'ctx>>,
                ir_code: &'b mut Vec<Value<'ctx>>,
-               scope_manager: &'b mut HashMap<ScopeIndex, Value<'ctx>>,
+               scope_manager: &'b mut HashMap<ScopedId, Value<'ctx>>,
                optimizations: bool) -> ModuleCompiler<'ctx, 'b, M> {
         ModuleCompiler {
             module_provider: provider,

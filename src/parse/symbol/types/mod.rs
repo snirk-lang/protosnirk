@@ -6,10 +6,10 @@
 
 use lex::{Token, TokenType, Tokenizer};
 
+use ast::Identifier;
+use ast::types::{TypeExpression, NamedTypeExpression};
 use parse::{Parser, ParseResult};
 use parse::symbol::PrefixParser;
-use parse::ast::Identifier;
-use parse::ast::types::{TypeExpression, NamedTypeExpression};
 
 /// `Identifier` parser for type expressions.
 ///

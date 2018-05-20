@@ -5,8 +5,8 @@
 /// `Expression`s are because of their ability to use indentation.
 
 use lex::{CowStr, Token, TokenData, TokenType};
+use ast::{Expression, Block, Identifier};
 use parse::{ScopedId, TypeId};
-use parse::ast::{Expression, Block, Identifier};
 
 use std::cell::{Cell, RefCell, Ref};
 use std::ops::Deref;

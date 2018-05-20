@@ -14,7 +14,7 @@ use self::item_identifier::ItemTypeIdentifier;
 use self::expr_identifier::ExprTypeIdentifier;
 use self::type_equation_builder::TypeEquationBuilder;
 
-use parse::ast::Unit;
+use ast::Unit;
 use check::ErrorCollector;
 use visit::visitor::UnitVisitor;
 

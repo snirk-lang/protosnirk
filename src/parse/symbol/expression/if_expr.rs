@@ -1,7 +1,7 @@
 //! If expression parser.
 
 use lex::{Token, Tokenizer, TokenType, TokenData};
-use parse::ast::*;
+use ast::*;
 use parse::{Parser, ParseError, ParseResult};
 use parse::symbol::{PrefixParser, Precedence};
 

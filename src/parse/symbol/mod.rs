@@ -13,8 +13,8 @@ pub use self::precedence::Precedence;
 use std::rc::Rc;
 
 use lex::{Token, TokenType, Tokenizer};
+use ast::{Expression, UnaryOperation, BinaryOperation};
 use parse::{Parser, ParseError, ParseResult};
-use parse::ast::{Expression, UnaryOperation, BinaryOperation};
 
 // # Note
 // The generic type `T: Tokenizer` is present so parsers can be made into objects

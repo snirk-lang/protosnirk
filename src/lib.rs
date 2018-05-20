@@ -89,6 +89,7 @@ extern crate llvm_sys;
 extern crate libc;
 
 pub mod lex;
+pub mod ast;
 pub mod parse;
 pub mod llvm;
 pub mod visit;

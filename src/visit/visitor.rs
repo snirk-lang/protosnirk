@@ -3,8 +3,8 @@
 use std::collections::HashMap;
 
 use lex::Token;
-use parse::ast::*;
-use parse::ast::Expression as BaseExpression;
+use ast::*;
+use ast::Expression as BaseExpression;
 
 pub use visit::default::*; // Reexport `DefaultVisitor`s here.
 

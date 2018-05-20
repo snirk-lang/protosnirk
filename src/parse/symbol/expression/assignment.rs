@@ -1,8 +1,8 @@
 //! Assignment parser
 
 use lex::{tokens, Token, Tokenizer, TokenType, TokenData};
+use ast::*;
 use parse::{Parser, ParseResult, ParseError};
-use parse::ast::*;
 use parse::symbol::{InfixParser, Precedence};
 
 /// Parses an assignment expresion.
@@ -33,7 +33,7 @@ impl<T: Tokenizer> InfixParser<Expression, T> for AssignmentParser {
 mod tests {
     use std::borrow::Cow;
     use lex::{Token, TokenData, TokenType};
-    use parse::ast::{Expression, Assignment, Literal, Identifier};
+    use ast::{Expression, Assignment, Literal, Identifier};
     use parse::symbol::{InfixParser, AssignmentParser};
     use parse::tests as parse_tests;
 

@@ -10,8 +10,8 @@ use std::cell::Cell;
 
 use lex::{CowStr, Token, TokenType, TokenData, Tokenizer};
 use parse::{ParseError, ParseResult};
-use parse::ast::*;
-use parse::ast::types::*;
+use ast::*;
+use ast::types::*;
 use parse::symbol::*;
 
 /// Parser object which parses things

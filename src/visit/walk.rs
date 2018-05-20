@@ -1,6 +1,6 @@
 //! Methods for walking the AST.
 
-use parse::ast::*;
+use ast::*;
 use visit::visitor::*;
 
 /// Visit each item in a `Unit`.

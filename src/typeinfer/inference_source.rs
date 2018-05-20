@@ -2,8 +2,8 @@
 
 use lex::Token;
 use parse::ScopedId;
-use parse::ast::{Identifier, Literal};
-use parse::ast::types::TypeExpression;
+use ast::{Identifier, Literal};
+use ast::types::TypeExpression;
 
 /// Type inference source, used for compiler errors.
 #[derive(Debug, PartialEq, Clone)]

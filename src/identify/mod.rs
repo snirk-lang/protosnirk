@@ -47,8 +47,8 @@ mod types;
 mod scope_builder;
 use self::scope_builder::NameScopeBuilder;
 
+use ast::Unit;
 use parse::ScopedId;
-use parse::ast::Unit;
 use check::ErrorCollector;
 use visit::visitor::UnitVisitor;
 

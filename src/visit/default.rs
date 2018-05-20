@@ -2,7 +2,7 @@
 
 use visit;
 use visit::visitor::*;
-use parse::ast::*;
+use ast::*;
 
 /// A trait which allows a `ItemVisitor` to become a `UnitVisitor`
 /// by visiting all items in a unit.

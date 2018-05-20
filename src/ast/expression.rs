@@ -3,10 +3,11 @@
 //! Expression values are used in the `Expression` and `Statement` contexts.
 //! They are usually emitted as asm instructions operating on variables.
 
+use ast::{Statement, Identifier, Operator, Block};
+use ast::types::TypeExpression;
+
 use lex::{Token, TokenType, TokenData};
 use parse::{ParseResult, ParseError, ExpectedNextType, ScopedId};
-use parse::ast::{Statement, Identifier, Operator, Block};
-use parse::ast::types::TypeExpression;
 
 use std::cell::Ref;
 

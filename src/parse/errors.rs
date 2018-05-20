@@ -1,7 +1,7 @@
 //! Error handling in parsers
 
 use lex::{CowStr, Token, TokenType};
-use parse::ast::{Expression};
+use ast::{Expression};
 
 /// Result given from main and expression parsers
 pub type ParseResult<T> = Result<T, ParseError>;

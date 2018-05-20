@@ -20,7 +20,7 @@ use std::rc::Rc;
 
 use lex::{Token, TokenType, Tokenizer};
 use parse::{Parser, ParseResult};
-use parse::ast::*;
+use ast::*;
 use parse::symbol::{Precedence, InfixParser, PrefixParser};
 
 /// A parser which parses symbols used for binary operators.

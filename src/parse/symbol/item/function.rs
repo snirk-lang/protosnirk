@@ -1,8 +1,8 @@
 //! Parser for function declarations
 
 use lex::{Token, Tokenizer, TokenType, TokenData};
+use ast::*;
 use parse::{Parser, ParseResult, ParseError, IndentationRule};
-use parse::ast::*;
 use parse::symbol::{PrefixParser, Precedence, AssignmentParser, InfixParser};
 
 /// Parses a function declaration.

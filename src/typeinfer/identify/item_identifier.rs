@@ -2,9 +2,9 @@
 
 use std::collections::HashMap;
 
+use ast::*;
+use ast::types::*;
 use parse::{ScopedId, TypeId};
-use parse::ast::*;
-use parse::ast::types::*;
 use visit::visitor::{ItemVisitor, TypeVisitor, DefaultUnitVisitor};
 use check::{CheckerError, ErrorCollector};
 use typeinfer::{ConcreteType, InferenceSource, TypeEquation, InferredType};

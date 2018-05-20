@@ -4,8 +4,8 @@
 // and other pattern declaration types.
 
 use lex::{Token, Tokenizer, TokenType, TokenData};
+use ast::*;
 use parse::{Parser, ParseResult, ParseError};
-use parse::ast::*;
 use parse::symbol::{PrefixParser, Precedence};
 
 ///
@@ -54,7 +54,7 @@ mod tests {
     use std::cell::RefCell;
 
     use lex::{Token, TokenData, TokenType, TextLocation};
-    use parse::ast::{Declaration, Expression, Statement, Block, Literal, Identifier};
+    use ast::{Declaration, Expression, Statement, Block, Literal, Identifier};
     use parse::symbol::{PrefixParser, DeclarationParser};
     use parse::ScopedId;
     use parse::tests as parse_tests;
