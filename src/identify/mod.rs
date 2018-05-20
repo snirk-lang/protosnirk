@@ -44,9 +44,11 @@
 //! In the future errors will be held in a `ScopeErrorMap` structure.
 
 mod names;
+mod concrete_type;
 mod types;
 mod scope_builder;
-use self::scope_builder::NameScopeBuilder;
+pub use self::scope_builder::{ScopeBuilder, NameScopeBuilder};
+pub use self::concrete_type::*;
 
 use ast::Unit;
 use parse::ScopedId;
@@ -56,6 +58,9 @@ use visit::visitor::UnitVisitor;
 use self::names::*;
 use self::types::*;
 
+/// A ScopeBuilder for matching `ScopedId`s to `ConcreteType`s.
+pub type TypeScopeBuilder = ScopeBuilder<ConcreteType>;
+
 /// Identifies `Ident`s in the AST.
 ///
 /// Each `Identifier`'s `ScopedId` is set based on whether
@@ -63,23 +68,30 @@ use self::types::*;
 /// The IDs take scoping rules into account, identifying
 /// types and variables with unique IDs.
 #[derive(Debug, PartialEq)]
-pub struct ASTIdentifier<'scope, 'err> {
-    type_scope: &'scope mut NameScopeBuilder,
+pub struct ASTIdentifier<'var_scope, 'ty_scope, 'err> {
+    var_scope: &'var_scope mut NameScopeBuilder,
+    type_scope: &'ty_scope mut TypeScopeBuilder,
     errors: &'err mut ErrorCollector
 }
-impl<'scope, 'err> ASTIdentifier<'scope, 'err> {
-    pub fn new(type_scope: &'scope mut NameScopeBuilder,
+impl<'var_scope, 'ty_scope, 'err> ASTIdentifier<'var_scope, 'ty_scope, 'err> {
+    pub fn new(var_scope: &'var_scope mut NameScopeBuilder,
+               type_scope: &'ty_scope mut TypeScopeBuilder,
                errors: &'err mut ErrorCollector)
-               -> ASTIdentifier<'scope, 'err> {
-        ASTIdentifier { type_scope, errors }
+               -> ASTIdentifier<'var_scope, 'ty_scope, 'err> {
+        ASTIdentifier { var_scope, type_scope, errors }
     }
 }
 
-impl<'scope, 'err> UnitVisitor for ASTIdentifier<'scope, 'err> {
+impl<'var_scope, 'ty_scope, 'err> UnitVisitor
+                                for ASTIdentifier<'var_scope, 'ty_scope, 'err> {
     fn visit_unit(&mut self, unit: &Unit) {
-        ItemVarIdentifier::new(self.errors, self.type_scope, ScopedId::default()).visit_unit(unit);
-        ItemTypeIdentifier::new(self.errors, self.type_scope).visit_unit(unit);
-        ExpressionVarIdentifier::new(self.errors, self.type_scope).visit_unit(unit);
-        ExpressionTypeIdentifier::new(self.errors, self.type_scope).visit_unit(unit);
+        ItemVarIdentifier::new(self.errors, self.var_scope, ScopedId::default())
+                          .visit_unit(unit);
+        ItemTypeIdentifier::new(self.errors, self.type_scope)
+                           .visit_unit(unit);
+        ExpressionVarIdentifier::new(self.errors, self.var_scope)
+                                .visit_unit(unit);
+        ExpressionTypeIdentifier::new(self.errors, self.type_scope)
+                                .visit_unit(unit);
     }
 }
