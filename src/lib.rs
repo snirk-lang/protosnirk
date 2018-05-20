@@ -83,10 +83,9 @@ extern crate env_logger;
 extern crate maplit; // Convenience for initializing `HashMap`s
 extern crate unicode_categories; // Used by tokenizer for valid idents
 extern crate smallvec; // Optimize storage of ScopedIds
-
-extern crate llvm_sys;
-
-extern crate libc;
+extern crate petgraph; // Type inference unification algorithm
+extern crate llvm_sys; // LLVM bindings
+extern crate libc; // LLVM Bindings
 
 pub mod lex;
 pub mod ast;
