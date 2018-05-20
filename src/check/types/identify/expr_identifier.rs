@@ -6,8 +6,8 @@ use parse::{ScopedId, TypeId};
 use visit;
 use visit::visitor::*;
 use check::{CheckerError, ErrorCollector};
-use typeinfer::{ConcreteType, InferredType, InferenceSource, TypeEquation};
-use typeinfer::identify::{TypeEquationBuilder, TypeExprIdentifier};
+use check::types::{ConcreteType, InferenceSource};
+use check::types::identify::{TypeEquationBuilder, TypeExprIdentifier};
 
 use std::collections::HashMap;
 

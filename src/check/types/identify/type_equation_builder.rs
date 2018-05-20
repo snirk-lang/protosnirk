@@ -4,7 +4,7 @@ use lex::Token;
 use ast::{Identifier, Literal};
 use ast::types::TypeExpression;
 use parse::{ScopedId, TypeId};
-use typeinfer::{ConcreteType, InferredType, TypeEquation, InferenceSource};
+use check::types::{ConcreteType, InferredType};
 
 use std::collections::HashMap;
 

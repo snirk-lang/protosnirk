@@ -7,8 +7,8 @@ use ast::types::*;
 use parse::{ScopedId, TypeId};
 use visit::visitor::{ItemVisitor, TypeVisitor, DefaultUnitVisitor};
 use check::{CheckerError, ErrorCollector};
-use typeinfer::{ConcreteType, InferenceSource, TypeEquation, InferredType};
-use typeinfer::identify::{TypeEquationBuilder, TypeExprIdentifier};
+use check::types::{ConcreteType, InferenceSource};
+use check::types::identify::{TypeEquationBuilder, TypeExprIdentifier};
 
 /// Assigns `TypeId`s on items.
 #[derive(Debug, PartialEq)]

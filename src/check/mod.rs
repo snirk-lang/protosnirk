@@ -4,7 +4,7 @@
 
 mod collector;
 mod errors;
-mod typeinfer;
+mod types;
 
 pub use self::collector::ErrorCollector;
 pub use self::errors::CheckerError;

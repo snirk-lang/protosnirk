@@ -5,8 +5,8 @@ use parse::{ScopedId, TypeId};
 use check::{ErrorCollector};
 use visit::visitor::TypeVisitor;
 use visit::*;
-use typeinfer::{ConcreteType, InferredType};
-use typeinfer::identify::TypeEquationBuilder;
+use check::types::{ConcreteType};
+use check::types::identify::TypeEquationBuilder;
 
 #[derive(Debug, PartialEq)]
 pub struct TypeExprIdentifier<'err, 'builder> {
