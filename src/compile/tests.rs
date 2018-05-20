@@ -1,22 +1,55 @@
+
+use std::collections::HashMap;
+
+use parse::ScopeIndex;
 use parse::tests::parser;
 use parse::{ErrorCollector, SymbolTable, ASTVisitor};
 use compile::{ModuleProvider, ModuleCompiler, SimpleModuleProvider};
 
-pub fn create_module_compiler(input: &'static str, name: &str, optimize: bool)
-        -> ModuleCompiler<SimpleModuleProvider> {
-    let mut parser = parser(input);
-    let program = parser.parse_unit()
-        .expect("Could not parse program");
-    let (block, table, _errors) = program.decompose();
-    let module_provider = SimpleModuleProvider::new(name, optimize);
-    let mut compiler = ModuleCompiler::new(table, module_provider, optimize);
-    compiler.check_unit(&block);
-    compiler
+use llvm::{Context, Module, Builder, Value};
+
+macro_rules! llvm_example {
+    ($name:ident => $input:expr) => {
+        #[test]
+        fn $name() {
+            ::env_logger::Builder::new()
+                .filter(None, ::log::LevelFilter::Trace)
+                .init();
+
+            let mut parser = parser($input);
+            let program = parser.parse_unit()
+                .expect("Could not parse program");
+            let (block, table, _errors) = program.decompose();
+            let context = Context::new();
+            let module = context.new_module(stringify!($name));
+            {
+                let builder = Builder::new(&context);
+                let mut named = HashMap::new();
+                let mut ir_code = Vec::new();
+                let mut scopes = HashMap::new();
+
+                {
+                    let module_provider = SimpleModuleProvider::new(module, false);
+                    let mut compiler = ModuleCompiler::new(table,
+                        module_provider,
+                        &context,
+                        &builder,
+                        &mut named,
+                        &mut ir_code,
+                        &mut scopes,
+                        false);
+                    compiler.check_unit(&block);
+
+                    let (provider, _context, _symbols) = compiler.decompose();
+                    provider.get_module().dump();
+                }
+            }
+        }
+    }
 }
 
-#[test]
-fn compile_example() {
-    let inputs = &[
+llvm_example! {
+    fact =>
 r#"
 fn factHelper(n, acc)
     if n <= 2
@@ -26,17 +59,4 @@ fn factHelper(n, acc)
 fn fact(n)
     factHelper(n, acc: 1)
 "#
-    ];
-    /*
-    ::env_logger::LogBuilder::new()
-        .parse("TRACE")
-        .init()
-        .unwrap();*/
-    for (ix, input) in inputs.into_iter().enumerate() {
-        trace!("Checking program {} - {:?}", ix, input);
-        let name = format!("dump_basic_definitions_{}", ix);
-        let compiler = create_module_compiler(input, &name, false);
-        let (provider, _context, _symbols) = compiler.decompose();
-        provider.get_module().dump();
-    }
 }

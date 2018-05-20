@@ -1,47 +1,33 @@
 use std::collections::HashMap;
 
 use compile::ModuleProvider;
-use llvm::context::Context;
-use llvm::builder::Builder;
 
-use llvm_sys::prelude::LLVMValueRef;
+use llvm::{Context, Module, Value, Builder};
 
 /// Contains structures pertaining to the LLVM's
 /// Context object.
-pub struct LLVMContext {
-    context: Context,
-    builder: Builder,
-    named_values: HashMap<String, LLVMValueRef>
+pub struct LLVMContext<'ctx, 'b> where 'ctx: 'b {
+    context: &'ctx Context,
+    builder: &'ctx Builder<'ctx>,
+    named_values: &'b HashMap<String, Value<'ctx>>
 }
 
-impl LLVMContext {
+impl<'ctx, 'b> LLVMContext<'ctx, 'b> {
     /// Creates a new LLVMContext with llvm's
     /// global Context
-    pub fn new() -> LLVMContext {
-        let global_context = Context::global();
-        let builder = Builder::new();
-        let named_values = HashMap::new();
-
-        LLVMContext {
-            context: global_context,
-            builder: builder,
-            named_values: named_values,
-        }
+    pub fn new(context: &'ctx Context,
+               builder: &'ctx Builder<'ctx>,
+               named_values: &'b HashMap<String, Value<'ctx>>)
+               -> LLVMContext<'ctx, 'b> {
+        LLVMContext { context, builder, named_values }
     }
-    /// Gets the LLVM context object
-    pub fn global_context(&self) -> &Context {
+
+    pub fn context(&self) -> &'ctx Context {
         &self.context
     }
-    pub fn global_context_mut(&mut self) -> &mut Context {
-        &mut self.context
-    }
+
     /// Gets the IR builder of this context
-    pub fn builder(&self) -> &Builder {
+    pub fn builder(&self) -> &'ctx Builder<'ctx> {
         &self.builder
     }
-
-    pub fn builder_mut(&mut self) -> &mut Builder {
-        &mut self.builder
-    }
-
 }

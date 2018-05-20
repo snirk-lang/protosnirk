@@ -1,26 +1,24 @@
 use llvm::{Module, FunctionPassManager};
 
-pub trait ModuleProvider {
-    fn get_module(&self) -> &Module;
-    fn get_module_mut(&mut self) -> &mut Module;
-    fn get_pass_manager(&mut self) -> &mut FunctionPassManager;
+pub trait ModuleProvider<'ctx> {
+    fn get_module(&self) -> &Module<'ctx>;
+    fn get_pass_manager(&mut self) -> &FunctionPassManager;
 }
 
-pub struct SimpleModuleProvider {
-    module: Module,
+pub struct SimpleModuleProvider<'ctx> {
+    module: Module<'ctx>,
     fn_pass_manager: FunctionPassManager,
 }
-impl SimpleModuleProvider {
-    pub fn new(name: &str, optimizations: bool) -> SimpleModuleProvider {
-        let module = Module::with_name(name);
-        let mut pass_manager = FunctionPassManager::new(&module);
+impl<'ctx> SimpleModuleProvider<'ctx> {
+    pub fn new(module: Module<'ctx>, optimizations: bool) -> SimpleModuleProvider<'ctx> {
+        let pass_manager = FunctionPassManager::new(&module);
         if optimizations {
             pass_manager.add_basic_alias_analysis_pass();
             pass_manager.add_instruction_combining_pass();
             pass_manager.add_reassociate_pass();
-            pass_manager.add_GVN_pass();
-            pass_manager.add_CFG_simplification_pass();
-            pass_manager.initialize();
+            pass_manager.add_gvn_pass();
+            pass_manager.add_cfg_simplification_pass();
+            assert!(pass_manager.initialize());
         }
         SimpleModuleProvider {
             module: module,
@@ -29,14 +27,11 @@ impl SimpleModuleProvider {
     }
 }
 
-impl ModuleProvider for SimpleModuleProvider {
-    fn get_module(&self) -> &Module {
+impl<'ctx> ModuleProvider<'ctx> for SimpleModuleProvider<'ctx> {
+    fn get_module(&self) -> &Module<'ctx> {
         &self.module
     }
-    fn get_module_mut(&mut self) -> &mut Module {
-        &mut self.module
-    }
-    fn get_pass_manager(&mut self) -> &mut FunctionPassManager {
+    fn get_pass_manager(&mut self) -> &FunctionPassManager {
         &mut self.fn_pass_manager
     }
 }
