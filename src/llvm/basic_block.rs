@@ -18,10 +18,8 @@ impl<'ctx> BasicBlock<'ctx> {
 
     // From Core / BasicBlock
 
-    pub fn as_value(&self) -> Value<'ctx> {
-        unsafe {
-            Value::from_ref(LLVMBasicBlockAsValue(self.ptr()))
-        }
+    llvm_passthrough! {
+        pub fn as_value() -> Value<'ctx> => LLVMBasicBlockAsValue;
     }
 
     pub fn from_value(value: &Value<'ctx>) -> BasicBlock<'ctx> {
@@ -30,17 +28,27 @@ impl<'ctx> BasicBlock<'ctx> {
         }
     }
 
-    pub fn get_parent(&self) -> Value<'ctx> {
-        unsafe {
-            Value::from_ref(LLVMGetBasicBlockParent(self.ptr()))
+    pub fn get_parent(&self) -> Option<Value<'ctx>> {
+        let value_ref = unsafe {
+            LLVMGetBasicBlockParent(self.ptr())
+        };
+        if value_ref.is_null() {
+            None
+        }
+        else {
+            unsafe { Some(Value::from_ref(value_ref)) }
         }
     }
 
-    pub fn get_terminator(&self) -> Value<'ctx> {
-        unimplemented!()
-    }
-
-    pub fn insert_before(&self, name: &str) -> BasicBlock<'ctx> {
-        unimplemented!()
+    pub fn get_terminator(&self) -> Option<Value<'ctx>> {
+        let value_ref = unsafe {
+            LLVMGetBasicBlockTerminator(self.ptr())
+        };
+        if value_ref.is_null() {
+            None
+        }
+        else {
+            unsafe { Some(Value::from_ref(value_ref)) }
+        }
     }
 }

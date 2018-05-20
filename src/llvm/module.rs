@@ -32,14 +32,6 @@ impl<'ctx> Module<'ctx> {
 
     // From Core / Modules
 
-    pub fn get_identifier(&self) -> String {
-        unimplemented!()
-    }
-
-    pub fn set_identifier(&self, name: &str) {
-        unimplemented!()
-    }
-
     /// Dump the contents of the module to stderr.
     ///
     /// See `LLVMDumpModule`.
@@ -49,12 +41,14 @@ impl<'ctx> Module<'ctx> {
         }
     }
 
-    pub fn print_to_file(&self, file: &str) -> Result<(), String> {
-        unimplemented!()
-    }
-
     pub fn print_to_string(&self) -> String {
-        unimplemented!()
+        unsafe {
+            let buf = LLVMPrintModuleToString(self.ptr());
+            let cstr_buf = CStr::from_ptr(buf);
+            let result = String::from_utf8_lossy(cstr_buf.to_bytes()).into_owned();
+            LLVMDisposeMessage(buf);
+            result
+        }
     }
 
     pub fn add_function(&self, name: &str, ty: &Type<'ctx>) -> Value<'ctx> {
@@ -69,7 +63,18 @@ impl<'ctx> Module<'ctx> {
     }
 
     pub fn get_function(&self, name: &str) -> Option<Value<'ctx>> {
-        unimplemented!()
+        let name = CString::new(name).unwrap();
+        let fn_ptr = unsafe {
+            LLVMGetNamedFunction(self.ptr(), name.as_ptr() as *const c_char)
+        };
+        if fn_ptr.is_null() {
+            None
+        }
+        else {
+            unsafe {
+                Some(Value::from_ref(fn_ptr))
+            }
+        }
     }
 
 

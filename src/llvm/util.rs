@@ -24,7 +24,3 @@ pub fn str_from_char_star(input: *const c_char) -> String {
         }
     }
 }
-
-pub fn create_char_star_star() -> *mut *mut c_char {
-    unimplemented!()
-}
