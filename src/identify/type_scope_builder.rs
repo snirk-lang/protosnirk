@@ -44,8 +44,12 @@ impl TypeScopeBuilder {
         self.types.get(id)
     }
 
-    pub fn get_named_type_id(&self, name: &str) -> Option<ScopedId> {
+    pub fn get_named_type_id(&self, name: &str) -> Option<&ScopedId> {
         self.names.get(name)
+    }
+
+    pub fn get_named_type(&self, name: &str) -> Option<&ConcreteType> {
+        self.names.get(name).flat_map(|id| self.types.get(id))
     }
 
     /// Add a new concrete type with the given ID to the type scope.

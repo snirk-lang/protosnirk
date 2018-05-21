@@ -1,4 +1,4 @@
-
+//! AST visitor which assigns the ScopedIds of types on items.
 
 use ast::*;
 use check::{CheckerError, ErrorCollector};

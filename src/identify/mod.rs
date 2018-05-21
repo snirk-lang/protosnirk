@@ -25,7 +25,7 @@
 //!
 //! # Relevant structures
 //!
-//! This module is based on use of `ASTIdentifier`, which fills in the
+//! This module contains the `ASTIdentifier`, which fills in the
 //! `ScopedId` of nodes with `Identifier`s in the parsed AST.
 //!
 //! This pass alters the `Unit` in-place (using `Cell` and `RefCell`).
@@ -34,12 +34,10 @@
 //!
 //! - Calling `.get_id()` on an `Identifier` in the `AST` should yield a valid
 //! (non-default) `ScopedId` if the `Identifier` is being used in valid code.
+//! This applies to identifiers used for variables in expressions _and_ for
+//! identifiers used in type expressions.
 //! - Getting a default `ScopedId` from a call to `get_id()` is an indication of
-//! an identifer not being defined or possibly being defined twice.
-//! - Valid `ScopedIds` correctly identify `Identifier`s of `var`s for a given
-//! scope.
-//! - Valid `ScopedIds` ause used to uniquely identify type expressions. Each
-//! (declared) type and component is given a unique `ScopedId`.
+//! a variable or type not being defined or possibly being defined twice.
 //!
 //! In the future errors will be held in a `ScopeErrorMap` structure.
 
@@ -47,9 +45,9 @@ mod names;
 mod concrete_type;
 mod types;
 mod scope_builder;
-mod type_builder;
+mod type_scope_builder;
 pub use self::scope_builder::{ScopeBuilder, NameScopeBuilder};
-pub use self::type_builder::{TypeBuilder};
+pub use self::type_scope_builder::TypeScopeBuilder;
 pub use self::concrete_type::*;
 
 use ast::{Unit, ScopedId};
@@ -68,12 +66,12 @@ use self::types::*;
 #[derive(Debug, PartialEq)]
 pub struct ASTIdentifier<'var_scope, 'ty_scope, 'err> {
     var_scope: &'var_scope mut NameScopeBuilder,
-    type_scope: &'ty_scope mut TypeBuilder,
+    type_scope: &'ty_scope mut TypeScopeBuilder,
     errors: &'err mut ErrorCollector
 }
 impl<'var_scope, 'ty_scope, 'err> ASTIdentifier<'var_scope, 'ty_scope, 'err> {
     pub fn new(var_scope: &'var_scope mut NameScopeBuilder,
-               type_scope: &'ty_scope mut TypeBuilder,
+               type_scope: &'ty_scope mut TypeScopeBuilder,
                errors: &'err mut ErrorCollector)
                -> ASTIdentifier<'var_scope, 'ty_scope, 'err> {
         ASTIdentifier { var_scope, type_scope, errors }
@@ -90,6 +88,8 @@ impl<'var_scope, 'ty_scope, 'err> UnitVisitor
         ItemTypeIdentifier::new(self.errors, self.type_scope)
                            .visit_unit(unit);
         ExpressionVarIdentifier::new(self.errors, self.var_scope)
+                                .visit_unit(unit);
+        ExpressionTypeIdentifier::new(self.errors, self.type_scope)
                                 .visit_unit(unit);
     }
 }

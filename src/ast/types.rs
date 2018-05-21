@@ -47,6 +47,10 @@ impl NamedTypeExpression {
         &self.ident
     }
 
+    pub fn get_name(&self) -> &str {
+        self.ident.get_name()
+    }
+
     pub fn get_id<'a>(&'a self) -> Ref<'a, ScopedId> {
         self.ident.get_id()
     }
