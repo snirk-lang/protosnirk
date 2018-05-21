@@ -5,49 +5,63 @@ use ast::types::*;
 use parse::{ScopedId, TypeId};
 use visit;
 use visit::visitor::*;
-use identify::ConcreteType;
+use identify::{ConcreteType, TypeBuilder};
 use check::{CheckerError, ErrorCollector};
-use check::types::{TypeGraph, TypeExprIdentifier};
+use check::types::{TypeGraph, TypeExprIdentifier, InferenceSource};
+
+use petgraph::graph::NodeIndex;
 
 use std::collections::HashMap;
 
 /// Creates type equations for functions.
 #[derive(Debug, PartialEq)]
-pub struct ExprTypeIdentifier<'err, 'builder> {
-    builder: &'builder mut TypeEquationBuilder,
+pub struct ExprTypeIdentifier<'err, 'builder, 'graph> {
+    builder: &'builder TypeBuilder,
     errors: &'err mut ErrorCollector,
-    /// Stack of `TypeId`s needed to match the value of the current block
-    /// in an implicit return.
-    lvalue_ty_id: Vec<TypeId>,
-    /// `TypeId` needed to match the function type in an explicit return,
-    /// or `TypeId::default()` if none.
-    return_ty_id: TypeId,
-    /// `TypeId` needed to be assigned to a variable or value, or
-    /// `TypeId::default()` if none.
-    var_type_id: TypeId,
+    graph: &'graph  mut TypeGraph,
+    current_type: NodeIndex,
+    fn_ret_expr: NodeIndex,
+    fn_ret_explicit: bool,
 }
 
-impl<'err, 'builder> ExprTypeIdentifier<'err, 'builder> {
-    pub fn new(builder: &'builder mut TypeEquationBuilder,
+impl<'err, 'builder, 'graph> ExprTypeIdentifier<'err, 'builder, 'graph> {
+    pub fn new(builder: &'builder TypeBuilder,
+               graph: &'graph mut TypeGraph,
                errors: &'err mut ErrorCollector)
-               -> ExprTypeIdentifier<'err, 'builder> {
+               -> ExprTypeIdentifier<'err, 'builder, 'graph> {
         ExprTypeIdentifier {
             builder,
             errors,
-            lvalue_ty_id: Vec::with_capacity(4),
-            return_ty_id: TypeId::default(),
-            var_type_id: TypeId::default()
+            current_type: NodeIndex::default(),
+            fn_ret_type: NodeIndex::default()
         }
     }
 }
 
-impl<'err, 'builder> DefaultUnitVisitor
-    for ExprTypeIdentifier<'err, 'builder> { }
+impl<'err, 'builder, 'graph> DefaultUnitVisitor
+    for ExprTypeIdentifier<'err, 'builder, 'graph> { }
 
-impl<'err, 'builder> ItemVisitor for ExprTypeIdentifier<'err, 'builder> {
+impl<'err, 'builder, 'graph> ItemVisitor
+    for ExprTypeIdentifier<'err, 'builder, 'graph> {
+
     fn visit_block_fn_decl(&mut self, block_fn: &BlockFnDeclaration) {
         let fn_id = block_fn.get_id();
         if fn_id.is_default() { return }
+        // We know the `identify/types/item` check has already added a concrete
+        // type to the block fn.
+        let fn_type_id = block_fn.get_ident().get_type_id();
+        if fn_type_id == TypeId::default() {
+            self.errors.add_error(CheckerError::new(
+                block_fn.get_ident().get_token(),
+                vec![],
+                format!("Unable to infer type of function {}",
+                    block_fn.get_ident().get_name())
+            ));
+            return
+        }
+
+        let fn_type = self.builder.get(fn_type_id)
+                                  .expect("fn type already defined");
 
         // We've already set up information about `fn_ty` and the params.
         // Now, we're gonna require that the block return the same thing
@@ -55,77 +69,70 @@ impl<'err, 'builder> ItemVisitor for ExprTypeIdentifier<'err, 'builder> {
         // We're also going to save the block type id so it can be used for
         // inferring returns.
 
-        // We only start asking blocks to return things if the
-        // function doesn't return `Unary`.
-        if let Some(ret_ty_expr) = block_fn.get_return_type() {
-            let return_type = {
-                let mut ret_type_identifier =
-                    TypeExprIdentifier::new(self.builder, self.errors);
-                ret_type_identifier.visit_type_expr(ret_ty_expr);
-                ret_type_identifier.get_type()
-            };
-            // Also ignore if the return type is explicitly stated.
-            if return_type !=
-                InferredType::Known(ConcreteType::Primitive(Primitive::Unary)) {
-                // Require the block to return the fn return type.
-                let block_id = block_fn.get_block().get_id();
-                let block_ty_id = self.builder.get_id(block_id.clone());
-                block_fn.get_block().set_type_id(block_ty_id);
+        let fn_ret_type = match fn_type {
+            ConcreteType::Function(ref func) => func.get_return_ty.clone(),
+            _ => unreachable!("A function was inferred to not be a function")
+        };
 
-                // tblock = tfn_ret
-                self.builder.add_equation(TypeEquation {
-                    lhs: block_ty_id,
-                    rhs: return_type
-                });
-                // tblock: fn return type
-                self.builder.add_source(block_ty_id,
-                    InferenceSource::FnReturnType(block_fn.get_ident().clone()));
+        let need_ret_value = fn_ret_type != ConcreteType::Primitive(Primitive::Unary);
 
-                self.return_ty_id = block_ty_id;
+        let fn_ix = self.graph.add_variable(fn_id.clone());
+        let fn_ty_ix = self.graph.add_concrete(fn_type_id);
+
+        // f: c
+        self.graph.add_inference(fn_ix, fn_ty_ix,
+            InferenceSource::FunctionSignature(block_fn.get_ident().clone()));
+
+        // Add in connections to the parameter variables.
+        for &(ref param_ident, ref param_expr) in block_fn.get_params() {
+            // x: int
+            let param_id = param_ident.get_id();
+            match param_expr {
+                TypeExpression::Primitive(prim) => {
+                    let param_ty_id = self.builder
+                                          .get(ConcreteType::Primitive(prim))
+                                          .expect("Didn't have check primitive");
+                    // x: <param type>
+                    let param_ix = self.graph.add_variable(param_id);
+                    let param_ty_ix = self.graph.add_concrete(param_ty_id);
+                    self.graph.add_inference(param_ix, param_ty_ix,
+                        InferenceSource::FnParameter(param_ident.clone()));
+                },
+                _ => unreachable!("Only primitive types are parsed")
             }
         }
-
         self.visit_block(block_fn.get_block());
-        self.lvalue_ty_id.clear();
-        self.return_ty_id = TypeId::default();
+        // Add inference for implicit return value.
+        if need_ret_value && self.fn_ret_expr != NodeIndex::default() {
+            let fn_ret_ty_ix = self.builder.get(fn_ret_type)
+                                            .expect("Registered type");
+            let inference = if self.fn_ret_explicit {
+                InferenceSource::ImplicitReturn
+            }
+            else {
+                InferenceSource::ExplicitReturn
+            };
+            // tf: t<ret expr>
+            self.graph.add_inference(self.fn_ret_expr, fn_ret_ty_ix, inference);
+        }
     }
 }
 
-impl<'err, 'builder> BlockVisitor for ExprTypeIdentifier<'err, 'builder> {
+impl<'err, 'builder, 'graph> BlockVisitor
+    for ExprTypeIdentifier<'err, 'builder, 'graph> {
+
     fn visit_block(&mut self, block: &Block) {
         if block.get_id().is_default() { return }
-        let block_ty_id = self.builder.get_id(block.get_id().clone());
-        block.set_type_id(block_ty_id);
-        if block.get_stmts().len() == 0 { return }
-
-        let last_ix = block.get_stmts().len() - 1;
-        for (ix, stmt) in block.get_stmts().iter().enumerate() {
-            self.var_type_id = TypeId::default();
-            if !self.return_ty_id.is_default() && ix == last_ix {
-                self.lvalue_ty_id.push(block.get_type_id());
-            }
-            self.visit_stmt(stmt);
-        }
-        let last_stmt_ty_id = self.var_type_id;
-        let lvalue_ty = self.lvalue_ty_id.pop()
-                            .expect("Should still have a required lvalue");
-        if !last_stmt_ty_id.is_default() {
-            // <previous thing needing value> = tlast_stmt
-            self.builder.add_equation(TypeEquation {
-                lhs: lvalue_ty,
-                rhs: InferredType::Variable(last_stmt_ty_id)
-            });
-        }
-        // <previous thing needed value>: implict return of block
-        // By adding this source, we can help users who make un-expr blocks
-        // see that the block needs to return a value.
-        self.builder.add_source(lvalue_ty,
-            InferenceSource::ImplicitReturn(block.get_id().clone()));
-        self.var_type_id = block_ty_id;
+        // If the block ends with an expression, that expression 's type
+        // should be `self.curent_type`
+        visit::walk_block(self, block);
     }
 }
 
-impl<'err, 'builder> StatementVisitor for ExprTypeIdentifier<'err, 'builder> {
+impl<'err, 'builder, 'graph> StatementVisitor
+    for ExprTypeIdentifier<'err, 'builder, 'graph> {
+
+    // Use standard block handling.
     fn visit_do_block(&mut self, block: &DoBlock) {
         visit::walk_do_block(self, block);
     }
@@ -143,15 +150,16 @@ impl<'err, 'builder> StatementVisitor for ExprTypeIdentifier<'err, 'builder> {
             if_block.set_type_id(block_ty_id);
         }
 
+        let bool_type_ix = self.graph.add_type(
+            self.builder.define_type(ConcreteType::Primitive(Primitive::Bool)));
+
         for conditional in if_block.get_conditionals() {
             trace!("Checking conditional");
             self.visit_expression(conditional.get_condition());
-            let cond_ty_id = self.var_type_id;
+            let cond_ty_id = self.current_type;
             // tcond = tbool
-            self.builder.add_equation(TypeEquation {
-                lhs: cond_ty_id,
-                rhs: InferredType::Known(ConcreteType::Primitive(Primitive::Bool))
-            });
+            self.graph.add_inference(cond_ty_id, bool_type_ix,
+                InferenceSource::IfConditionalBool);
             // tcond: if conditional
             self.builder.add_source(cond_ty_id,
                 InferenceSource::IfConditionalBool(

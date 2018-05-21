@@ -26,13 +26,13 @@ pub enum InferenceSource {
     /// Inference source is a literal.
     LiteralValue(Literal),
     /// Inference source is the conditional of an if being a bool.
-    IfConditionalBool(Token),
+    IfConditionalBool,
     /// Inference source is the if branches being the same.
     IfBranchesSame(Token),
     /// Inference source is a `return` matching the fn return type.
-    ExplicitReturn(Token),
+    ExplicitReturn,
     /// Inference source is an implicit return matching a block.
-    ImplicitReturn(ScopedId),
+    ImplicitReturn,
     /// Inference source is from a variable (re)assignment.
     Assignment,
     /// Inference source is a numeric operator matching a number.
@@ -42,4 +42,6 @@ pub enum InferenceSource {
     /// Inference source is two types being on the same side of an
     /// equality operator.
     EqualityOperator,
+    /// Value is inferred to be of a given type based upon other connections.
+    Inferred,
 }
