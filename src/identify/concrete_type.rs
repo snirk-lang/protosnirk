@@ -1,7 +1,6 @@
 //! Concrete type definitions.
 
-use ast::{Identifier, Primitive};
-use parse::ScopedId;
+use ast::{Identifier, Primitive, ScopedId};
 
 use std::cell::{RefCell, Cell, Ref};
 

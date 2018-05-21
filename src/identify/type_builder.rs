@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 
-use parse::TypeId;
+use ast::TypeId;
 use identify::ConcreteType;
 
 /// Builds a mapping of `TypeId` -> `ConcreteType`.

@@ -1,8 +1,7 @@
 //! Source of type inferences.
 
 use lex::Token;
-use parse::ScopedId;
-use ast::{Identifier, Literal};
+use ast::{Identifier, Literal, ScopedId};
 use ast::types::TypeExpression;
 
 /// Type inference source, used for compiler errors.

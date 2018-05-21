@@ -52,8 +52,7 @@ pub use self::scope_builder::{ScopeBuilder, NameScopeBuilder};
 pub use self::type_builder::{TypeBuilder};
 pub use self::concrete_type::*;
 
-use ast::Unit;
-use parse::ScopedId;
+use ast::{Unit, ScopedId};
 use check::ErrorCollector;
 use visit::visitor::UnitVisitor;
 

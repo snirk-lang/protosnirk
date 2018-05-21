@@ -1,6 +1,6 @@
 use ast::*;
 
-use parse::ScopedId;
+use ast::ScopedId;
 
 use check::{CheckerError, ErrorCollector};
 use identify::NameScopeBuilder;

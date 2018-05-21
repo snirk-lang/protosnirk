@@ -5,7 +5,6 @@
 //! paren, as well as some linting errors such as spacing that occur at the token
 //! level.
 
-mod index;
 mod errors;
 mod parser;
 
@@ -16,4 +15,3 @@ pub mod tests;
 
 pub use self::errors::{ParseError, ParseResult, ExpectedNextType};
 pub use self::parser::{Parser, IndentationRule};
-pub use self::index::{TypeId, ScopedId};

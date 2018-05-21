@@ -1,7 +1,6 @@
+
+
 use ast::*;
-
-use parse::ScopedId;
-
 use check::{CheckerError, ErrorCollector};
 use identify::NameScopeBuilder;
 use visit::visitor::*;

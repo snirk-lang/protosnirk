@@ -1,7 +1,7 @@
 //! A graph of type inferences.
 
 use lex::Token;
-use parse::{ScopedId, TypeId};
+use ast::ScopedId;
 use identify::ConcreteType;
 use check::types::InferenceSource;
 

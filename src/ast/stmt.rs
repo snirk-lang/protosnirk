@@ -5,8 +5,7 @@
 /// `Expression`s are because of their ability to use indentation.
 
 use lex::{CowStr, Token, TokenData, TokenType};
-use ast::{Expression, Block, Identifier};
-use parse::{ScopedId, TypeId};
+use ast::{Expression, Block, Identifier, ScopedId};
 
 use std::cell::{Cell, RefCell, Ref};
 use std::ops::Deref;
@@ -95,7 +94,6 @@ pub struct IfBlock {
     pub conditionals: Vec<Conditional>,
     pub else_block: Option<(Token, Block)>,
     scoped_id: RefCell<ScopedId>,
-    type_id: Cell<TypeId>
 }
 
 /// A basic conditional
@@ -149,12 +147,6 @@ impl IfBlock {
     }
     pub fn set_id(&self, id: ScopedId) {
         *self.scoped_id.borrow_mut() = id;
-    }
-    pub fn get_type_id(&self) -> TypeId {
-        self.type_id.get()
-    }
-    pub fn set_type_id(&self, id: TypeId) {
-        self.type_id.set(id);
     }
 }
 

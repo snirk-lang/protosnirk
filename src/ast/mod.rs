@@ -10,6 +10,7 @@
 //! tables collected in various passes, such as
 //! symbol or type information.
 
+mod index;
 mod expression;
 mod item;
 mod stmt;
@@ -21,26 +22,21 @@ pub use self::item::*;
 pub use self::stmt::*;
 pub use self::types::*;
 pub use self::operator::Operator;
+pub use self::index::*;
 
 use std::cell::{Cell, RefCell, Ref};
 
 use lex::Token;
-use parse::{TypeId, ScopedId};
 
 /// Basic identifier type
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Identifier {
     pub token: Token,
     id: RefCell<ScopedId>,
-    type_id: Cell<TypeId>
 }
 impl Identifier {
     pub fn new(token: Token) -> Self {
-        Identifier {
-            token,
-            id: RefCell::default(),
-            type_id: Cell::default()
-        }
+        Identifier { token, id: RefCell::default() }
     }
     pub fn get_name(&self) -> &str {
         &self.token.text
@@ -55,14 +51,6 @@ impl Identifier {
 
     pub fn set_id(&self, index: ScopedId) {
         *self.id.borrow_mut() = index;
-    }
-
-    pub fn get_type_id(&self) -> TypeId {
-        self.type_id.get()
-    }
-
-    pub fn set_type_id(&self, id: TypeId) {
-        self.type_id.set(id);
     }
 }
 
@@ -79,8 +67,6 @@ pub struct Block {
     pub statements: Vec<Statement>,
     /// Identifier used for typechecking.
     scope_id: RefCell<ScopedId>,
-    /// `TypeId` used for typechecking.
-    type_id: Cell<TypeId>
 }
 impl Block {
     /// Create a new block from the given statements and scope id.
@@ -115,11 +101,5 @@ impl Block {
     }
     pub fn set_id(&self, id: ScopedId) {
         *self.scope_id.borrow_mut() = id;
-    }
-    pub fn get_type_id(&self) -> TypeId {
-        self.type_id.get()
-    }
-    pub fn set_type_id(&self, value: TypeId) {
-        self.type_id.set(value);
     }
 }

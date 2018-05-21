@@ -1,7 +1,7 @@
 //! Identify type expressions.
 
+use ast::ScopedId;
 use ast::types::*;
-use parse::{ScopedId, TypeId};
 use visit::visitor::TypeVisitor;
 use visit::*;
 use identify::ConcreteType;

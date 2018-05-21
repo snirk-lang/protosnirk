@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
 use std::hash::Hash;
 
-use parse::ScopedId;
+use ast::ScopedId;
 
 /// A `ScopeBuilder` which handles named things defined in different
 /// scopes, suitable for most `ScopeBuilder` uses.

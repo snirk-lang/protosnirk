@@ -6,11 +6,10 @@
 // let anonStruct: struct(x: int, y: int) // anonymous named structs
 // let tuple4: (array: [int], sizedArray: [int: 6] sizedArraySlice: &[int: 5], slice: &[int])
 
-use std::cell::{Cell, Ref};
+use std::cell::{RefCell, Ref};
 
 use lex::{Token, TokenType, TokenData};
-use ast::{TypeId, Literal, Identifier};
-use parse::ScopedId;
+use ast::{ScopedId, Literal, Identifier};
 
 /// Represents type expressions in protosnirk.
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -33,13 +32,12 @@ impl TypeExpression {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct NamedTypeExpression {
     ident: Identifier,
-    type_id: Cell<TypeId>,
 }
 impl NamedTypeExpression {
     /// Create a new `NamedTypeExpression` with
     /// the given name and default `TypeId`.
     pub fn new(ident: Identifier) -> NamedTypeExpression {
-        NamedTypeExpression { ident, type_id: Cell::default() }
+        NamedTypeExpression { ident }
     }
 
     /// Gets the identifier of this type.
@@ -49,16 +47,6 @@ impl NamedTypeExpression {
 
     pub fn get_id<'a>(&'a self) -> Ref<'a, ScopedId> {
         self.ident.get_id()
-    }
-
-    /// Get the `TypeId` of this type.
-    pub fn get_type_id(&self) -> TypeId {
-        self.type_id.get()
-    }
-
-    /// Set the `TypeId` of this type expression.
-    pub fn set_type_id(&self, new_id: TypeId) {
-        self.type_id.set(new_id);
     }
 }
 
@@ -77,7 +65,7 @@ impl NamedTypeExpression {
 pub struct FnTypeExpression {
     params: Vec<(Identifier, TypeExpression)>,
     return_type: Option<Box<TypeExpression>>,
-    type_id: Cell<TypeId>
+    id: RefCell<ScopedId>
 }
 impl FnTypeExpression {
     /// Create a new `FnTypeExpression` with
@@ -87,7 +75,7 @@ impl FnTypeExpression {
         FnTypeExpression {
             params,
             return_type: return_type.map(|ret| Box::new(ret)),
-            type_id: Cell::default()
+            id: RefCell::default()
         }
     }
 
@@ -104,13 +92,13 @@ impl FnTypeExpression {
     }
 
     /// Get the `TypeId` of this type.
-    pub fn get_type_id(&self) -> TypeId {
-        self.type_id.get()
+    pub fn get_id(&self) -> Ref<ScopedId> {
+        self.id.borrow()
     }
 
     /// Set the `TypeId` of this type expression.
-    pub fn set_type_id(&self, new_id: TypeId) {
-        self.type_id.set(new_id);
+    pub fn set_id(&self, new_id: ScopedId) {
+        self.id.set(new_id);
     }
 }
 

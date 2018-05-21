@@ -4,7 +4,6 @@ use std::collections::HashMap;
 
 use ast::*;
 use ast::types::*;
-use parse::{ScopedId, TypeId};
 use visit::visitor::{ItemVisitor, TypeVisitor, DefaultUnitVisitor};
 use identify::ConcreteType;
 use check::{CheckerError, ErrorCollector};

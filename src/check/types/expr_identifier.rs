@@ -2,7 +2,6 @@
 
 use ast::*;
 use ast::types::*;
-use parse::{ScopedId, TypeId};
 use visit;
 use visit::visitor::*;
 use identify::{ConcreteType, TypeBuilder};

@@ -1,29 +1,5 @@
 use smallvec::SmallVec;
 
-/// A unique identifier for the type of an identifier on the AST.
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, PartialOrd, Ord, Default)]
-pub struct TypeId(u32);
-
-impl TypeId {
-    /// Gets the next Id.
-    #[inline]
-    pub fn next(&self) -> TypeId {
-        TypeId(self.0 + 1u32)
-    }
-
-    /// Increments this Id.
-    #[inline]
-    pub fn increment(&mut self) {
-        self.0 += 1;
-    }
-
-    /// Whether this ID is the default ID
-    #[inline]
-    pub fn is_default(&self) -> bool {
-        self.0 == TypeId::default().0
-    }
-}
-
 /// An identifier which recognizes the concept of scopes.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct ScopedId {

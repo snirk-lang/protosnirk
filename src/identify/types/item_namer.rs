@@ -1,7 +1,6 @@
 //! ItemVisitor for mapping `TypeId`s to concrete types.
 
 use ast::*;
-use parse::TypeId;
 use check::{CheckerError, ErrorCollector};
 use identify::{ConcreteType, FnType, TypeBuilder};
 use visit;
