@@ -1,6 +1,6 @@
 //! Concrete type definitions.
 
-use ast::{Identifier, Primitive, ScopedId};
+use ast::{Identifier, ScopedId};
 
 use std::cell::{RefCell, Cell, Ref};
 
@@ -16,9 +16,21 @@ use std::cell::{RefCell, Cell, Ref};
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub enum ConcreteType {
     /// Primitive types are just those defined as AST primitive type expressions.
-    Primitive(Primitive),
+    Named(NamedType),
     /// Function types contain ordered, named arguments and a return type.
     Function(FnType),
+}
+
+/// A named type.
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+pub struct NamedType {
+    name: String
+}
+
+impl NamedType {
+    pub fn new(name: String) -> NamedType {
+        NamedType { name }
+    }
 }
 
 /// A function type.

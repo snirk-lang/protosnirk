@@ -35,18 +35,10 @@ pub trait TypeVisitor {
             TypeExpression::Named(ref named_ty) => {
                 self.visit_named_type_expr(named_ty);
             },
-            TypeExpression::Function(ref block_fn_ty) => {
-                self.visit_fn_type_expr(block_fn_ty);
-            },
-            TypeExpression::Primitive(ref prim) => {
-                self.visit_primitive_type_expr(prim);
-            }
         }
     }
 
     fn visit_named_type_expr(&mut self, named_ty: &NamedTypeExpression);
-    fn visit_fn_type_expr(&mut self, fn_ty: &FnTypeExpression);
-    fn visit_primitive_type_expr(&mut self, prim: &Primitive);
 }
 
 /// A visitor which can visit blocks of code.

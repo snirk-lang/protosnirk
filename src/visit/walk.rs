@@ -75,14 +75,3 @@ pub fn walk_if_block<V>(visitor: &mut V, if_block: &IfBlock)
         visitor.visit_block(block);
     }
 }
-
-#[inline]
-pub fn walk_fn_type<V>(visitor: &mut V, fn_type: &FnTypeExpression)
-                       where V: TypeVisitor {
-    for &(ref _param_name, ref param_type) in fn_type.get_params() {
-        visitor.visit_type_expr(param_type);
-    }
-    if let Some(ref return_type) = fn_type.get_return_type() {
-        visitor.visit_type_expr(return_type);
-    }
-}

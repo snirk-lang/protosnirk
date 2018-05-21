@@ -4,10 +4,8 @@
 //! -- namely declarations such as `class`, `enum`, `struct`.
 use std::cell::{Cell, Ref};
 
-use ast::{Identifier, Block, Expression, ScopedId};
-use ast::types::{TypeExpression,
-                        FnTypeExpression};
 use lex::{Token};
+use ast::{Identifier, Block, Expression, TypeExpression, ScopedId};
 
 /// A single "unit" of parsed code.
 #[derive(Debug, PartialEq, Clone)]
