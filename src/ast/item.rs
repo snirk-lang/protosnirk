@@ -37,7 +37,8 @@ pub struct BlockFnDeclaration {
     fn_token: Token,
     ident: Identifier,
     params: Vec<(Identifier, TypeExpression)>,
-    ret_ty: Option<TypeExpression>,
+    ret_ty: TypeExpression,
+    explicit_ret_ty: bool,
     block: Block,
 }
 impl BlockFnDeclaration {
@@ -45,11 +46,12 @@ impl BlockFnDeclaration {
     pub fn new(fn_token: Token,
                ident: Identifier,
                params: Vec<(Identifier, TypeExpression)>,
-               ret_ty: Option<TypeExpression>,
+               ret_ty: TypeExpression,
+               explicit_ret_ty: bool,
                block: Block)
                -> BlockFnDeclaration {
         BlockFnDeclaration {
-            fn_token, ident, params, ret_ty, block
+            fn_token, ident, params, ret_ty, explicit_ret_ty, block
         }
     }
     /// Get the `fn` token
@@ -63,8 +65,11 @@ impl BlockFnDeclaration {
     pub fn get_params(&self) -> &[(Identifier, TypeExpression)] {
         &self.params
     }
-    pub fn get_return_type(&self) -> Option<&TypeExpression> {
+    pub fn get_return_type(&self) -> &TypeExpression {
         self.ret_ty.as_ref()
+    }
+    pub fn has_explicit_return_type(&self) -> bool {
+        self.explicit_ret_ty
     }
     pub fn get_id<'a>(&'a self) -> Ref<'a, ScopedId> {
         self.ident.get_id()

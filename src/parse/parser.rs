@@ -218,14 +218,6 @@ impl<T: Tokenizer> Parser<T> {
                 let consumed = self.consume();
                 NamedTypeParser { }.parse(self, consumed)
             },
-            TokenType::Int => {
-                self.consume();
-                Ok(TypeExpression::Primitive(Primitive::Int))
-            },
-            TokenType::Bool => {
-                self.consume();
-                Ok(TypeExpression::Primitive(Primitive::Bool))
-            },
             other => {
                 trace!("Invalid token for type expr");
                 // TODO this is also a bad error

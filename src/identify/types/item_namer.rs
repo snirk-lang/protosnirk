@@ -49,22 +49,14 @@ impl<'err, 'builder> ItemVisitor for ItemTypeIdentifier<'err, 'builder> {
             arg_types.push((param_ident.get_name().to_string(),
                             param_ty.clone()));
         }
-        // Grab the return type if it exists, or get the unary type id.
-        let ret_ty = if let Some(ref ret_ty) = fn_decl.get_return_type() {
-            TypeIdentifier::new(self.errors, self.builder)
-                           .visit_type_expr(ret_ty);
-            if ret_ty.get_id().is_default() {
-                return
-            }
-            self.builder.get_type(ret_ty.get_id())
-                .expect("TypeIdentifier did not update param's type ID")
-                .clone()
-        }
-        else {
-            self.builder.get_named_type("()")
-                .expect("TypeIdentifier did not know unary type")
-                .clone()
-        };
+        let return_ty = fn_decl.get_return_type();
+        TypeIdentifier::new(self.errors, self.builder)
+                       .visit_type_expr(return_ty);
+
+        if return_ty.get_id().is_default() { return }
+        let ret_ty = self.builder.get_type(return_ty.get_id())
+            .expect("TypeIdentifier did not update param's type ID")
+            .clone();
 
         let fn_concrete = ConcreteType::Function(FnType::new(arg_types, ret_ty));
         self.builder.add_type(fn_concrete, fn_decl.get_id().clone());

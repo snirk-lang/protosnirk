@@ -60,19 +60,20 @@ impl<T: Tokenizer> PrefixParser<Item, T> for FnDeclarationParser {
 
         // Explicitly differentiating between omitted return type for block fns
         // This is gonna be `None` for inline fns
-        let return_type = if parser.next_type() == TokenType::Arrow {
+        let (return_ty, explicit) = if parser.next_type() == TokenType::Arrow {
             parser.consume();
-            Some(try!(parser.type_expr()))
+            (try!(parser.type_expr()), true)
         }
         else {
-            None
+            (TypeExpression::Named(Identifier::new(
+                Token::new_ident("()", parser.get_location().clone()))), false)
         };
 
         // This is gonna require a comment in the place of Python's `pass`.
         try!(parser.consume_type(TokenType::BeginBlock));
         let block = try!(parser.block());
         Ok(Item::BlockFnDeclaration(BlockFnDeclaration::new(
-            token, name, params, return_type, block
+            token, name, params, return_ty, explicit, block
         )))
     }
 }

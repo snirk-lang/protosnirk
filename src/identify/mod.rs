@@ -89,7 +89,7 @@ impl<'var_scope, 'ty_scope, 'err> UnitVisitor
                            .visit_unit(unit);
         ExpressionVarIdentifier::new(self.errors, self.var_scope)
                                 .visit_unit(unit);
-        ExpressionTypeIdentifier::new(self.errors, self.type_scope)
-                                .visit_unit(unit);
+        ExprTypeIdentifier::new(self.errors, self.type_scope)
+                           .visit_unit(unit);
     }
 }
