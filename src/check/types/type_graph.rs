@@ -19,7 +19,7 @@ enum TypeNode {
     VariableType(ScopedId),
     /// Type is of a concrete type written in the program, such as
     /// a primitive or a function
-    ConcreteType(TypeId),
+    ConcreteType(ScopedId),
     /// Type is a temporary created from an expression.
     Expression
 }
@@ -29,7 +29,7 @@ pub struct TypeGraph {
     /// Graph of types upon which to run unification/type inference
     graph: Graph<TypeNode, InferenceSource, Directed, u32>,
     /// TypeId -> NodeIndex
-    known_type_ids: HashMap<TypeId, NodeIndex>,
+    types: HashMap<ScopedId, NodeIndex>,
     /// ScopedId -> NodeIndex
     variables: HashMap<ScopedId, NodeIndex>
 }
@@ -39,7 +39,7 @@ impl TypeGraph {
         TypeGraph::default()
     }
 
-    pub fn add_type(&mut self, ty: TypeId) -> NodeIndex {
+    pub fn add_type(&mut self, ty: ScopedId) -> NodeIndex {
         if let Some(found_ix) = self.known_type_ids.get(&ty) {
             return *found_ix
         }
@@ -64,7 +64,7 @@ impl TypeGraph {
         self.graph.add_edge(src, dest, source)
     }
     pub fn infer_type_of_var(&mut self, var: &ScopedId)
-                                        -> Result<TypeId, Vec<NodeIndex>> {
+                                        -> Result<ScopedId, Vec<NodeIndex>> {
         let var_ix = self.variables.get(var)
             .expect("TypeGraph: asked to infer type of unknown variable");
         let mut dfs = Dfs::new(&self.graph, *var_ix);

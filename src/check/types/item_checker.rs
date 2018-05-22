@@ -7,26 +7,26 @@ use ast::types::*;
 use visit::visitor::{ItemVisitor, TypeVisitor, DefaultUnitVisitor};
 use identify::ConcreteType;
 use check::{CheckerError, ErrorCollector};
-use check::types::{TypeGraph, TypeExprIdentifier};
+use check::types::{TypeGraph, TypeExprChecker};
 
 /// Assigns `TypeId`s on items.
 #[derive(Debug, PartialEq)]
-pub struct ItemTypeIdentifier<'builder, 'err> {
+pub struct ItemTypeChecker<'builder, 'err> {
     builder: &'builder mut TypeEquationBuilder,
     errors: &'err mut ErrorCollector
 }
 
-impl<'builder, 'err> ItemTypeIdentifier<'builder, 'err> {
+impl<'builder, 'err> ItemTypeChecker<'builder, 'err> {
     pub fn new(builder: &'builder mut TypeEquationBuilder,
                errors: &'err mut ErrorCollector)
-               -> ItemTypeIdentifier<'builder, 'err> {
-        ItemTypeIdentifier { builder, errors }
+               -> ItemTypeChecker<'builder, 'err> {
+        ItemTypeChecker { builder, errors }
     }
 }
 impl<'builder, 'err> DefaultUnitVisitor
-    for ItemTypeIdentifier<'builder, 'err> { }
+    for ItemTypeChecker<'builder, 'err> { }
 
-impl<'builder, 'err> ItemVisitor for ItemTypeIdentifier<'builder, 'err> {
+impl<'builder, 'err> ItemVisitor for ItemTypeChecker<'builder, 'err> {
     fn visit_block_fn_decl(&mut self, block_fn: &BlockFnDeclaration) {
         let fn_scope_id = block_fn.get_ident().get_id();
         if fn_scope_id.is_default() { return }
@@ -60,7 +60,7 @@ impl<'builder, 'err> ItemVisitor for ItemTypeIdentifier<'builder, 'err> {
             // Get an `InferredType` from the param's TypeExpression.
             let param_type: InferredType = {
                 let mut param_identifier =
-                    TypeExprIdentifier::new(self.builder, self.errors);
+                    TypeExprChecker::new(self.builder, self.errors);
                 param_identifier.visit_type_expr(param_ty);
                 param_identifier.get_type()
             };
@@ -77,7 +77,7 @@ impl<'builder, 'err> ItemVisitor for ItemTypeIdentifier<'builder, 'err> {
         // Get the return type of the function or `Unary` for none specified.
         let ret_type = if let Some(ret_type) = block_fn.get_return_type() {
             let mut ret_type_identifier =
-                TypeExprIdentifier::new(self.builder, self.errors);
+                TypeExprChecker::new(self.builder, self.errors);
             ret_type_identifier.visit_type_expr(ret_type);
             ret_type_identifier.get_type()
         }

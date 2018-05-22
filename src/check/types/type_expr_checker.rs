@@ -9,16 +9,16 @@ use check::{ErrorCollector};
 use check::types::TypeGraph;
 
 #[derive(Debug, PartialEq)]
-pub struct TypeExprIdentifier<'err, 'builder> {
+pub struct TypeExprChecker<'err, 'builder> {
     errors: &'err mut ErrorCollector,
     builder: &'builder mut TypeEquationBuilder,
     matched_type: Option<InferredType>
 }
-impl<'err, 'builder> TypeExprIdentifier<'err, 'builder> {
+impl<'err, 'builder> TypeExprChecker<'err, 'builder> {
     pub fn new(builder: &'builder mut TypeEquationBuilder,
                errors: &'err mut ErrorCollector)
-               -> TypeExprIdentifier<'err, 'builder> {
-        TypeExprIdentifier { builder, errors, matched_type: None }
+               -> TypeExprChecker<'err, 'builder> {
+        TypeExprChecker { builder, errors, matched_type: None }
     }
 
     /// Get the matched `TypeId` fomr the TypeExpression
@@ -28,13 +28,13 @@ impl<'err, 'builder> TypeExprIdentifier<'err, 'builder> {
     }
 }
 
-impl<'err, 'builder> TypeVisitor for TypeExprIdentifier<'err, 'builder> {
+impl<'err, 'builder> TypeVisitor for TypeExprChecker<'err, 'builder> {
     fn visit_named_type_expr(&mut self, named_ty: &NamedTypeExpression) {
         panic!("Currently only using primitive types");
     }
 
     fn visit_fn_type_expr(&mut self, fn_ty: &FnTypeExpression) {
-        panic!("TypeExprIdentifier cannot visit FnTypeExpression as first-\
+        panic!("TypeExprChecker cannot visit FnTypeExpression as first-\
                 class functions are not a thing yet.");
     }
 
