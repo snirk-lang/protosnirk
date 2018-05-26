@@ -34,6 +34,10 @@ impl Token {
         &self.data
     }
 
+    pub fn get_location(&self) -> &TextLocation {
+        &self.location
+    }
+
     pub fn new<T: Into<CowStr>>(text: T,
                                 location: TextLocation,
                                 data: TokenData) -> Token {

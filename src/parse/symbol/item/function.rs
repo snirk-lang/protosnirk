@@ -65,8 +65,9 @@ impl<T: Tokenizer> PrefixParser<Item, T> for FnDeclarationParser {
             (try!(parser.type_expr()), true)
         }
         else {
-            (TypeExpression::Named(Identifier::new(
-                Token::new_ident("()", parser.get_location().clone()))), false)
+            (TypeExpression::Named(NamedTypeExpression::new(Identifier::new(
+                Token::new_ident("()",
+                        name.get_token().get_location().clone())))), false)
         };
 
         // This is gonna require a comment in the place of Python's `pass`.

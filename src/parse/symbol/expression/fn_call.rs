@@ -23,7 +23,7 @@ impl<T: Tokenizer> InfixParser<Expression, T> for FnCallParser {
 
         let lvalue = try!(left.expect_identifier());
 
-        let mut called_args = Vec::new();
+        let mut call_args = Vec::new();
         let mut arg_name = true;
         loop {
             if parser.next_type() == TokenType::RightParen {
@@ -35,25 +35,21 @@ impl<T: Tokenizer> InfixParser<Expression, T> for FnCallParser {
                 trace!("Parsing an argument");
                 let arg = try!(parser.expression(Precedence::Min));
                 if let Expression::VariableRef(ident) = arg {
-                    trace!("Argument {} is probably named", ident.get_name());
                     if parser.next_type() == TokenType::Colon {
                         trace!("Argument {} is a named arg", ident.get_name());
                         parser.consume();
                         let arg_value = try!(parser.expression(Precedence::Min));
-                        called_args.push(CallArgument::named(ident, arg_value));
+                        call_args.push(CallArgument::named(ident, arg_value));
                     }
                     else {
-                        trace!("Adding inferred `{0} = {0}`", ident.get_name());
-                        called_args.push(CallArgument::implicit_name(ident));
+                        call_args.push(CallArgument::implicit(arg));
                     }
                 }
-                // TODO need to give better errors/handle multiple exprs
-                // being written
                 else {
                     try!(parser.consume_type_indented(TokenType::RightParen,
                                                       IndentationRule::NegateDeindent));
-                    let fn_call = FnCall::single_expr(lvalue, token, arg);
-                    return Ok(Expression::FnCall(fn_call))
+                    trace!("Function call complete");
+                    break
                 }
                 arg_name = false;
             }
@@ -63,7 +59,7 @@ impl<T: Tokenizer> InfixParser<Expression, T> for FnCallParser {
                 arg_name = true;
             }
         }
-        let call = FnCall::named(lvalue, token, called_args);
+        let call = FnCall::new(lvalue, token, call_args);
         Ok(Expression::FnCall(call))
     }
 
