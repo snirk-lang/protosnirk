@@ -51,36 +51,36 @@ impl<'err, 'builder> DefaultStmtVisitor
 impl<'err, 'builder> ExpressionVisitor
     for ExprTypeIdentifier<'err, 'builder> {
 
-    fn visit_literal_expr(&self, _literal: &Literal) { }
+    fn visit_literal_expr(&mut self, _literal: &Literal) { }
 
-    fn visit_var_ref(&self, _ident: &Identifier) { }
+    fn visit_var_ref(&mut self, _ident: &Identifier) { }
 
-    fn visit_if_expr(&self, if_expr: &IfExpression) {
+    fn visit_if_expr(&mut self, if_expr: &IfExpression) {
         visit::walk_if_expr(self, if_expr);
     }
 
-    fn visit_unary_op(&self, unary_op: &UnaryOperation) {
+    fn visit_unary_op(&mut self, unary_op: &UnaryOperation) {
         visit::walk_unary_op(self, unary_op);
     }
 
-    fn visit_binary_op(&self, binary_op: &BinaryOperation) {
+    fn visit_binary_op(&mut self, binary_op: &BinaryOperation) {
         visit::walk_bin_op(self, binary_op);
     }
 
-    fn visit_fn_call(&self, fn_call: &FnCall) {
+    fn visit_fn_call(&mut self, fn_call: &FnCall) {
         // Technically shouldn't be allowed, but see #30 above.
         for arg in fn_call.get_args() {
-            self.visit_expression(arg);
+            self.visit_expression(arg.get_expression());
         }
     }
 
-    fn visit_assignment(&self, assign: &Assignment) { }
+    fn visit_assignment(&mut self, assign: &Assignment) { }
 
-    fn visit_declaration(&self, declaration: &Declaration) {
+    fn visit_declaration(&mut self, declaration: &Declaration) {
         if let Some(ref decl_ty) = declaration.get_type_decl() {
             // visit the declaration
             TypeIdentifier::new(self.errors, self.builder)
-                          .visit(decl_ty);
+                          .visit_type_expr(decl_ty);
         }
     }
 }

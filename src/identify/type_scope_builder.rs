@@ -1,7 +1,7 @@
 //!
 
 use ast::ScopedId;
-use identify::ConcreteType;
+use identify::{ConcreteType, NamedType};
 
 use std::collections::HashMap;
 
@@ -9,7 +9,7 @@ use std::collections::HashMap;
 /// type scope. This means that we parse things like `float` or `bool`
 /// as `NamedTypeExpression`s. We treat them as being special during the compile
 /// phase.
-const PRIMITIVE_TYPE_NAMES: &[&'static str] = [
+const PRIMITIVE_TYPE_NAMES: &[&'static str] = &[
     "()",
     "float",
     "bool",
@@ -31,9 +31,9 @@ impl TypeScopeBuilder {
         let mut names = HashMap::new();
         let mut types = HashMap::new();
 
-        for PRIM_TYPE in &PRIMITIVE_TYPE_NAMES {
+        for PRIM_TYPE in PRIMITIVE_TYPE_NAMES.iter() {
             names.insert(PRIM_TYPE.to_string(), curr_id);
-            names.insert(curr_id, ConcreteType::Named(PRIM_TYPE.to_string()));
+            types.insert(curr_id, ConcreteType::Named(NamedType::new(PRIM_TYPE.to_string())));
             curr_id.increment();
         }
 
@@ -49,7 +49,7 @@ impl TypeScopeBuilder {
     }
 
     pub fn get_named_type(&self, name: &str) -> Option<&ConcreteType> {
-        self.names.get(name).flat_map(|id| self.types.get(id))
+        self.names.get(name).and_then(|id| self.types.get(id))
     }
 
     /// Add a new concrete type with the given ID to the type scope.

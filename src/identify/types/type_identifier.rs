@@ -28,7 +28,7 @@ impl<'err, 'builder> TypeIdentifier<'err, 'builder> {
 
 impl<'err, 'builder> TypeVisitor for TypeIdentifier<'err, 'builder> {
     fn visit_named_type_expr(&mut self, named_ty: &NamedTypeExpression) {
-        if let Some(ref type_id) =
+        if let Some(type_id) =
             self.builder.get_named_type_id(named_ty.get_name()) {
             // Found the already defined type.
             named_ty.set_id(type_id.clone());

@@ -44,7 +44,7 @@ impl<'err, 'builder> ItemVisitor for ItemTypeIdentifier<'err, 'builder> {
             if param_ty_expr.get_id().is_default() {
                 return
             }
-            let param_ty = self.builder.get_type(param_ty_expr.get_id())
+            let param_ty = self.builder.get_type(&param_ty_expr.get_id())
                 .expect("TypeIdentifier did not update param's type ID");
             arg_types.push((param_ident.get_name().to_string(),
                             param_ty.clone()));
@@ -54,11 +54,12 @@ impl<'err, 'builder> ItemVisitor for ItemTypeIdentifier<'err, 'builder> {
                        .visit_type_expr(return_ty);
 
         if return_ty.get_id().is_default() { return }
-        let ret_ty = self.builder.get_type(return_ty.get_id())
+        let ret_ty = self.builder.get_type(&return_ty.get_id())
             .expect("TypeIdentifier did not update param's type ID")
             .clone();
 
-        let fn_concrete = ConcreteType::Function(FnType::new(arg_types, ret_ty));
-        self.builder.add_type(fn_concrete, fn_decl.get_id().clone());
+        let fn_concrete = ConcreteType::Function(
+            FnType::new(arg_types, ret_ty));
+        self.builder.add_type(fn_decl.get_id().clone(), fn_concrete);
     }
 }

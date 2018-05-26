@@ -137,50 +137,8 @@ impl<'err, 'builder> ExpressionVisitor
             // Set fn ident
             fn_call.get_ident().set_id(fn_id);
             // Check args
-            match *fn_call.get_args() {
-                FnCallArgs::SingleExpr(ref expr) => {
-                    // Check that the param has been identified.
-                    let mut param_id = fn_call.get_id().pushed();
-                    param_id.increment();
-
-                    if !self.builder.contains_id(&param_id) {
-                        let error_text =
-                            format!("Function {} does not have parameters",
-                                fn_call.get_text());
-                        self.errors.add_error(CheckerError::new(
-                            fn_call.get_token().clone(), vec![], error_text
-                        ));
-                        // Check call expression anyway
-                    }
-                    self.visit_expression(expr);
-                },
-                FnCallArgs::Arguments(ref args) => {
-                    for arg in args {
-                        let arg_ident = arg.get_ident();
-                        let full_param_name = format!("{}:{}",
-                            fn_call.get_text(), arg_ident.get_name());
-                        if let Some(param_id) = self.builder.get(&full_param_name) {
-                            arg_ident.set_id(param_id.clone());
-                        }
-                        else {
-                            let error_text = format!("Unknown parameter {} of {}",
-                                arg_ident.get_name(), fn_call.get_text());
-                            self.errors.add_error(CheckerError::new(
-                                arg_ident.get_token().clone(), vec![], error_text
-                            ));
-                            return // Stop checking expression
-                        }
-                        match *arg.get_value() {
-                            CallArgumentValue::LocalVar(ref var_ident) => {
-                                // Set the id of the `value` to be the local var.
-                                self.visit_var_ref(var_ident);
-                            },
-                            CallArgumentValue::Expression(ref arg_expr) => {
-                                self.visit_expression(arg_expr);
-                            }
-                        }
-                    }
-                }
+            for arg in fn_call.get_args() {
+                self.visit_expression(arg.get_expression());
             }
         }
         else {
