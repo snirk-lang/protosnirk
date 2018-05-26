@@ -26,18 +26,17 @@ pub enum Expression {
     IfExpression(IfExpression),
     /// Invocation of a funciton with standard named arg setup.
     FnCall(FnCall),
+
     // "Non-value expressions"
-    // I _guess_ they could return `()`, but why?
+    // See https://github.com/immington-industries/protosnirk/issues/30
 
     /// Assignment - not considered value expression
     Assignment(Assignment),
     /// Declaration - not considered value expression
-    // TODO this should be parsed as a statement
     Declaration(Declaration),
 }
 impl Expression {
     /// Convert this expression to a `Statement::Expression`
-    #[inline]
     pub fn to_statement(self) -> Statement {
         Statement::Expression(self)
     }
@@ -184,7 +183,9 @@ pub struct UnaryOperation {
 }
 impl UnaryOperation {
     /// Creates a new unary operation
-    pub fn new(operator: Operator, op_token: Token, expression: Box<Expression>) -> UnaryOperation {
+    pub fn new(operator: Operator,
+               op_token: Token,
+               expression: Box<Expression>) -> UnaryOperation {
         UnaryOperation {
             operator: operator,
             op_token: op_token,
@@ -264,8 +265,10 @@ pub struct IfExpression {
     else_expr: Box<Expression>
 }
 impl IfExpression {
-    pub fn new(if_token: Token, condition: Box<Expression>,
-               true_expr: Box<Expression>, else_expr: Box<Expression>) -> IfExpression {
+    pub fn new(if_token: Token,
+               condition: Box<Expression>,
+               true_expr: Box<Expression>,
+               else_expr: Box<Expression>) -> IfExpression {
         IfExpression {
             if_token: if_token,
             condition: condition,
@@ -292,22 +295,14 @@ impl IfExpression {
 pub struct FnCall {
     lvalue: Identifier,
     paren_token: Token,
-    args: FnCallArgs
+    args: Vec<CallArgument>
 }
 
 impl FnCall {
-    pub fn new(lvalue: Identifier, token: Token, args: FnCallArgs) -> FnCall {
-        FnCall { lvalue: lvalue, paren_token: token, args: args }
-    }
-    pub fn named(lvalue: Identifier, token: Token, args: Vec<CallArgument>) -> FnCall {
-        FnCall { lvalue: lvalue, paren_token: token, args: FnCallArgs::Arguments(args) }
-    }
-    pub fn single_expr(lvalue: Identifier, token: Token, arg: Expression) -> FnCall {
-        FnCall {
-            lvalue: lvalue,
-            paren_token: token,
-            args: FnCallArgs::SingleExpr(Box::new(arg))
-        }
+    pub fn new(lvalue: Identifier,
+               token: Token,
+               args: Vec<CallArgument>) -> FnCall {
+        FnCall { lvalue, paren_token: token, args }
     }
     pub fn get_ident(&self) -> &Identifier {
         &self.lvalue
@@ -318,7 +313,7 @@ impl FnCall {
     pub fn get_token(&self) -> &Token {
         &self.paren_token
     }
-    pub fn get_args(&self) -> &FnCallArgs {
+    pub fn get_args(&self) -> &[CallArgument] {
         &self.args
     }
 
@@ -330,68 +325,28 @@ impl FnCall {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
-pub enum FnCallArgs {
-    /// Function was called with a single expression
-    SingleExpr(Box<Expression>),
-    /// Function was called with a list of arguments
-    Arguments(Vec<CallArgument>)
-}
-impl FnCallArgs {
-    pub fn len(&self) -> usize {
-        match *self {
-            FnCallArgs::SingleExpr(_) => 1,
-            FnCallArgs::Arguments(ref args) => args.len()
-        }
-    }
-}
-
-/// The value of an argument to a function call.
-///
-/// This is either the implicit local variable or an expression.
-#[derive(Debug, PartialEq, Clone)]
-pub enum CallArgumentValue {
-    /// Argument is just a name that refers to both the param and a local name.
-    ///
-    /// This `Identifier` has the `ScopedId` of the local variable.
-    LocalVar(Identifier),
-    /// Argument is an expression.
-    Expression(Expression)
-}
-
 /// Represents arguments given to call a function with
 #[derive(Debug, PartialEq, Clone)]
 pub struct CallArgument {
-    param: Identifier,
-    value: CallArgumentValue
+    param: Option<Identifier>,
+    value: Expression
 }
 impl CallArgument {
-    pub fn implicit_name(param: Identifier) -> CallArgument {
-        CallArgument { param: param.clone(), value: CallArgumentValue::LocalVar(param.clone()) }
-    }
-    pub fn named(param: Identifier, value: Expression) -> CallArgument {
-        CallArgument { param, value: CallArgumentValue::Expression(value) }
+    pub fn implicit(value: Expression) -> CallArgument {
+        CallArgument { param: None, value }
     }
 
-    /// Gets the name of the param being referenced.
-    ///
-    /// The `ScopedId` of this `Identifier` should match the fn param.
-    pub fn get_ident(&self) -> &Identifier {
-        &self.param
+    pub fn named(param: Identifier, value: Expression) -> CallArgument {
+        CallArgument { param: Some(param), value }
     }
-    pub fn get_name(&self) -> &str {
-        self.param.get_name()
-    }
+
     /// Gets the value of the CallArgument.
-    pub fn get_value(&self) -> &CallArgumentValue {
+    pub fn get_expression(&self) -> &Expression {
         &self.value
     }
 
-    pub fn get_id<'a>(&'a self) -> Ref<'a, ScopedId> {
-        self.param.get_id()
+    pub fn get_name(&self) -> Option<&Identifier> {
+        self.param.as_ref()
     }
 
-    pub fn set_id(&self, id: ScopedId) {
-        self.param.set_id(id);
-    }
 }

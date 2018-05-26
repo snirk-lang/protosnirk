@@ -74,7 +74,6 @@ impl Block {
         Block {
             statements,
             scope_id: RefCell::default(),
-            type_id: Cell::default()
         }
     }
     pub fn has_value(&self) -> bool {

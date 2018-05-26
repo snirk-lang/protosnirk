@@ -64,9 +64,9 @@ impl BlockFnDeclaration {
     }
     pub fn get_params(&self) -> &[(Identifier, TypeExpression)] {
         &self.params
-    }
+    } 
     pub fn get_return_type(&self) -> &TypeExpression {
-        self.ret_ty.as_ref()
+        &self.ret_ty
     }
     pub fn has_explicit_return_type(&self) -> bool {
         self.explicit_ret_ty

@@ -113,7 +113,6 @@ impl IfBlock {
             conditionals: conditionals,
             else_block: else_block,
             scoped_id: RefCell::new(ScopedId::default()),
-            type_id: Cell::default()
         }
     }
     pub fn has_else_if(&self) -> bool {
