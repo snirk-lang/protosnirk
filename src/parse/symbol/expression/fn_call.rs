@@ -42,7 +42,8 @@ impl<T: Tokenizer> InfixParser<Expression, T> for FnCallParser {
                         call_args.push(CallArgument::named(ident, arg_value));
                     }
                     else {
-                        call_args.push(CallArgument::implicit(arg));
+                        call_args.push(CallArgument::implicit(
+                            Expression::VariableRef(ident)));
                     }
                 }
                 else {

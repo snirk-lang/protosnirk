@@ -12,7 +12,7 @@ use visit::visitor::*;
 #[derive(Debug, PartialEq)]
 pub struct ItemTypeIdentifier<'err, 'builder> {
     errors: &'err mut ErrorCollector,
-    builder: &'builder TypeScopeBuilder,
+    builder: &'builder mut TypeScopeBuilder,
 }
 
 impl<'err, 'builder> ItemTypeIdentifier<'err, 'builder> {
@@ -30,9 +30,6 @@ impl<'err, 'builder> ItemVisitor for ItemTypeIdentifier<'err, 'builder> {
     fn visit_block_fn_decl(&mut self, fn_decl: &BlockFnDeclaration) {
         if fn_decl.get_id().is_default() { return }
 
-        // Block functions don't explicitly have a FnTypeExpression
-        // (unless they use first class functions in their arguments)
-        // but are handled here.
         // Declared functions' types are handled here because we do not want
         // to run full type inference at the item level.
         let mut arg_types = Vec::with_capacity(fn_decl.get_params().len());

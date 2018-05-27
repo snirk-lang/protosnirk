@@ -32,8 +32,9 @@ impl TypeScopeBuilder {
         let mut types = HashMap::new();
 
         for PRIM_TYPE in PRIMITIVE_TYPE_NAMES.iter() {
-            names.insert(PRIM_TYPE.to_string(), curr_id);
-            types.insert(curr_id, ConcreteType::Named(NamedType::new(PRIM_TYPE.to_string())));
+            names.insert(PRIM_TYPE.to_string(), curr_id.clone());
+            types.insert(curr_id.clone(),
+                ConcreteType::Named(NamedType::new(PRIM_TYPE.to_string())));
             curr_id.increment();
         }
 

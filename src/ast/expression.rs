@@ -230,6 +230,12 @@ impl Declaration {
     pub fn get_token(&self) -> &Token {
         self.ident.get_token()
     }
+    pub fn get_id<'a>(&'a self) -> Ref<'a, ScopedId> {
+        self.get_ident().get_id()
+    }
+    pub fn set_id(&self, id: ScopedId) {
+        self.get_ident().set_id(id);
+    }
     pub fn get_type_decl(&self) -> Option<&TypeExpression> {
         self.type_decl.as_ref()
     }
