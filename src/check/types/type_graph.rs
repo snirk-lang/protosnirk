@@ -1,7 +1,7 @@
 //! A graph of type inferences.
 
 use lex::Token;
-use ast::ScopedId;
+use ast::{ScopedId, CallArgument};
 use identify::ConcreteType;
 use check::types::InferenceSource;
 
@@ -13,7 +13,7 @@ use std::collections::HashMap;
 
 /// Represents a node in the type inference graph, or
 /// an rvalue in a type equation solver.
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+#[derive(Debug, PartialEq, Clone)]
 enum TypeNode {
     /// Type is of a program variable with the given `ScopedId`
     VariableType(ScopedId),
@@ -21,7 +21,18 @@ enum TypeNode {
     /// a primitive or a function
     ConcreteType(ScopedId),
     /// Type is a temporary created from an expression.
-    Expression
+    Expression,
+    /// Type is the argument of a given function
+    CallArg(CallArgSpecifier, NodeIndex),
+    /// Type is the return type of a given function.
+    CallReturn(NodeIndex),
+}
+
+/// How an argument to a function is specified
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+enum CallArgSpecifier {
+    Index(usize),
+    Name(String)
 }
 
 #[derive(Debug, Default)]
@@ -39,14 +50,23 @@ impl TypeGraph {
         TypeGraph::default()
     }
 
+    pub fn get_type(&self, ty: &ScopedId) -> Option<NodeIndex> {
+        self.types.get(ty).cloned()
+    }
+
+    pub fn get_variable(&self, var: &ScopedId) -> Option<NodeIndex> {
+        self.variables.get(var).cloned()
+    }
+
     pub fn add_type(&mut self, ty: ScopedId) -> NodeIndex {
-        if let Some(found_ix) = self.known_type_ids.get(&ty) {
+        if let Some(found_ix) = self.types.get(&ty) {
             return *found_ix
         }
-        let new_ix = self.graph.add_node(TypeNode::ConcreteType(ty));
-        self.known_type_ids.insert(ty, new_ix);
+        let new_ix = self.graph.add_node(TypeNode::ConcreteType(ty.clone()));
+        self.types.insert(ty, new_ix);
         new_ix
     }
+
     pub fn add_variable(&mut self, var: ScopedId) -> NodeIndex {
         if let Some(found_ix) = self.variables.get(&var) {
             return *found_ix
@@ -55,16 +75,36 @@ impl TypeGraph {
         self.variables.insert(var, new_ix);
         new_ix
     }
+
     pub fn add_expression(&mut self) -> NodeIndex {
         self.graph.add_node(TypeNode::Expression)
     }
+
+    pub fn add_named_call_arg(&mut self, name: String,
+                                         fn_index: NodeIndex)
+                                         -> NodeIndex {
+        self.graph.add_node(TypeNode::CallArg(
+            CallArgSpecifier::Name(name), fn_index))
+    }
+
+    pub fn add_call_arg(&mut self, index: usize,
+                                   fn_index: NodeIndex) -> NodeIndex {
+        self.graph.add_node(TypeNode::CallArg(
+            CallArgSpecifier::Index(index), fn_index))
+    }
+
+    pub fn add_call_return_type(&mut self, function: NodeIndex) -> NodeIndex {
+        self.graph.add_node(TypeNode::CallReturn(function))
+    }
+
     pub fn add_inference(&mut self, src: NodeIndex,
                                     dest: NodeIndex,
                                     source: InferenceSource) -> EdgeIndex {
         self.graph.add_edge(src, dest, source)
     }
     pub fn infer_type_of_var(&mut self, var: &ScopedId)
-                                        -> Result<ScopedId, Vec<NodeIndex>> {
+                                        -> Result<(NodeIndex, ScopedId),
+                                                   Vec<NodeIndex>> {
         let var_ix = self.variables.get(var)
             .expect("TypeGraph: asked to infer type of unknown variable");
         let mut dfs = Dfs::new(&self.graph, *var_ix);
@@ -77,9 +117,14 @@ impl TypeGraph {
             }
         }
         if found.len() == 1 {
-            match &self.graph(found[0]) {
-                &TypeNode::ConcreteType(ty_id) => Ok(ty_id),
-                _ => unreachable!()
+            self.graph.add_edge(var_ix.clone(), found[0],
+                InferenceSource::Inferred);
+            let found_ix = found[0];
+            match &self.graph[found_ix] {
+                &TypeNode::ConcreteType(ref id) => {
+                    return Ok((found_ix, id.clone()))
+                }
+                _ => unreachable!("Did not add non concrete types to search")
             }
         }
         else {

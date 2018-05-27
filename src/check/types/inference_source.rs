@@ -27,7 +27,7 @@ pub enum InferenceSource {
     /// Inference source is the conditional of an if being a bool.
     IfConditionalBool,
     /// Inference source is the if branches being the same.
-    IfBranchesSame(Token),
+    IfBranchesSame,
     /// Inference source is a `return` matching the fn return type.
     ExplicitReturn,
     /// Inference source is an implicit return matching a block.
