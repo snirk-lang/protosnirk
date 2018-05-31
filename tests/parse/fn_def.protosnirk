@@ -1,4 +1,4 @@
 // item
-fn function(input)
+fn function(input: foo)
     expr()
     expr()

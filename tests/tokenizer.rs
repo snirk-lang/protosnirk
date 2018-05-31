@@ -15,7 +15,9 @@ fn verify_keywords_list(fixture_name: &'static str) {
         .read_to_string(&mut input)
         .expect(&input_name);
     println!("Read input file {}", input_name);
-    let mut output_lines = BufReader::new(File::open(&output_name).expect(&output_name)).lines();
+    let mut output_lines = BufReader::new(File::open(&output_name)
+                                         .expect(&output_name))
+                                         .lines();
     println!("Opened expected file {}", output_name);
     let mut current_line = 0usize;
     let mut tokenizer = IterTokenizer::new(input.chars());
@@ -39,13 +41,11 @@ fn verify_keywords_list(fixture_name: &'static str) {
             }
             let split = line.splitn(2, " ").collect::<Vec<_>>();
             let (token_type, token_text) = (split[0], split[1]);
-            if token_type == "li" {
-                // todoo
+            if token_type == "li" || token_type == "kw" || token_type == "sy" {
+                // https://github.com/immington-industries/protosnirk/issues/47
                 continue
             }
             let expected_type = match token_type {
-                "kw" => TokenType::Keyword,
-                "sy" => TokenType::Symbol,
                 "id" => TokenType::Ident,
                 _ => panic!("Invalid line {} of {}: {}",
                         current_line, output_name, line)

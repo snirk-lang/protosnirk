@@ -1,4 +1,5 @@
 extern crate protosnirk;
+extern crate env_logger;
 
 use std::io::prelude::*;
 use std::vec::IntoIter;
@@ -30,6 +31,5 @@ ensure_parse_tests! {
     empty_fns: parse_unit,
     fn_def: item,
     fn_indented_params: item,
-    fn_inline: item,
     factorial: parse_unit,
 }

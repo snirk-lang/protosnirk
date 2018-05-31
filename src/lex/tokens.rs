@@ -125,7 +125,7 @@ declare_tokens! {
 
         LeftParen: "("; Complete,
         RightParen: ")"; Complete,
-        GitMarker: "<<<<<<<"; Complete,
+        GitMergeBegin: "<<<<<<<"; Complete,
         InlineArrow: "=>"; Complete,
         Arrow: "->"; Complete,
         Comma: ","; Complete,
@@ -149,7 +149,7 @@ declare_tokens! {
         Fn: "fn",
     }
     tynames {
-        Int: "int",
+        Int: "float",
         Bool: "bool",
     }
 }
