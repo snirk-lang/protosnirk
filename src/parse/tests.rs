@@ -3,9 +3,9 @@ use std::str::Chars;
 
 use lex::{Token, TokenData, TextLocation, Tokenizer, IterTokenizer};
 use lex::tests::make_tokenizer;
+use ast::*;
 use parse::{Parser};
 use parse::symbol::{self, Precedence};
-use parse::ast::*;
 
 pub fn expect_eq<T: ::std::fmt::Debug + PartialEq>(got: T, expected: T) {
     assert!(got == expected,
@@ -38,7 +38,7 @@ pub fn expression_match(expected: &Expression, got: &Expression) {
     match (expected, got) {
         (&Expression::Literal(ref lit), &Expression::Literal(ref lit2)) => {
             assert_eq!(lit.get_value(), lit2.get_value(),
-                "Expression mismatch in literals: expected {}, got {}",
+                "Expression mismatch in literals: expected {:?}, got {:?}",
                 lit.get_value(), lit2.get_value());
         },
         (&Expression::VariableRef(ref var), &Expression::VariableRef(ref var2)) => {
@@ -103,10 +103,10 @@ pub fn statement_match(expected: &Statement, got: &Statement) {
         (&Statement::Return(ref left), &Statement::Return(ref right)) => {
             println!("Checking return stmts");
             match (left.get_value(), right.get_value()) {
-                (&Some(ref left_val), &Some(ref right_val)) => {
+                (Some(ref left_val), Some(ref right_val)) => {
                     expression_match(left_val, right_val);
                 },
-                (&None, &None) => { },
+                (None, None) => { },
                 (ref left_val, ref right_val) => {
                     panic!("Return stmt values did not match:\nExpected {:#?}\nGot {:#?}",
                         left_val, right_val);

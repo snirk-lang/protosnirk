@@ -391,6 +391,9 @@ impl<T: Tokenizer> Parser<T> {
 
             Minus => UnaryOpExprSymbol::with_precedence(Precedence::NumericPrefix),
             LeftParen => Rc::new(ParensParser { }) as Rc<PrefixParser<Expression, T>>,
+
+            Ident => Rc::new(IdentifierParser { }) as Rc<PrefixParser<Expression, T>>,
+            Literal => Rc::new(LiteralParser { }) as Rc<PrefixParser<Expression, T>>,
         ];
         let stmt_prefix_map: HashMap<TokenType, Rc<PrefixParser<Statement, T> + 'static>> =
         hashmap![

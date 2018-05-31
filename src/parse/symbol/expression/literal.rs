@@ -25,23 +25,3 @@ impl<T: Tokenizer> PrefixParser<Expression, T> for LiteralParser {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use lex::{Token, TokenData, TokenType};
-    use ast::{Expression, Literal};
-    use parse::symbol::{PrefixParser, LiteralParser};
-    use parse::tests as parse_tests;
-
-    #[cfg(test)]
-    fn it_parses_literal_number() {
-        let mut parser = parse_tests::parser("5");
-        let expected_token = Token {
-            data: TokenData::NumberLiteral(5f64),
-            .. Default::default()
-        };
-        let expected = Expression::Literal(Literal::new(expected_token.clone()));
-        let parsed = LiteralParser { }.parse(&mut parser, expected_token).unwrap();
-        parse_tests::expression_match(&expected, &parsed);
-    }
-}
