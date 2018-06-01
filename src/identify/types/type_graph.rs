@@ -3,7 +3,7 @@
 use lex::Token;
 use ast::{ScopedId, CallArgument};
 use identify::ConcreteType;
-use check::types::InferenceSource;
+use identify::types::InferenceSource;
 
 use petgraph::Directed;
 use petgraph::graph::{Graph, NodeIndex, EdgeIndex};

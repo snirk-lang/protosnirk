@@ -4,8 +4,8 @@ use ast::*;
 use visit;
 use visit::visitor::*;
 use identify::{ConcreteType, FnType, TypeScopeBuilder};
+use identify::types::{TypeGraph, InferenceSource};
 use check::{CheckerError, ErrorCollector};
-use check::types::{TypeGraph, InferenceSource};
 
 use petgraph::graph::NodeIndex;
 

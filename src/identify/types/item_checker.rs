@@ -4,8 +4,8 @@ use ast::*;
 use visit;
 use visit::visitor::{ItemVisitor, TypeVisitor, DefaultUnitVisitor};
 use identify::{ConcreteType, TypeScopeBuilder};
-use check::{CheckerError, ErrorCollector};
-use check::types::{TypeGraph, InferenceSource};
+use identify::types::{TypeGraph, InferenceSource};
+use check::ErrorCollector;
 
 /// Assigns `TypeId`s on items.
 #[derive(Debug)]
