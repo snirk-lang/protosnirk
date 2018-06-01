@@ -9,25 +9,25 @@ use check::ErrorCollector;
 
 /// Assigns `TypeId`s on items.
 #[derive(Debug)]
-pub struct ItemTypeChecker<'builder, 'err, 'graph> {
+pub struct ItemTypographer<'builder, 'err, 'graph> {
     builder: &'builder TypeScopeBuilder,
     errors: &'err mut ErrorCollector,
     graph: &'graph mut TypeGraph
 }
 
-impl<'builder, 'err, 'graph> ItemTypeChecker<'builder, 'err, 'graph> {
+impl<'builder, 'err, 'graph> ItemTypographer<'builder, 'err, 'graph> {
     pub fn new(builder: &'builder TypeScopeBuilder,
                errors: &'err mut ErrorCollector,
                graph: &'graph mut TypeGraph)
-               -> ItemTypeChecker<'builder, 'err, 'graph> {
-        ItemTypeChecker { builder, errors, graph }
+               -> ItemTypographer<'builder, 'err, 'graph> {
+        ItemTypographer { builder, errors, graph }
     }
 }
 impl<'builder, 'err, 'graph> DefaultUnitVisitor
-    for ItemTypeChecker<'builder, 'err, 'graph> { }
+    for ItemTypographer<'builder, 'err, 'graph> { }
 
 impl<'builder, 'err, 'graph> ItemVisitor
-    for ItemTypeChecker<'builder, 'err, 'graph> {
+    for ItemTypographer<'builder, 'err, 'graph> {
 
     fn visit_block_fn_decl(&mut self, block_fn: &BlockFnDeclaration) {
         let fn_scope_id = block_fn.get_ident().get_id();

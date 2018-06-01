@@ -14,7 +14,7 @@ use std::ops::Deref;
 
 /// Creates type equations for functions.
 #[derive(Debug)]
-pub struct ExprTypeChecker<'err, 'builder, 'graph> {
+pub struct ExprTypographer<'err, 'builder, 'graph> {
     /// Constructs mapping from ScopedId -> ConcreteType
     builder: &'builder TypeScopeBuilder,
     /// Collects errors
@@ -29,12 +29,12 @@ pub struct ExprTypeChecker<'err, 'builder, 'graph> {
     current_expr_rvalue: bool
 }
 
-impl<'err, 'builder, 'graph> ExprTypeChecker<'err, 'builder, 'graph> {
+impl<'err, 'builder, 'graph> ExprTypographer<'err, 'builder, 'graph> {
     pub fn new(builder: &'builder TypeScopeBuilder,
                errors: &'err mut ErrorCollector,
                graph: &'graph mut TypeGraph)
-               -> ExprTypeChecker<'err, 'builder, 'graph> {
-        ExprTypeChecker {
+               -> ExprTypographer<'err, 'builder, 'graph> {
+        ExprTypographer {
             builder,
             errors,
             graph,
@@ -53,10 +53,10 @@ impl<'err, 'builder, 'graph> ExprTypeChecker<'err, 'builder, 'graph> {
 }
 
 impl<'err, 'builder, 'graph> DefaultUnitVisitor
-    for ExprTypeChecker<'err, 'builder, 'graph> { }
+    for ExprTypographer<'err, 'builder, 'graph> { }
 
 impl<'err, 'builder, 'graph> ItemVisitor
-    for ExprTypeChecker<'err, 'builder, 'graph> {
+    for ExprTypographer<'err, 'builder, 'graph> {
 
     fn visit_block_fn_decl(&mut self, block_fn: &BlockFnDeclaration) {
         let fn_id = block_fn.get_id();
@@ -123,7 +123,7 @@ impl<'err, 'builder, 'graph> ItemVisitor
 }
 
 impl<'err, 'builder, 'graph> BlockVisitor
-    for ExprTypeChecker<'err, 'builder, 'graph> {
+    for ExprTypographer<'err, 'builder, 'graph> {
 
     fn visit_block(&mut self, block: &Block) {
         if block.get_id().is_default() { return }
@@ -134,7 +134,7 @@ impl<'err, 'builder, 'graph> BlockVisitor
 }
 
 impl<'err, 'builder, 'graph> StatementVisitor
-    for ExprTypeChecker<'err, 'builder, 'graph> {
+    for ExprTypographer<'err, 'builder, 'graph> {
 
     // Use standard block handling.
     fn visit_do_block(&mut self, block: &DoBlock) {
@@ -221,7 +221,7 @@ impl<'err, 'builder, 'graph> StatementVisitor
 }
 
 impl<'err, 'builder, 'graph> ExpressionVisitor
-    for ExprTypeChecker<'err, 'builder, 'graph> {
+    for ExprTypographer<'err, 'builder, 'graph> {
 
     fn visit_var_ref(&mut self, ident: &Identifier) {
         // Set the type id to be the ident's type.
