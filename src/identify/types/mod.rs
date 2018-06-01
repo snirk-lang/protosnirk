@@ -12,10 +12,10 @@ mod inference_source;
 pub use self::inference_source::InferenceSource;
 mod type_graph;
 pub use self::type_graph::TypeGraph;
-mod item_checker;
-use self::item_checker::ItemTypeChecker;
-mod expr_checker;
-use self::expr_checker::ExprTypeChecker;
+mod item_typographer;
+use self::item_typographer::ItemTypographer;
+mod expr_typographer;
+use self::expr_typographer::ExprTypographer;
 
 use ast::Unit;
 use visit::visitor::UnitVisitor;
@@ -39,11 +39,18 @@ impl<'builder, 'err, 'graph> ASTTypeChecker<'builder, 'err, 'graph> {
     }
 }
 
-impl<'builder, 'err, 'graph> UnitVisitor for ASTTypeChecker<'builder, 'err, 'graph> {
+impl<'builder, 'err, 'graph> UnitVisitor
+    for ASTTypeChecker<'builder, 'err, 'graph> {
+
     fn visit_unit(&mut self, unit: &Unit) {
-        ItemTypeChecker::new(self.builder, self.errors, self.graph)
+        ItemTypeIdentifier::new(self.errors, self.builder)
+                           .visit_unit(unit);
+        ItemTypographer::new(self.builder, self.errors, self.graph)
                         .visit_unit(unit);
-        ExprTypeChecker::new(self.builder, self.errors, self.graph)
+
+        ExprTypeIdentifier::new(self.errors, self.builder)
+                        .visit_unit(unit);
+        ExprTypographer::new(self.builder, self.errors, self.graph)
                         .visit_unit(unit);
     }
 }
