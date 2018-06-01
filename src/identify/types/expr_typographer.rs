@@ -62,14 +62,6 @@ impl<'err, 'builder, 'graph> ItemVisitor
         let fn_id = block_fn.get_id();
         if fn_id.is_default() { return }
         if block_fn.get_return_type().get_id().is_default() { return }
-        // We know the `identify/types/item` check has already added a concrete
-        // type to the block fn.
-
-        let fn_type = match self.builder.get_type(&fn_id) {
-            Some(fn_type) => fn_type,
-            // If it's not defined, there's already an error.
-            None => return
-        };
 
         // We've already set up information about `fn_ty` and the params.
         // Now, we're gonna require that the block returns the same thing
@@ -112,9 +104,6 @@ impl<'err, 'builder, 'graph> ItemVisitor
         // the last statement of the function's block.
         if need_ret_value {
             let fn_ret_type = block_fn.get_return_type();
-            let fn_ret_id = fn_ret_type.get_id();
-            let fn_ret_type = self.builder.get_type(&fn_ret_id)
-                .expect("Function checked out but return type didn't");
             // expr_inret: ty_fn_ret
             self.graph.add_inference(self.current_type, fn_ix,
                 InferenceSource::FnReturnType(block_fn.get_ident().clone()));
