@@ -16,7 +16,9 @@ pub struct CheckerError {
     text: String,
 }
 impl CheckerError {
-    pub fn new(offender: Token, references: Vec<Token>, text: String) -> CheckerError {
+    pub fn new(offender: Token,
+               references: Vec<Token>,
+               text: String) -> CheckerError {
         CheckerError {
             offender: offender,
             references: references,
