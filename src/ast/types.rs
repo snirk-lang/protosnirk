@@ -21,7 +21,7 @@ pub enum TypeExpression {
 impl TypeExpression {
     pub fn get_id(&self) -> Ref<ScopedId> {
         match self {
-            any => any.get_id()
+            &TypeExpression::Named(ref named) => named.get_id()
         }
     }
 }
