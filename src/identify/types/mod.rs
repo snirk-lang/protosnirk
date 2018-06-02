@@ -11,7 +11,8 @@ pub use self::expr_namer::ExprTypeIdentifier;
 mod inference_source;
 pub use self::inference_source::InferenceSource;
 mod type_graph;
-pub use self::type_graph::TypeGraph;
+pub use self::type_graph::*; // This is just `TypeGraph` to other modules, but
+// includes the full def of the graph for use in `identify/tests`.
 mod item_typographer;
 use self::item_typographer::ItemTypographer;
 mod expr_typographer;

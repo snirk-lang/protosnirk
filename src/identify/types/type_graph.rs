@@ -35,6 +35,15 @@ enum CallArgSpecifier {
     Name(String)
 }
 
+/// The type of `petgraph::Graph` used by the `TypeGraph`
+type DirectedTypeGraph = Graph<TypeNode, InferenceSource, Directed, u32>;
+
+/// HM type unification graph.
+///
+/// This data structure contains "equations" for HM type inference.
+/// Instead of performing a standard unification algorithm, we instead represent
+/// type constraints in a DAG and use graph traversal algorithms to unify
+/// the types.
 #[derive(Debug, Default)]
 pub struct TypeGraph {
     /// Graph of types upon which to run unification/type inference
@@ -130,5 +139,25 @@ impl TypeGraph {
         else {
             Err(found)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use ast::*;
+    use super::*;
+
+    use petgraph::prelude::*;
+    use petgraph::dot::*;
+
+    use std::io::Write;
+    use std::path::Path;
+    use std::fs::File;
+    use std::process::Command;
+
+    /// Call `dot -Tsvg` on the given file
+    fn generate_dot_svg<P: AsRef<Path>>(graph: &DirectedTypeGraph, path: P) {
+        let dot = Dot::with_config(graph, &[Config::EdgeIndexLabel]);
     }
 }
