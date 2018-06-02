@@ -12,52 +12,84 @@ use visit::visitor::*;
 pub struct ExpressionVarIdentifier<'err, 'builder> {
     errors: &'err mut ErrorCollector,
     builder: &'builder mut NameScopeBuilder,
-    item_id: ScopedId
+    current_id: ScopedId
 }
 impl<'err, 'builder> ExpressionVarIdentifier<'err, 'builder> {
     pub fn new(errors: &'err mut ErrorCollector,
-               builder: &'builder mut NameScopeBuilder)
+               builder: &'builder mut NameScopeBuilder,
+               current_id: ScopedId)
                -> ExpressionVarIdentifier<'err, 'builder> {
         ExpressionVarIdentifier {
             errors,
             builder,
-            item_id: ScopedId::default()
+            current_id
         }
     }
 }
 
-impl<'err, 'builder> DefaultUnitVisitor
-    for ExpressionVarIdentifier<'err, 'builder> { }
+impl<'err, 'builder> UnitVisitor for ExpressionVarIdentifier<'err, 'builder> {
+    fn visit_unit(&mut self, unit: &Unit) {
+        // Keep the current_id and builder scope in line with the functions.
+        visit::walk_unit(self, unit);
+    }
+}
 
 impl<'err, 'builder> ItemVisitor for ExpressionVarIdentifier<'err, 'builder> {
     fn visit_block_fn_decl(&mut self, block_fn: &BlockFnDeclaration) {
+        trace!("Visiting fn definition {}", block_fn.get_name());
         if block_fn.get_id().is_default() {
-            trace!("Skipping block fn {} because it does not have an ID",
+            debug!("Skipping block fn {} because it has no ID",
                 block_fn.get_name());
             return
         }
-        trace!("Checking block fn {} with id {:?}",
-            block_fn.get_name(), block_fn.get_ident().get_id());
-        self.item_id = block_fn.get_ident().get_id().clone();
-        self.item_id.push(); // This puts it at param level
-        self.item_id.push(); // This defines the entry block level.
-        // Check the function block
+        self.current_id = block_fn.get_id().clone();
+
+        // Re-create param level scope that ItemVarIdentifier used
+        self.current_id.push();
+        self.builder.new_scope();
+
+        for &(ref param, ref _param_type) in block_fn.get_params() {
+            let param_name = param.get_name();
+            if param.get_id().is_default() {
+                debug!("Skipping block fn {} because param {} does no ID",
+                    block_fn.get_name(), param_name);
+                return
+            }
+            // We re-define parameters here even though they've already been
+            // identified, because the NameScopeBuilder discards its scopes
+            // after visiting.
+
+            self.builder.define_local(param_name.to_string(),
+                                      block_fn.get_id().clone());
+        }
+
+        // current_id = [<fn id>, 0]
+
+        // Check the function block.
+        // `visit_block` results in function blocks having a scope under the
+        // parameters. Block starts with [<fn id>, 0, 0]
         self.visit_block(block_fn.get_block());
+
+        self.builder.pop();
+
+        // pushing handled by `visit_block`, we reset current_id on next item.
     }
 }
 
 impl<'err, 'builder> BlockVisitor for ExpressionVarIdentifier<'err, 'builder> {
     fn visit_block(&mut self, block: &Block) {
         // Give blocks scoped IDs.
-        // For top-level blocks in fns this becomes
-        // the ID after their params (which are already pushed)
-        self.item_id.increment();
-        block.set_id(self.item_id.clone());
-        self.item_id.push();
+        self.current_id.push();
         self.builder.new_scope();
+
+        block.set_id(self.current_id.clone());
+
         visit::walk_block(self, block);
-        self.item_id.pop();
+
+        self.current_id.pop();
         self.builder.pop();
+
+        self.current_id.increment();
     }
 }
 
@@ -67,7 +99,7 @@ impl<'err, 'builder> DefaultStmtVisitor
 impl<'err, 'builder> ExpressionVisitor
     for ExpressionVarIdentifier<'err, 'builder> {
 
-    fn visit_literal_expr(&mut self, literal: &Literal) { }
+    fn visit_literal_expr(&mut self, _literal: &Literal) { }
 
     fn visit_if_expr(&mut self, if_expr: &IfExpression) {
         visit::walk_if_expr(self, if_expr);
@@ -82,26 +114,18 @@ impl<'err, 'builder> ExpressionVisitor
     }
 
     fn visit_assignment(&mut self, assign: &Assignment) {
+        trace!("Visiting assignment to {}", assign.get_lvalue().get_name());
         self.visit_expression(assign.get_rvalue());
-        let lvalue = assign.get_lvalue();
-        if let Some(lvalue_id) = self.builder.get(lvalue.get_name()).cloned() {
-            lvalue.set_id(lvalue_id);
-        }
-        else {
-            // lvalue does not exist
-            let err_text = format!("Unknown variable {}",
-                lvalue.get_name());
-            self.errors.add_error(CheckerError::new(
-                lvalue.get_token().clone(), vec![], err_text
-            ));
-        }
+        self.visit_var_ref(assign.get_lvalue());
     }
 
     fn visit_var_ref(&mut self, ident: &Identifier) {
+        trace!("Visiting reference to {}", ident.get_name());
         if let Some(var_id) = self.builder.get(ident.get_name()).cloned() {
             ident.set_id(var_id);
         }
         else {
+            debug!("Emitting error: unknown ident {}", ident.get_name());
             // Unknown var
             let err_text = format!("Unknown reference to {}",
                 ident.get_name());
@@ -112,9 +136,10 @@ impl<'err, 'builder> ExpressionVisitor
     }
 
     fn visit_declaration(&mut self, declaration: &Declaration) {
+        trace!("Visiting declaration of {}", declaration.get_name());
         let lvalue = declaration.get_ident();
         if let Some(_var_id) = self.builder.get(lvalue.get_name()) {
-            // Variable already declared.
+            // Variable already declared. Shadowing is an error.
             // `builder.get_local` = Rust level shadowing, more or less
             // `builder.get` = no shadowing at all (even over globals).
             let err_text = format!("Variable {} is already declared",
@@ -124,11 +149,11 @@ impl<'err, 'builder> ExpressionVisitor
             ));
         }
         else {
-            self.item_id.increment();
-            let decl_id = self.item_id.clone();
+            let decl_id = self.current_id.clone();
             trace!("Created id {:?} for var {}",
                 decl_id, lvalue.get_name());
             lvalue.set_id(decl_id);
+            self.current_id.increment();
         }
     }
 

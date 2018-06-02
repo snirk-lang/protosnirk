@@ -84,12 +84,17 @@ impl<'var_scope, 'ty_scope, 'err> UnitVisitor
     fn visit_unit(&mut self, unit: &Unit) {
         // The ItemVarIdentifier uses its ScopedId to set up actual scoping.
         // This could be handled by ScopeBuilder.
-        ItemVarIdentifier::new(self.errors, self.var_scope, ScopedId::default())
+        let first_id = ScopedId::default().pushed();
+        debug!("Calling ItemVarIdentifier");
+        ItemVarIdentifier::new(self.errors, self.var_scope, first_id.clone())
                           .visit_unit(unit);
+        debug!("Calling ItemTypeIdentifier");
         ItemTypeIdentifier::new(self.errors, self.type_scope)
                            .visit_unit(unit);
-        ExpressionVarIdentifier::new(self.errors, self.var_scope)
+        debug!("Calling ExpressionVarIdentifier");
+        ExpressionVarIdentifier::new(self.errors, self.var_scope, first_id)
                                 .visit_unit(unit);
+        debug!("Calling ExprTypeIdentifier");
         ExprTypeIdentifier::new(self.errors, self.type_scope)
                            .visit_unit(unit);
     }
