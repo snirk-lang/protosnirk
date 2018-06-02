@@ -159,25 +159,27 @@ pub fn statement_match(expected: &Statement, got: &Statement) {
     }
 }
 
-//#[test]
-fn _parse_example() {
-    let inputs = &[
+pub const FACT_AND_HELPER: &str =
 r#"
-fn factHelper(acc, n)
+fn factHelper(acc: float, n: float) -> float
     if n == 0
         acc
     else
         factHelper(acc: acc * n, n: n - 1)
-fn fact(n)
+fn fact(n: float) -> float
     factHelper(n: n, acc: 1)
-"#,
-];
+"#;
+
+#[ignore]
+#[test]
+fn parse_example() {
+    let inputs = &[FACT_AND_HELPER];
     ::env_logger::Builder::new()
         .parse("TRACE")
         .init();
     for input in inputs {
         let mut parser = parser(input);
-        trace!("Parsing input {:?}", input);
+        trace!("Parsing input:\n{}\n", input);
         trace!("Resulting program:\n{:#?}", parser.parse_unit());
     }
 }
