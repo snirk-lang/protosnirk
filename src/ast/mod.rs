@@ -50,6 +50,8 @@ impl Identifier {
     }
 
     pub fn set_id(&self, index: ScopedId) {
+        debug_assert!(!index.is_default(),
+            "Attempted to reset the ID of {:?}", self);
         *self.id.borrow_mut() = index;
     }
 }
