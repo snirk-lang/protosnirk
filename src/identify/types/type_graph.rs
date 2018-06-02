@@ -41,9 +41,9 @@ type DirectedTypeGraph = Graph<TypeNode, InferenceSource, Directed, u32>;
 /// HM type unification graph.
 ///
 /// This data structure contains "equations" for HM type inference.
-/// Instead of performing a standard unification algorithm, we instead represent
-/// type constraints in a DAG and use graph traversal algorithms to unify
-/// the types.
+/// Instead of performing a standard unification algorithm, we instead
+/// represent type constraints in a DAG and use graph traversal algorithms
+/// to unify the types.
 #[derive(Debug, Default)]
 pub struct TypeGraph {
     /// Graph of types upon which to run unification/type inference
@@ -54,9 +54,24 @@ pub struct TypeGraph {
     variables: HashMap<ScopedId, NodeIndex>
 }
 
+pub const PRIMITIVE_TYPE_NAMES: &[&'static str] = &[
+    "()",
+    "float",
+    "bool",
+];
+
 impl TypeGraph {
-    pub fn new() -> TypeGraph {
-        TypeGraph::default()
+    pub fn with_primitives() -> TypeGraph {
+        let mut curr_id = ScopedId::default().pushed().incremented();
+
+        let mut graph = TypeGraph::default();
+
+        for _ in 0 .. PRIMITIVE_TYPE_NAMES.len() {
+            graph.add_type(curr_id.clone());
+            curr_id.increment();
+        }
+
+        graph
     }
 
     pub fn get_type(&self, ty: &ScopedId) -> Option<NodeIndex> {
@@ -151,13 +166,61 @@ mod tests {
     use petgraph::prelude::*;
     use petgraph::dot::*;
 
-    use std::io::Write;
+    use std::io::{Read, Write};
     use std::path::Path;
-    use std::fs::File;
-    use std::process::Command;
+    use std::fs::{File, OpenOptions};
+    use std::process::{Command, Stdio};
+
+    use parse::tests as parse_tests;
 
     /// Call `dot -Tsvg` on the given file
-    fn generate_dot_svg<P: AsRef<Path>>(graph: &DirectedTypeGraph, path: P) {
+    fn write_graph_svg<P: AsRef<Path>>(graph: &DirectedTypeGraph, path: P) {
         let dot = Dot::with_config(graph, &[Config::EdgeIndexLabel]);
+
+        let mut dot_cmd = Command::new("dot")
+                                  .arg("-Tsvg")
+                                  .stdin(Stdio::piped())
+                                  .stdout(Stdio::piped())
+                                  .spawn()
+                                  .expect("Did not have `dot` installed from graphviz");
+
+        { // Lock stdin
+            let mut stdin = dot_cmd.stdin.as_mut().expect("Couldn't get an stdin");
+            write!(&mut stdin, "{:?}", dot).expect("Could not write graph");
+        }
+        let output = dot_cmd.wait_with_output().expect("Could not wait for dot");
+
+        let mut output_file = OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open(path)
+            .expect("Could not create file for svg");
+        output_file.write_all(&output.stdout).expect("Could not write file for svg");
     }
+
+    #[ignore]
+    #[test]
+    fn create_type_graph() {
+        use identify::*;
+        use check::ErrorCollector;
+
+        ::env_logger::Builder::new().parse("TRACE").init();
+
+        let unit = parse_tests::parser(parse_tests::FACT_AND_HELPER)
+            .parse_unit()
+            .expect("Failed to parse FACT_AND_HELPER");
+
+        let mut errors = ErrorCollector::new();
+        let mut name_builder = NameScopeBuilder::new();
+        let mut type_builder = TypeScopeBuilder::with_primitives();
+        let mut graph = TypeGraph::with_primitives();
+        debug!("Running ASTIdentifier");
+        ASTIdentifier::new(&mut name_builder, &mut type_builder, &mut errors).visit_unit(&unit);
+        debug!("Running ASTTypeChecker");
+        ASTTypeChecker::new(&mut type_builder, &mut errors, &mut graph).visit_unit(&unit);
+
+        write_graph_svg(&graph.graph, "/tmp/type-graph.svg");
+    }
+
 }

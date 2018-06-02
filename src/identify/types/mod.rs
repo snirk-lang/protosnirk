@@ -44,13 +44,17 @@ impl<'builder, 'err, 'graph> UnitVisitor
     for ASTTypeChecker<'builder, 'err, 'graph> {
 
     fn visit_unit(&mut self, unit: &Unit) {
+        trace!("Visting unit");
+        debug!("Calling ItemTypeIdentifier");
         ItemTypeIdentifier::new(self.errors, self.builder)
                            .visit_unit(unit);
+        debug!("Calling ItemTypographer");
         ItemTypographer::new(self.builder, self.errors, self.graph)
                         .visit_unit(unit);
-
+        debug!("Calling ExprTypeIdentifier");
         ExprTypeIdentifier::new(self.errors, self.builder)
                         .visit_unit(unit);
+        debug!("Calling ExprTypographer");
         ExprTypographer::new(self.builder, self.errors, self.graph)
                         .visit_unit(unit);
     }

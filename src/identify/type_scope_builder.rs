@@ -9,7 +9,7 @@ use std::collections::HashMap;
 /// type scope. This means that we parse things like `float` or `bool`
 /// as `NamedTypeExpression`s. We treat them as being special during the compile
 /// phase.
-const PRIMITIVE_TYPE_NAMES: &[&'static str] = &[
+pub const PRIMITIVE_TYPE_NAMES: &[&'static str] = &[
     "()",
     "float",
     "bool",
@@ -31,10 +31,10 @@ impl TypeScopeBuilder {
         let mut names = HashMap::new();
         let mut types = HashMap::new();
 
-        for PRIM_TYPE in PRIMITIVE_TYPE_NAMES.iter() {
-            names.insert(PRIM_TYPE.to_string(), curr_id.clone());
+        for primitive_type in PRIMITIVE_TYPE_NAMES.iter() {
+            names.insert(primitive_type.to_string(), curr_id.clone());
             types.insert(curr_id.clone(),
-                ConcreteType::Named(NamedType::new(PRIM_TYPE.to_string())));
+                ConcreteType::Named(NamedType::new(primitive_type.to_string())));
             curr_id.increment();
         }
 
