@@ -62,7 +62,7 @@ pub const PRIMITIVE_TYPE_NAMES: &[&'static str] = &[
 
 impl TypeGraph {
     pub fn with_primitives() -> TypeGraph {
-        let mut curr_id = ScopedId::default().pushed().incremented();
+        let mut curr_id = ScopedId::default().incremented();
 
         let mut graph = TypeGraph::default();
 
@@ -175,7 +175,7 @@ mod tests {
 
     /// Call `dot -Tsvg` on the given file
     fn write_graph_svg<P: AsRef<Path>>(graph: &DirectedTypeGraph, path: P) {
-        let dot = Dot::with_config(graph, &[Config::EdgeIndexLabel]);
+        let dot = Dot::with_config(graph, &[]);
 
         let mut dot_cmd = Command::new("dot")
                                   .arg("-Tsvg")
@@ -188,7 +188,8 @@ mod tests {
             let mut stdin = dot_cmd.stdin.as_mut().expect("Couldn't get an stdin");
             write!(&mut stdin, "{:?}", dot).expect("Could not write graph");
         }
-        let output = dot_cmd.wait_with_output().expect("Could not wait for dot");
+        let output = dot_cmd.wait_with_output()
+                .expect("Could not wait for dot");
 
         let mut output_file = OpenOptions::new()
             .create(true)
@@ -196,7 +197,8 @@ mod tests {
             .truncate(true)
             .open(path)
             .expect("Could not create file for svg");
-        output_file.write_all(&output.stdout).expect("Could not write file for svg");
+        output_file.write_all(&output.stdout)
+            .expect("Could not write file for svg");
     }
 
     #[ignore]
@@ -216,9 +218,11 @@ mod tests {
         let mut type_builder = TypeScopeBuilder::with_primitives();
         let mut graph = TypeGraph::with_primitives();
         debug!("Running ASTIdentifier");
-        ASTIdentifier::new(&mut name_builder, &mut type_builder, &mut errors).visit_unit(&unit);
+        ASTIdentifier::new(&mut name_builder, &mut type_builder, &mut errors)
+                      .visit_unit(&unit);
         debug!("Running ASTTypeChecker");
-        ASTTypeChecker::new(&mut type_builder, &mut errors, &mut graph).visit_unit(&unit);
+        ASTTypeChecker::new(&mut type_builder, &mut errors, &mut graph)
+                       .visit_unit(&unit);
 
         write_graph_svg(&graph.graph, "/tmp/type-graph.svg");
     }

@@ -26,7 +26,7 @@ pub struct TypeScopeBuilder {
 
 impl TypeScopeBuilder {
     pub fn with_primitives() -> TypeScopeBuilder {
-        let mut curr_id = ScopedId::default().pushed().incremented();
+        let mut curr_id = ScopedId::default().incremented();
 
         let mut names = HashMap::new();
         let mut types = HashMap::new();
