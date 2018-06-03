@@ -17,12 +17,12 @@ pub struct ItemVarIdentifier<'err, 'builder> {
 impl<'err, 'builder> ItemVarIdentifier<'err, 'builder> {
     pub fn new(errors: &'err mut ErrorCollector,
                builder: &'builder mut NameScopeBuilder,
-               scoped_id: ScopedId)
+               current_id: ScopedId)
                -> ItemVarIdentifier<'err, 'builder> {
         ItemVarIdentifier {
             errors,
             builder,
-            current_id: scoped_id
+            current_id
         }
     }
 
@@ -69,8 +69,14 @@ impl<'err, 'builder> ItemVisitor for ItemVarIdentifier<'err, 'builder> {
         block_fn.set_id(fn_id);
 
         // Also name the params, in a new scope.
-        self.builder.new_scope();
         self.current_id.push();
+        self.builder.new_scope();
+
+        // One of the consequences of setting params here is that we know the
+        // parameter IDs of all items in scope. We could, for example, add these
+        // to the global scope
+
+        // https://github.com/immington-industries/protosnirk/issues/50
 
         for &(ref param, ref _param_type) in block_fn.get_params() {
             let param_name = param.get_name();

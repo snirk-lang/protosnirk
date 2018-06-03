@@ -29,8 +29,13 @@ impl<'err, 'builder> ExpressionVarIdentifier<'err, 'builder> {
 
 impl<'err, 'builder> UnitVisitor for ExpressionVarIdentifier<'err, 'builder> {
     fn visit_unit(&mut self, unit: &Unit) {
+        trace!("Visiting a unit");
+        self.builder.new_scope();
+
         // Keep the current_id and builder scope in line with the functions.
         visit::walk_unit(self, unit);
+
+        self.current_id.increment();
     }
 }
 
@@ -60,7 +65,7 @@ impl<'err, 'builder> ItemVisitor for ExpressionVarIdentifier<'err, 'builder> {
             // after visiting.
 
             self.builder.define_local(param_name.to_string(),
-                                      block_fn.get_id().clone());
+                                      param.get_id().clone());
         }
 
         // current_id = [<fn id>, 0]
