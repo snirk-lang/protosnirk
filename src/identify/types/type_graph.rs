@@ -56,8 +56,8 @@ pub struct TypeGraph {
 
 pub const PRIMITIVE_TYPE_NAMES: &[&'static str] = &[
     "()",
-    "float",
     "bool",
+    "float",
 ];
 
 impl TypeGraph {

@@ -11,8 +11,8 @@ use std::collections::HashMap;
 /// phase.
 pub const PRIMITIVE_TYPE_NAMES: &[&'static str] = &[
     "()",
-    "float",
     "bool",
+    "float",
 ];
 
 #[derive(Debug, PartialEq, Clone)]
