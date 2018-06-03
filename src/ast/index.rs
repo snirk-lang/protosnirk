@@ -1,7 +1,9 @@
 use smallvec::SmallVec;
 
+use std::fmt;
+
 /// An identifier which recognizes the concept of scopes.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct ScopedId {
     /// Cap on variables defined in one scope is `u16::MAX`,
     /// Cap on number of scopes is `usize::MAX`
@@ -90,6 +92,14 @@ impl ScopedId {
 
     pub fn is_default(&self) -> bool {
         *self.indices == [0]
+    }
+}
+
+impl fmt::Debug for ScopedId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_tuple("ScopedId")
+         .field(&self.indices)
+         .finish()
     }
 }
 

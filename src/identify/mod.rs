@@ -58,6 +58,9 @@ use visit::visitor::UnitVisitor;
 use self::names::*;
 use self::types::*;
 
+#[cfg(test)]
+mod tests;
+
 /// Identifies `Ident`s in the AST.
 ///
 /// Each `Identifier`'s `ScopedId` is set based on whether
