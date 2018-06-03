@@ -31,10 +31,6 @@ impl<T: Tokenizer> PrefixParser<Expression, T> for IfExpressionParser {
         trace!("Parsed sucess half of conditional");
         try!(parser.consume_name(TokenType::Keyword, tokens::Else));
         trace!("Parsing else half of conditional");
-        if parser.peek().get_text() == tokens::If {
-            let error = "Cannot have an `else if` via inline if expression";
-            return Err(ParseError::LazyString(error.to_string()))
-        }
         let else_expr = try!(parser.expression(Precedence::Min));
         let if_expr = IfExpression::new(token,
                                         Box::new(condition),
