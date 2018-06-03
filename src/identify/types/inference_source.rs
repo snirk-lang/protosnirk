@@ -4,8 +4,10 @@ use lex::Token;
 use ast::{Identifier, Literal, ScopedId};
 use ast::types::TypeExpression;
 
+use std::fmt::{self, Formatter};
+
 /// Type inference source, used for compiler errors.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(PartialEq, Clone)]
 #[warn(dead_code)]
 pub enum InferenceSource {
     /// Inference source is the signature of a function.
@@ -43,4 +45,45 @@ pub enum InferenceSource {
     EqualityOperator,
     /// Value is inferred to be of a given type based upon other connections.
     Inferred,
+}
+
+impl fmt::Debug for InferenceSource {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        use self::InferenceSource::*;
+        match *self {
+            FnSignature(ref id) => f.debug_tuple("FnSignature")
+                                 .field(&id.get_name())
+                                 .finish(),
+            FnReturnType(ref id) => f.debug_tuple("FnReturnType")
+                                  .field(&id.get_name())
+                                  .finish(),
+            FnParameter(ref id) => f.debug_tuple("FnParam")
+                                 .field(&id.get_name())
+                                 .finish(),
+            CallArgument(ref id) => f.debug_tuple("CallArg")
+                                  .field(&id.get_name())
+                                  .finish(),
+            CallReturnType(ref id) => f.debug_tuple("CallReturn")
+                                    .field(&id.get_name())
+                                    .finish(),
+            ExplicitDecl(ref id) => f.debug_tuple("ExplicitLet")
+                                  .field(&id.get_name())
+                                  .finish(),
+            Declaration(ref id) => f.debug_tuple("Let")
+                                 .field(&id.get_name())
+                                 .finish(),
+            LiteralValue(ref lit) => f.debug_tuple("Literal")
+                                   .field(&lit.get_value())
+                                   .finish(),
+            IfConditionalBool => f.write_str("IfCondition"),
+            IfBranchesSame => f.write_str("IfBranches"),
+            ExplicitReturn => f.write_str("ExplicitReturn"),
+            ImplicitReturn => f.write_str("ImplicitReturn"),
+            Assignment => f.write_str("Assignment"),
+            NumericOperator => f.write_str("NumericOp"),
+            BooleanOperator => f.write_str("BoolOp"),
+            EqualityOperator => f.write_str("EqualOp"),
+            Inferred => f.write_str("Inferred")
+         }
+    }
 }
