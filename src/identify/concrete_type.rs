@@ -31,6 +31,10 @@ impl NamedType {
     pub fn new(name: String) -> NamedType {
         NamedType { name }
     }
+
+    pub fn get_name(&self) -> &str {
+        &self.name
+    }
 }
 
 /// A function type.
