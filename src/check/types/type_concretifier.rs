@@ -10,6 +10,10 @@ use visit::visitor::*;
 
 use std::collections::HashMap;
 
+/// Mapping of a `ScopedId` to its concrete type.
+pub type TypeMapping = HashMap<ScopedId, ConcreteType>;
+
+/// Solves type equations in a `TypeGraph` in order to produce a `TypeMapping`.
 #[derive(Debug)]
 pub struct TypeConcretifier<'err, 'builder, 'graph> {
     errors: &'err mut ErrorCollector,
@@ -37,9 +41,26 @@ impl<'err, 'builder, 'graph> TypeConcretifier<'err, 'builder, 'graph> {
                  id: &ScopedId,
                  source: &Token,
                  context: String) -> bool {
+        if let Some(_known) = self.results.get(id) {
+            trace!("Known type of {:?}", id);
+            return true
+        }
+        trace!("Inferring the type of {}", source.get_text());
         let inferred = self.graph.infer_type_of_var(id);
         match inferred {
-            Ok(_) => true,
+            Ok((_ix, ty)) => {
+                if let Some(concrete) = self.builder.get_type(&ty) {
+                    debug!("Type of {} {:?} => {:?}",
+                        source.get_text(), id, ty);
+                    self.results.insert(id.clone(), concrete.clone());
+                    true
+                }
+                else {
+                    debug!("Error: unknown type");
+                    // Shouldn't happen?
+                    false
+                }
+            },
             Err(possibles) => {
                 if possibles.is_empty() {
                     self.errors.add_error(CheckerError::new(
@@ -62,7 +83,8 @@ impl<'err, 'builder, 'graph> TypeConcretifier<'err, 'builder, 'graph> {
     }
 
     fn infer_type(&mut self, _id: &ScopedId) -> bool {
-        unimplemented!()
+        unimplemented!("Type expression and function types are known during
+            identification and need no further resolution");
     }
 }
 
@@ -76,7 +98,13 @@ impl<'err, 'builder, 'graph> ItemVisitor
         self.infer_var(&block_fn.get_id(), block_fn.get_token(),
             format!("fn declaration {}", block_fn.get_name()));
 
-        visit::walk_fn_decl(self, block_fn);
+        for &(ref param, ref _param_ty) in block_fn.get_params() {
+            self.infer_var(&param.get_id(), param.get_token(),
+                format!("fn {} param {}",
+                    block_fn.get_name(), param.get_name()));
+        }
+
+        visit::walk_block(self, block_fn.get_block());
     }
 }
 

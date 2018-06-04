@@ -31,7 +31,6 @@ pub fn identify(input: &'static str)
     return (unit, errors, name_builder, type_builder, graph);
 }
 
-
 #[ignore]
 #[test]
 fn identify_example() {

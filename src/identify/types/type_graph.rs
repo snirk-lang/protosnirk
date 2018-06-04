@@ -122,11 +122,14 @@ impl TypeGraph {
         self.graph.add_node(TypeNode::CallReturn(function))
     }
 
+    // Type inference
+
     pub fn add_inference(&mut self, src: NodeIndex,
                                     dest: NodeIndex,
                                     source: InferenceSource) -> EdgeIndex {
         self.graph.add_edge(src, dest, source)
     }
+
     pub fn infer_type_of_var(&mut self, var: &ScopedId)
                                         -> Result<(NodeIndex, ScopedId),
                                                    Vec<NodeIndex>> {
@@ -178,6 +181,7 @@ impl TypeGraph {
                 .expect("Couldn't get an stdin");
             write!(&mut stdin, "{:?}", dot).expect("Could not write graph");
         }
+
         let output = dot_cmd.wait_with_output()
                 .expect("Could not wait for dot");
 
