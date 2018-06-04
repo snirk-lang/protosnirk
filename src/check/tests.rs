@@ -4,18 +4,25 @@ use identify::tests as identify_tests;
 use ast::Unit;
 use identify::{NameScopeBuilder, TypeScopeBuilder, ASTIdentifier, TypeGraph};
 use visit::visitor::UnitVisitor;
-use check::{ErrorCollector, TypeConcretifier};
+use check::{ErrorCollector, TypeConcretifier, TypeMapping};
 
 /// Check an AST and return the compiler state.
-pub fn check(input: &'static str) ->
-    (Unit, ErrorCollector, NameScopeBuilder, TypeScopeBuilder, TypeGraph) {
+pub fn check(input: &'static str)
+            -> (Unit, ErrorCollector,
+                NameScopeBuilder, TypeScopeBuilder,
+                TypeGraph, TypeMapping) {
 
-    let (unit, mut errors, name_builder, type_scope_builder, mut graph)
+    let (unit, mut errors, name_builder, type_builder, mut graph)
         = identify_tests::identify(input);
-    TypeConcretifier::new(&type_scope_builder, &mut errors, &mut graph)
-                     .visit_unit(&unit);
 
-    (unit, errors, name_builder, type_scope_builder, graph)
+    let results = {
+        debug!("Calling TypeConcretifier");
+        let mut tc = TypeConcretifier::new(&type_builder, &mut errors, &mut graph);
+        tc.visit_unit(&unit);
+        tc.into_results()
+    };
+
+    (unit, errors, name_builder, type_builder, graph, results)
 }
 
 pub const CHECK_EXAMPLE: &'static str = r#"
@@ -32,7 +39,8 @@ fn check_example() {
 
     ::env_logger::Builder::new().parse("TRACE").init();
 
-    let (.., graph) = check(CHECK_EXAMPLE);
+    let (.., graph, results) = check(parse_tests::FACT_AND_HELPER);
     graph.write_svg("/tmp/checked-graph.svg");
 
+    info!("Got result types: {:#?}", results);
 }
