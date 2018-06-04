@@ -46,16 +46,3 @@ macro_rules! llvm_example {
         }
     }
 }
-
-llvm_example! {
-    fact =>
-r#"
-fn factHelper(n, acc)
-    if n <= 2
-        acc
-    else
-        factHelper(n: n - 1, acc: acc * n)
-fn fact(n)
-    factHelper(n, acc: 1)
-"#
-}

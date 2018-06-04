@@ -6,11 +6,14 @@ use visit::visitor::*;
 use check::TypeMapping;
 use compile::{LLVMContext, ModuleProvider};
 
+use llvm_sys::{LLVMRealPredicate};
 use llvm_sys::analysis::LLVMVerifierFailureAction;
 
 use llvm::{Value, Type, BasicBlock, Builder, Context};
 
 /// Produces LLVM modules for AST `Unit`s
+//#[derive(Debug)]
+// https://github.com/immington-industries/protosnirk/issues/52
 pub struct ModuleCompiler<'ctx, 'b, M: ModuleProvider<'ctx>> where 'ctx: 'b {
     module_provider: M,
     optimizations: bool,
@@ -61,37 +64,37 @@ impl<'ctx, 'b, M> ItemVisitor for ModuleCompiler<'ctx, 'b, M>
     where M: ModuleProvider<'ctx>, 'ctx: 'b {
 
     fn visit_block_fn_decl(&mut self, block_fn: &BlockFnDeclaration) {
-        trace!("Checking declaration of {}", block_fn.get_name().get_name());
+        trace!("Checking declaration of {}", block_fn.get_name());
 
         let float_type = Type::double(self.context.context());
-        let arg_types = vec![float_type; block_fn.get_args().len()];
+        let arg_types = vec![float_type; block_fn.get_params().len()];
         let float_type = Type::double(self.context.context());
         let fn_type = Type::function(&float_type, arg_types, false);
         let fn_ref = self.module_provider.get_module().add_function(
-            block_fn.get_name().get_name(), &fn_type);
+            block_fn.get_name(), &fn_type);
 
         // Gotta insert the fn ref first so it can be called recursively
-        self.scope_manager.insert(block_fn.get_name().get_index(), fn_ref.clone());
+        self.scope_manager.insert(block_fn.get_id().clone(), fn_ref.clone());
         trace!("Inserted {} into the scope manager",
-            block_fn.get_name().get_name());
+            block_fn.get_name());
 
         // Gonna be fancy and have a separate basic block for parameters
         let entry_block = self.context.context().append_basic_block(&fn_ref, "entry");
         let start_block = self.context.context().append_basic_block(&fn_ref, "start");
         self.context.builder().position_at_end(&entry_block);
-        trace!("Ready to build {}", block_fn.get_name().get_name());
+        trace!("Ready to build {}", block_fn.get_name());
 
         let fn_params = fn_ref.get_params();
         trace!("fn has {} params", fn_params.len());
 
         // Rename args to %argname, create+remember allocas and store the function values there.
         // This allows LLVM to mutate function params even if we don't allow it right now.
-        for (ast_param, ir_param) in block_fn.get_args().iter().zip(fn_ref.get_params()) {
-            trace!("Adding fn param {} (ix {:?})", ast_param.get_name(), ast_param.get_index());
+        for (&(ref ast_param, _), ir_param) in block_fn.get_params().iter().zip(fn_ref.get_params()) {
+            trace!("Adding fn param {} (ix {:?})", ast_param.get_name(), ast_param.get_id());
             ir_param.set_name(ast_param.get_name());
             let alloca = self.context.builder().build_alloca(&float_type, ast_param.get_name());
             self.context.builder().build_store(&ir_param, &alloca);
-            self.scope_manager.insert(ast_param.get_index(), alloca);
+            self.scope_manager.insert(ast_param.get_id().clone(), alloca);
         }
         self.context.builder().build_br(&start_block);
         self.context.builder().position_at_end(&start_block);
@@ -265,16 +268,20 @@ impl<'ctx, 'b, M> ExpressionVisitor for ModuleCompiler<'ctx, 'b, M>
     where M: ModuleProvider<'ctx>, 'ctx: 'b {
 
     fn visit_literal_expr(&mut self, literal: &Literal) {
-        trace!("Checking literal {}", literal.token);
+        use ast::LiteralValue;
+        trace!("Checking literal {}", literal.get_token().get_text());
         let float_value = literal.get_value();
-        let literal_value = Type::double(&self.context.context())
-                                 .const_real(float_value as f64);
+        let literal_value = match float_value {
+            LiteralValue::Bool(b) =>
+                Type::int1(&self.context.context()).const_null(),
+            LiteralValue::Float(_) => unimplemented!()
+        };
         self.ir_code.push(literal_value);
     }
 
     fn visit_var_ref(&mut self, ident_ref: &Identifier) {
         trace!("Checking variable ref {}", ident_ref.get_name());
-        let var_alloca = self.scope_manager.get(&ident_ref.get_index())
+        let var_alloca = self.scope_manager.get(&ident_ref.get_id())
             .expect("Attempted to check var ref but had no alloca")
             .clone();
         let load_name = format!("load_{}", ident_ref.get_name());
@@ -292,7 +299,7 @@ impl<'ctx, 'b, M> ExpressionVisitor for ModuleCompiler<'ctx, 'b, M>
         let float_type = Type::double(self.context.context());
         let alloca = builder.build_alloca(&float_type, decl.get_name());
         builder.build_store(&decl_value, &alloca);
-        self.scope_manager.insert(decl.ident.get_index(), alloca);
+        self.scope_manager.insert(decl.ident.get_id(), alloca);
     }
 
     fn visit_assignment(&mut self, assign: &Assignment) {
@@ -300,7 +307,7 @@ impl<'ctx, 'b, M> ExpressionVisitor for ModuleCompiler<'ctx, 'b, M>
         self.visit_expression(&*assign.rvalue);
         let rvalue = self.ir_code.pop()
             .expect("Could not generate rvalue of assignment");
-        let var_alloca = self.scope_manager.get(&assign.lvalue.get_index())
+        let var_alloca = self.scope_manager.get(&assign.lvalue.get_id())
             .expect("Could not find existing var for assignment!")
             .clone();
         let builder = self.context.builder();
@@ -380,8 +387,7 @@ impl<'ctx, 'b, M> ExpressionVisitor for ModuleCompiler<'ctx, 'b, M>
     fn visit_fn_call(&mut self, fn_call: &FnCall) {
         trace!("Checking call to {}", fn_call.get_text());
         let mut arg_map = BTreeMap::new();
-        let fn_type = self.types[&fn_call.get_name().get_index()]
-                        .get_type()
+        let fn_type = self.types[&fn_call.get_id()]
                         .clone()
                         .expect_fn();
         trace!("Found function type {:?}", fn_type);
@@ -426,7 +432,7 @@ impl<'ctx, 'b, M> ExpressionVisitor for ModuleCompiler<'ctx, 'b, M>
         }
         debug_assert_eq!(arg_values.len(), fn_type.get_args().len());
         let name = format!("call_{}", fn_call.get_text());
-        let fn_ref = &self.scope_manager[&fn_call.get_name().get_index()];
+        let fn_ref = &self.scope_manager[&fn_call.get_id()];
         trace!("Got a function ref to call");
         let call = self.context.builder()
                                .build_call(fn_ref, arg_values, &name);
