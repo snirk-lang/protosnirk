@@ -1,7 +1,7 @@
 
 use std::collections::HashMap;
 
-use parse::ScopeIndex;
+use ast::ScopedId;
 use parse::tests::parser;
 use compile::{ModuleProvider, ModuleCompiler, SimpleModuleProvider};
 
