@@ -59,7 +59,7 @@ use self::names::*;
 use self::types::*;
 
 #[cfg(test)]
-mod tests;
+pub mod tests;
 
 /// Identifies `Ident`s in the AST.
 ///

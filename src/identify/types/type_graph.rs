@@ -10,6 +10,7 @@ use petgraph::graph::{Graph, NodeIndex, EdgeIndex};
 use petgraph::visit::Dfs;
 
 use std::collections::HashMap;
+use std::path::Path;
 
 /// Represents a node in the type inference graph, or
 /// an rvalue in a type equation solver.
@@ -155,37 +156,26 @@ impl TypeGraph {
             Err(found)
         }
     }
-}
-
-#[cfg(test)]
-mod tests {
-
-    use ast::*;
-    use super::*;
-
-    use petgraph::prelude::*;
-    use petgraph::dot::*;
-
-    use std::io::{Read, Write};
-    use std::path::Path;
-    use std::fs::{File, OpenOptions};
-    use std::process::{Command, Stdio};
-
-    use parse::tests as parse_tests;
 
     /// Call `dot -Tsvg` on the given file
-    fn write_graph_svg<P: AsRef<Path>>(graph: &DirectedTypeGraph, path: P) {
-        let dot = Dot::with_config(graph, &[]);
+    #[cfg(test)]
+    pub fn write_svg<P: AsRef<Path>>(&self, path: P) {
+        use std::io::Write;
+        use std::process::{Command, Stdio};
+        use std::fs::OpenOptions;
+        use petgraph::dot::Dot;
+        let dot = Dot::with_config(&self.graph, &[]);
 
         let mut dot_cmd = Command::new("dot")
                                   .arg("-Tsvg")
                                   .stdin(Stdio::piped())
                                   .stdout(Stdio::piped())
                                   .spawn()
-                                  .expect("Did not have `dot` installed from graphviz");
+            .expect("Did not have `dot` installed from graphviz");
 
         { // Lock stdin
-            let mut stdin = dot_cmd.stdin.as_mut().expect("Couldn't get an stdin");
+            let mut stdin = dot_cmd.stdin.as_mut()
+                .expect("Couldn't get an stdin");
             write!(&mut stdin, "{:?}", dot).expect("Could not write graph");
         }
         let output = dot_cmd.wait_with_output()
@@ -200,31 +190,19 @@ mod tests {
         output_file.write_all(&output.stdout)
             .expect("Could not write file for svg");
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use parse::tests as parse_tests;
+    use identify::tests as identify_tests;
 
     #[ignore]
     #[test]
     fn create_type_graph() {
-        use identify::*;
-        use check::ErrorCollector;
-
-        ::env_logger::Builder::new().parse("TRACE").init();
-
-        let unit = parse_tests::parser(parse_tests::FACT_AND_HELPER)
-            .parse_unit()
-            .expect("Failed to parse FACT_AND_HELPER");
-
-        let mut errors = ErrorCollector::new();
-        let mut name_builder = NameScopeBuilder::new();
-        let mut type_builder = TypeScopeBuilder::with_primitives();
-        let mut graph = TypeGraph::with_primitives();
-        debug!("Running ASTIdentifier");
-        ASTIdentifier::new(&mut name_builder, &mut type_builder, &mut errors)
-                      .visit_unit(&unit);
-        debug!("Running ASTTypeChecker");
-        ASTTypeChecker::new(&mut type_builder, &mut errors, &mut graph)
-                       .visit_unit(&unit);
-
-        write_graph_svg(&graph.graph, "/tmp/type-graph.svg");
+        let (.., graph)
+            = identify_tests::identify(parse_tests::FACT_AND_HELPER);
+        graph.write_svg("/tmp/type-graph.svg");
     }
 
 }
