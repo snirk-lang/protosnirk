@@ -78,22 +78,7 @@ impl Block {
             scope_id: RefCell::default(),
         }
     }
-    pub fn has_value(&self) -> bool {
-        if self.statements.len() == 0 {
-            return false
-        }
-        let last_ix = self.statements.len() - 1;
-        // TODO actual analysis
-        for (ix, statement) in self.statements.iter().enumerate() {
-            if ix == last_ix {
-                return statement.has_value()
-            }
-            // else if stmt == return {
-            //     return stmt.has_value()
-            // }
-        }
-        return false
-    }
+
     pub fn get_stmts(&self) -> &[Statement] {
         &self.statements
     }

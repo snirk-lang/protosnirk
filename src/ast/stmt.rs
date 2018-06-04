@@ -23,9 +23,8 @@ impl Statement {
     pub fn has_value(&self) -> bool {
         match *self {
             Statement::Expression(ref inner) => inner.has_value(),
-            Statement::DoBlock(ref inner) => inner.has_value(),
             Statement::Return(ref return_) => return_.has_value(),
-            Statement::IfBlock(ref if_) => if_.has_value()
+            _ => false
         }
     }
 }
@@ -67,9 +66,7 @@ impl DoBlock {
     pub fn new(token: Token, block: Box<Block>) -> DoBlock {
         DoBlock { do_token: token, block: block }
     }
-    pub fn has_value(&self) -> bool {
-        self.block.has_value()
-    }
+
     pub fn get_block(&self) -> &Block {
         &self.block
     }
@@ -130,17 +127,6 @@ impl IfBlock {
     pub fn get_else(&self) -> Option<&(Token, Block)> {
         self.else_block.as_ref()
     }
-    pub fn has_value(&self) -> bool {
-        if !self.has_else() {
-            return false
-        }
-        for ref cond in (&self.conditionals).iter() {
-            if !cond.has_value() {
-                return false
-            }
-        }
-        self.else_block.as_ref().unwrap().1.has_value()
-    }
     pub fn get_id<'a>(&'a self) -> Ref<'a, ScopedId> {
         self.scoped_id.borrow()
     }
@@ -164,9 +150,6 @@ impl Conditional {
     }
     pub fn get_block(&self) -> &Block {
         &self.block
-    }
-    pub fn has_value(&self) -> bool {
-        self.block.has_value()
     }
     pub fn get_token(&self) -> &Token {
         &self.if_token
