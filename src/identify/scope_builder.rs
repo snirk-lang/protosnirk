@@ -75,7 +75,7 @@ impl<T: Debug + Hash + Eq> ScopeBuilder<T> {
     /// Get a variable from any scope
     pub fn get<K: ?Sized + Debug>(&self, key: &K) -> Option<&ScopedId>
         where T: Borrow<K>, K: Hash + Eq + Debug {
-        trace!("Searching for {:?} in {:#?}", key, self);
+        trace!("Searching for {:?} in {:?}", key, self);
         debug_assert!(!self.scopes.is_empty(),
             "Attempted to search for a variable {:?} with no scopes", key);
         for scope in self.scopes.iter().rev() {
