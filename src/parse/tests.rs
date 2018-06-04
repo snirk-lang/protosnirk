@@ -170,6 +170,22 @@ fn fact(n: float) -> float
     factHelper(n: n, acc: 1)
 "#;
 
+const BLOCKS_IN_BLOCKS: &str =
+r#"
+fn blocksInBlocks(x) -> float
+    do
+        do
+            if x < 0
+                do
+                    let y = x + 1
+                    y + 2
+            else if x == 1
+                let z = x - 1
+                z + 2
+            else
+                x + 1
+"#;
+
 #[ignore]
 #[test]
 fn parse_example() {

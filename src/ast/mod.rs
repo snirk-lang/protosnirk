@@ -17,12 +17,12 @@ mod stmt;
 mod operator;
 pub mod types;
 
+pub use self::index::*;
 pub use self::expression::*;
 pub use self::item::*;
 pub use self::stmt::*;
-pub use self::types::*;
 pub use self::operator::Operator;
-pub use self::index::*;
+pub use self::types::*;
 
 use std::cell::{Cell, RefCell, Ref};
 
@@ -69,6 +69,8 @@ pub struct Block {
     pub statements: Vec<Statement>,
     /// Identifier used for typechecking.
     scope_id: RefCell<ScopedId>,
+    /// What uses the value of this block as an expression?
+    source: RefCell<Option<ScopedId>>,
 }
 impl Block {
     /// Create a new block from the given statements and scope id.
@@ -87,5 +89,11 @@ impl Block {
     }
     pub fn set_id(&self, id: ScopedId) {
         *self.scope_id.borrow_mut() = id;
+    }
+    pub fn get_source(&'a self) -> Ref<'a, Option<ScopedId>> {
+        self.source.borrow()
+    }
+    pub fn set_source(&self, source: ScopedId) {
+        *self.source.borrow_mut() = source;
     }
 }

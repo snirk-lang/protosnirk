@@ -58,7 +58,7 @@ impl<'ctx, 'b, M: ModuleProvider<'ctx>> ModuleCompiler<'ctx, 'b, M> {
 
     fn llvm_type_of_concrete(&self, concrete: &ConcreteType) -> Type<'ctx> {
         match concrete {
-            ConcreteType::Named(name) => {
+            &ConcreteType::Named(name) => {
                 match name.get_name() {
                     "()" => Type::void(&self.context),
                     "bool" => Type::int1(&self.context),
@@ -66,7 +66,7 @@ impl<'ctx, 'b, M: ModuleProvider<'ctx>> ModuleCompiler<'ctx, 'b, M> {
                     other => panic!("Unexpected type {}", other)
                 }
             },
-            ConcreteType::Function(fn_ty) => {
+            &ConcreteType::Function(fn_ty) => {
                 let mut params = Vec::new();
                 for &(ref _name, ref param_ty) in fn_ty.get_params() {
                     params.push(self.llvm_type_of_concrete(param_ty));
@@ -169,7 +169,7 @@ impl<'ctx, 'b, M> StatementVisitor for ModuleCompiler<'ctx, 'b, M>
         trace!("Checking if block");
         // Create some lists of values to use later
         let condition_count = if_block.get_conditionals().len();
-        let valued_if = if_block.has_value();
+        let valued_if = self.l
         let function = self.builder.insert_block().get_parent()
             .expect("Just inserted a block");
 
