@@ -3,10 +3,11 @@ use std::collections::{HashMap, BTreeMap};
 use ast::*;
 use visit;
 use visit::visitor::*;
+use identify::ConcreteType;
 use check::TypeMapping;
 use compile::{LLVMContext, ModuleProvider};
 
-use llvm_sys::{LLVMRealPredicate};
+use llvm_sys::{LLVMRealPredicate, LLVMOpcode};
 use llvm_sys::analysis::LLVMVerifierFailureAction;
 
 use llvm::{Value, Type, BasicBlock, Builder, Context};
@@ -261,7 +262,6 @@ impl<'ctx, 'b, M> StatementVisitor for ModuleCompiler<'ctx, 'b, M>
             builder.build_ret_void();
         }
     }
-
 }
 
 impl<'ctx, 'b, M> ExpressionVisitor for ModuleCompiler<'ctx, 'b, M>
@@ -272,9 +272,18 @@ impl<'ctx, 'b, M> ExpressionVisitor for ModuleCompiler<'ctx, 'b, M>
         trace!("Checking literal {}", literal.get_token().get_text());
         let float_value = literal.get_value();
         let literal_value = match float_value {
-            LiteralValue::Bool(b) =>
-                Type::int1(&self.context.context()).const_null(),
-            LiteralValue::Float(_) => unimplemented!()
+            &LiteralValue::Bool(b) => {
+                let bool_value = if b { 1u64 } else { 0u64 };
+                Type::int1(&self.context.context())
+                     .const_int(bool_value, false)
+            },
+            &LiteralValue::Float(f) => {
+                    Type::double(&self.context.context()).const_real(f)
+            },
+            &LiteralValue::Unit => {
+                // Not directly used.
+                Type::void(&self.context.context()).const_null()
+            }
         };
         self.ir_code.push(literal_value);
     }
@@ -296,10 +305,10 @@ impl<'ctx, 'b, M> ExpressionVisitor for ModuleCompiler<'ctx, 'b, M>
         let decl_value = self.ir_code.pop()
             .expect("Did not have rvalue of declaration");
         let builder = self.context.builder();
-        let float_type = Type::double(self.context.context());
+        let decl_type = self.llvm_type_of() 
         let alloca = builder.build_alloca(&float_type, decl.get_name());
         builder.build_store(&decl_value, &alloca);
-        self.scope_manager.insert(decl.ident.get_id(), alloca);
+        self.scope_manager.insert(decl.get_id().clone(), alloca);
     }
 
     fn visit_assignment(&mut self, assign: &Assignment) {
@@ -353,8 +362,6 @@ impl<'ctx, 'b, M> ExpressionVisitor for ModuleCompiler<'ctx, 'b, M>
                 builder.build_binop(LLVMOpcode::LLVMFDiv, &left_register, &right_register, "div"),
             Operator::Modulus =>
                 builder.build_frem(&left_register, &right_register, "rem"),
-            // TODO binary operations should be handled seperately
-            // when types are added
             Operator::Equality => {
                 let eq = builder.build_fcmp(LLVMRealOEQ, &left_register, &right_register, "eqtmp");
                 builder.build_ui_to_fp(&eq, &Type::double(self.context.context()), "eqcast")
@@ -387,9 +394,11 @@ impl<'ctx, 'b, M> ExpressionVisitor for ModuleCompiler<'ctx, 'b, M>
     fn visit_fn_call(&mut self, fn_call: &FnCall) {
         trace!("Checking call to {}", fn_call.get_text());
         let mut arg_map = BTreeMap::new();
-        let fn_type = self.types[&fn_call.get_id()]
-                        .clone()
-                        .expect_fn();
+        let fn_type = match self.types[&fn_call.get_id()].clone() {
+            ConcreteType::Function(fn_type) => fn_type,
+            other => panic!("Function call's ident had non-fn type")
+        };
+
         trace!("Found function type {:?}", fn_type);
 
         match *fn_call.get_args() {
