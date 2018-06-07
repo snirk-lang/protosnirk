@@ -1,7 +1,7 @@
+//! Set the `ScopedId`s of expressions in the AST.
+
+use lex::{Token, TextLocation};
 use ast::*;
-
-use ast::ScopedId;
-
 use check::{CheckerError, ErrorCollector};
 use identify::NameScopeBuilder;
 use visit;
@@ -12,7 +12,8 @@ use visit::visitor::*;
 pub struct ExpressionVarIdentifier<'err, 'builder> {
     errors: &'err mut ErrorCollector,
     builder: &'builder mut NameScopeBuilder,
-    current_id: ScopedId
+    current_id: ScopedId,
+    lvalues: Vec<ScopedId>
 }
 impl<'err, 'builder> ExpressionVarIdentifier<'err, 'builder> {
     pub fn new(errors: &'err mut ErrorCollector,
@@ -22,7 +23,8 @@ impl<'err, 'builder> ExpressionVarIdentifier<'err, 'builder> {
         ExpressionVarIdentifier {
             errors,
             builder,
-            current_id
+            current_id,
+            lvalues: Vec::new()
         }
     }
 }
@@ -35,6 +37,7 @@ impl<'err, 'builder> UnitVisitor for ExpressionVarIdentifier<'err, 'builder> {
         // Keep the current_id and builder scope in line with the functions.
         visit::walk_unit(self, unit);
 
+        self.builder.pop();
         self.current_id.increment();
     }
 }
@@ -68,6 +71,10 @@ impl<'err, 'builder> ItemVisitor for ExpressionVarIdentifier<'err, 'builder> {
                                       param.get_id().clone());
         }
 
+        if block_fn.has_explicit_return_type() {
+            self.lvalues.push(block_fn.get_id().clone());
+        }
+
         // current_id = [<fn id>, 0]
 
         // Check the function block.
@@ -83,13 +90,47 @@ impl<'err, 'builder> ItemVisitor for ExpressionVarIdentifier<'err, 'builder> {
 
 impl<'err, 'builder> BlockVisitor for ExpressionVarIdentifier<'err, 'builder> {
     fn visit_block(&mut self, block: &Block) {
-        // Give blocks scoped IDs.
+        // Give blocks scoped IDs in line with the current block
+        block.set_id(self.current_id.clone());
+
         self.current_id.push();
         self.builder.new_scope();
 
-        block.set_id(self.current_id.clone());
+        // Check if block is expression block.
+        // Remove the parent ID from the stack so the first expression doesn't
+        // try to return to it.
+        if let Some(return_to) = self.lvalues.pop() {
+            if block.get_stmts().len() == 0 {
+                // Can't possibly return a value if there are no statements
 
-        visit::walk_block(self, block);
+                // We don't have a `Token` on `Block` to use for this error,
+                // so we have to construct a terrible one.
+                // https://github.com/immington-industries/protosnirk/issues/39
+
+                let error_message = format!(
+                    "Code includes an empty block expression"
+                );
+                self.errors.add_error(CheckerError::new(
+                    Token::new_eof(TextLocation::default()),
+                    vec![],
+                    error_message
+                ));
+                return
+            }
+
+            // Set source before visiting
+            block.set_source(return_to.clone());
+
+            for i in 0 .. block.get_stmts().len() - 1 {
+                self.visit_stmt(&block.get_stmts()[i]);
+            }
+            // The last expression in the block is returning to the block.
+            self.lvalues.push(block.get_id().clone());
+            self.visit_stmt(block.get_stmts().last().expect("Checked expect"));
+        }
+        else {
+            visit::walk_block(self, block);
+        }
 
         self.current_id.pop();
         self.builder.pop();
@@ -98,8 +139,44 @@ impl<'err, 'builder> BlockVisitor for ExpressionVarIdentifier<'err, 'builder> {
     }
 }
 
-impl<'err, 'builder> DefaultStmtVisitor
-    for ExpressionVarIdentifier<'err, 'builder> { }
+impl<'err, 'builder> StatementVisitor
+    for ExpressionVarIdentifier<'err, 'builder> {
+
+    fn visit_do_block(&mut self, do_block: &DoBlock) {
+        trace!("Visiting do block");
+        visit::walk_block(self, do_block.get_block());
+    }
+
+    fn visit_if_block(&mut self, if_block: &IfBlock) {
+        trace!("Visiting if block");
+        if if_block.get_id().is_default() {
+            debug!("Skipping if block without ID");
+            return
+        }
+
+        let current_lvalue: ScopedId;
+        let has_lvalue = !self.lvalues.is_empty();
+        if has_lvalue {
+            trace!("Found expression if block");
+            if !if_block.has_else() {
+                debug!("Expression if block did not have else");
+                self.errors.add_error(CheckerError::new(
+                    if_block.get_conditionals()[0].get_token().clone(),
+                    vec![],
+                    format!("If block needed to return a value but did not")
+                ));
+            }
+
+            current_lvalue = self.lvalues.pop().expect("Checked expect");
+            if_block.set_source(current_lvalue.clone());
+        }
+
+    }
+
+    fn visit_return_stmt(&mut self, return_stmt: &Return) {
+
+    }
+}
 
 impl<'err, 'builder> ExpressionVisitor
     for ExpressionVarIdentifier<'err, 'builder> {
@@ -120,7 +197,13 @@ impl<'err, 'builder> ExpressionVisitor
 
     fn visit_assignment(&mut self, assign: &Assignment) {
         trace!("Visiting assignment to {}", assign.get_lvalue().get_name());
+        // Give the required rvalue to the expression
+        // Enables https://github.com/immington-industries/protosnirk/issues/27
+        self.lvalues.push(assign.get_lvalue().get_id().clone());
         self.visit_expression(assign.get_rvalue());
+        if self.lvalues.last() == Some(&assign.get_lvalue().get_id()) {
+            self.lvalues.pop();
+        }
         self.visit_var_ref(assign.get_lvalue());
     }
 
