@@ -24,7 +24,8 @@ impl Statement {
         match *self {
             Statement::Expression(ref inner) => inner.has_value(),
             Statement::Return(ref return_) => return_.has_value(),
-            _ => false
+            Statement::DoBlock(ref do_block) => do_block.has_source(),
+            Statement::IfBlock(ref if_block) => if_block.has_source(),
         }
     }
 }
