@@ -78,6 +78,7 @@ impl Block {
         Block {
             statements,
             scope_id: RefCell::default(),
+            source: RefCell::new(None)
         }
     }
 
@@ -90,10 +91,13 @@ impl Block {
     pub fn set_id(&self, id: ScopedId) {
         *self.scope_id.borrow_mut() = id;
     }
-    pub fn get_source(&'a self) -> Ref<'a, Option<ScopedId>> {
+    pub fn get_source<'a>(&'a self) -> Ref<'a, Option<ScopedId>> {
         self.source.borrow()
     }
     pub fn set_source(&self, source: ScopedId) {
-        *self.source.borrow_mut() = source;
+        *self.source.borrow_mut() = Some(source);
+    }
+    pub fn has_source(&self) -> bool {
+        self.source.borrow().is_some()
     }
 }

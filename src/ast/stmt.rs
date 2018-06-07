@@ -70,6 +70,26 @@ impl DoBlock {
     pub fn get_block(&self) -> &Block {
         &self.block
     }
+
+    pub fn get_id<'a>(&'a self) -> Ref<'a, ScopedId> {
+        self.block.get_id()
+    }
+
+    pub fn set_id(&self, id: ScopedId) {
+        self.block.set_id(id);
+    }
+
+    pub fn get_source<'a>(&'a self) -> Ref<'a, Option<ScopedId>> {
+        self.block.get_source()
+    }
+
+    pub fn set_source(&self, source: ScopedId) {
+        self.block.set_source(source)
+    }
+
+    pub fn has_source(&self) -> bool {
+        self.block.has_source()
+    }
 }
 
 /// if <condition> <block>
@@ -91,6 +111,7 @@ pub struct IfBlock {
     pub conditionals: Vec<Conditional>,
     pub else_block: Option<(Token, Block)>,
     scoped_id: RefCell<ScopedId>,
+    source: RefCell<Option<ScopedId>>
 }
 
 /// A basic conditional
@@ -109,7 +130,8 @@ impl IfBlock {
         IfBlock {
             conditionals: conditionals,
             else_block: else_block,
-            scoped_id: RefCell::new(ScopedId::default()),
+            scoped_id: RefCell::default(),
+            source: RefCell::new(None)
         }
     }
     pub fn has_else_if(&self) -> bool {
@@ -133,6 +155,16 @@ impl IfBlock {
     pub fn set_id(&self, id: ScopedId) {
         *self.scoped_id.borrow_mut() = id;
     }
+
+    pub fn get_source<'a>(&'a self) -> Ref<'a, Option<ScopedId>> {
+        self.source.borrow()
+    }
+    pub fn set_source(&self, source: ScopedId) {
+        *self.source.borrow_mut() = Some(source);
+    }
+    pub fn has_source(&self) -> bool {
+        self.source.borrow().is_some()
+    }
 }
 
 impl Conditional {
@@ -153,5 +185,17 @@ impl Conditional {
     }
     pub fn get_token(&self) -> &Token {
         &self.if_token
+    }
+
+    pub fn get_source<'a>(&'a self) -> Ref<'a, Option<ScopedId>> {
+        self.block.get_source()
+    }
+
+    pub fn set_source(&self, source: ScopedId) {
+        self.block.set_source(source)
+    }
+
+    pub fn has_source(&self) -> bool {
+        self.block.has_source()
     }
 }
