@@ -58,7 +58,7 @@ impl<'ctx, 'b, M: ModuleProvider<'ctx>> ModuleCompiler<'ctx, 'b, M> {
 
     fn llvm_type_of_concrete(&self, concrete: &ConcreteType) -> Type<'ctx> {
         match concrete {
-            &ConcreteType::Named(name) => {
+            &ConcreteType::Named(ref name) => {
                 match name.get_name() {
                     "()" => Type::void(&self.context),
                     "bool" => Type::int1(&self.context),
@@ -66,7 +66,7 @@ impl<'ctx, 'b, M: ModuleProvider<'ctx>> ModuleCompiler<'ctx, 'b, M> {
                     other => panic!("Unexpected type {}", other)
                 }
             },
-            &ConcreteType::Function(fn_ty) => {
+            &ConcreteType::Function(ref fn_ty) => {
                 let mut params = Vec::new();
                 for &(ref _name, ref param_ty) in fn_ty.get_params() {
                     params.push(self.llvm_type_of_concrete(param_ty));
@@ -169,13 +169,13 @@ impl<'ctx, 'b, M> StatementVisitor for ModuleCompiler<'ctx, 'b, M>
         trace!("Checking if block");
         // Create some lists of values to use later
         let condition_count = if_block.get_conditionals().len();
-        let valued_if = self.l
+        let valued_if = if_block.has_source();
         let function = self.builder.insert_block().get_parent()
             .expect("Just inserted a block");
 
         let mut condition_blocks = Vec::with_capacity(condition_count);
         let mut incoming_values =
-            Vec::with_capacity(if if_block.has_value() { condition_count } else {0});
+            Vec::with_capacity(if valued_if { condition_count } else {0});
 
         trace!("Preparing to emit {} conditionals", condition_count);
         // Populate a list of the future blocks to have
@@ -337,15 +337,15 @@ impl<'ctx, 'b, M> ExpressionVisitor for ModuleCompiler<'ctx, 'b, M>
 
 
     fn visit_declaration(&mut self, decl: &Declaration) {
-    /*    trace!("Checking declaration for {}", decl.get_name());
+        trace!("Checking declaration for {}", decl.get_name());
         self.visit_expression(decl.get_value());
         let decl_value = self.ir_code.pop()
             .expect("Did not have rvalue of declaration");
         let builder = self.builder;
-        let decl_type = self.llvm_type_of(decl.get_id());
-        let alloca = builder.build_alloca(&float_type, decl.get_name());
+        let decl_type = self.llvm_type_of(&decl.get_id());
+        let alloca = builder.build_alloca(&decl_type, decl.get_name());
         builder.build_store(&decl_value, &alloca);
-        self.scope_manager.insert(decl.get_id().clone(), alloca);*/
+        self.scope_manager.insert(decl.get_id().clone(), alloca);
     }
 
     fn visit_assignment(&mut self, assign: &Assignment) {
