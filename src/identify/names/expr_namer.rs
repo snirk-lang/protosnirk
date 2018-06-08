@@ -2,18 +2,26 @@
 
 use lex::{Token, TextLocation};
 use ast::*;
+use identify::{NameScopeBuilder, names::OriginManager};
 use check::{CheckerError, ErrorCollector};
-use identify::NameScopeBuilder;
 use visit;
 use visit::visitor::*;
+
+use std::mem;
 
 /// Identifies variables in blocks.
 #[derive(Debug)]
 pub struct ExpressionVarIdentifier<'err, 'builder> {
     errors: &'err mut ErrorCollector,
     builder: &'builder mut NameScopeBuilder,
+    /// `ScopedId` to give to expressions
     current_id: ScopedId,
-    lvalues: Vec<ScopedId>
+    /// `ScopedId` of the current function which we
+    current_fn_id: ScopedId,
+    /// Stack of lvalues which can be assigned to the current expression.
+    /// For example, a block in a function which returns a value would have
+    /// an lvalue of the function's ID.
+    lvalues: OriginManager
 }
 impl<'err, 'builder> ExpressionVarIdentifier<'err, 'builder> {
     pub fn new(errors: &'err mut ErrorCollector,
@@ -24,7 +32,8 @@ impl<'err, 'builder> ExpressionVarIdentifier<'err, 'builder> {
             errors,
             builder,
             current_id,
-            lvalues: Vec::new()
+            current_fn_id: ScopedId::default(),
+            lvalues: OriginManager::new()
         }
     }
 }
@@ -72,8 +81,10 @@ impl<'err, 'builder> ItemVisitor for ExpressionVarIdentifier<'err, 'builder> {
         }
 
         if block_fn.has_explicit_return_type() {
-            self.lvalues.push(block_fn.get_id().clone());
+            self.lvalues.add_source(block_fn.get_id().clone());
         }
+
+        self.current_fn_id = block_fn.get_id().clone();
 
         // current_id = [<fn id>, 0]
 
@@ -81,6 +92,8 @@ impl<'err, 'builder> ItemVisitor for ExpressionVarIdentifier<'err, 'builder> {
         // `visit_block` results in function blocks having a scope under the
         // parameters. Block starts with [<fn id>, 0, 0]
         self.visit_block(block_fn.get_block());
+
+        self.lvalues.pop_source();
 
         self.builder.pop();
 
@@ -99,7 +112,9 @@ impl<'err, 'builder> BlockVisitor for ExpressionVarIdentifier<'err, 'builder> {
         // Check if block is expression block.
         // Remove the parent ID from the stack so the first expression doesn't
         // try to return to it.
-        if let Some(return_to) = self.lvalues.pop() {
+        if self.lvalues.has_source() {
+            // Take the current lvalue stack to prevent the non-last
+            // statements in the block from attempting to return a value.
             if block.get_stmts().len() == 0 {
                 // Can't possibly return a value if there are no statements
 
@@ -115,18 +130,27 @@ impl<'err, 'builder> BlockVisitor for ExpressionVarIdentifier<'err, 'builder> {
                     vec![],
                     error_message
                 ));
+                self.lvalues.pop_source();
                 return
             }
-
             // Set source before visiting
-            block.set_source(return_to.clone());
-
+            block.set_source(self.lvalues.pop_source()
+                                         .expect("Checked expect")
+                                         .clone());
+            self.lvalues.begin_block();
             for i in 0 .. block.get_stmts().len() - 1 {
                 self.visit_stmt(&block.get_stmts()[i]);
             }
+            self.lvalues.end_block();
             // The last expression in the block is returning to the block.
-            self.lvalues.push(block.get_id().clone());
+
+            // Put the existing stack up (minus the last one which this block
+            // is returning to)
+            // Ensure the last statement should return to this block.
+            self.lvalues.add_source(block.get_id().clone());
+            // We want the last source
             self.visit_stmt(block.get_stmts().last().expect("Checked expect"));
+
         }
         else {
             visit::walk_block(self, block);
@@ -154,8 +178,10 @@ impl<'err, 'builder> StatementVisitor
             return
         }
 
-        let current_lvalue: ScopedId;
-        let has_lvalue = !self.lvalues.is_empty();
+        if_block.set_id(self.current_id.clone());
+        self.current_id.push();
+
+        let has_lvalue = self.lvalues.has_source();
         if has_lvalue {
             trace!("Found expression if block");
             if !if_block.has_else() {
@@ -165,16 +191,51 @@ impl<'err, 'builder> StatementVisitor
                     vec![],
                     format!("If block needed to return a value but did not")
                 ));
+                return
             }
 
-            current_lvalue = self.lvalues.pop().expect("Checked expect");
-            if_block.set_source(current_lvalue.clone());
+            let source = self.lvalues.pop_source().expect("Checked expect");
+            if_block.set_source(source);
         }
 
+        // Visit each conditional, sourcing it to the if and visiting the block.
+        for cond in if_block.get_conditionals() {
+            trace!("Checking conditional");
+            self.visit_expression(cond.get_condition());
+
+            if has_lvalue {
+                trace!("Mapping conditional to if");
+                self.lvalues.add_source(if_block.get_id().clone());
+            }
+            self.visit_block(cond.get_block());
+            // We know that if the block visiting worked the block will pop the
+            // source.
+        }
+
+        if let Some(&(ref _token, ref else_block)) = if_block.get_else() {
+            trace!("Visting else");
+            if has_lvalue {
+                trace!("Adding source to else");
+                self.lvalues.add_source(if_block.get_id().clone());
+            }
+            self.visit_block(else_block);
+            // We know block visiting will pop the source.
+        }
+
+        self.current_id.pop();
+        self.current_id.increment();
     }
 
     fn visit_return_stmt(&mut self, return_stmt: &Return) {
-
+        trace!("Visiting return statement");
+        if let Some(ret_expr) = return_stmt.get_value() {
+            trace!("Adding fn id source to return expr");
+            self.lvalues.add_source(self.current_fn_id.clone());
+            self.visit_expression(ret_expr);
+            if self.lvalues.has_top_source(&self.current_fn_id) {
+                self.lvalues.pop_source();
+            }
+        }
     }
 }
 
@@ -199,10 +260,23 @@ impl<'err, 'builder> ExpressionVisitor
         trace!("Visiting assignment to {}", assign.get_lvalue().get_name());
         // Give the required rvalue to the expression
         // Enables https://github.com/immington-industries/protosnirk/issues/27
-        self.lvalues.push(assign.get_lvalue().get_id().clone());
+        let lvalue_id = assign.get_lvalue().get_id().clone();
+        if lvalue_id.is_default() {
+            trace!("Found assignment to unknown var");
+            let error_message = format!(
+                "Unknown variable {} to assign to",
+                assign.get_lvalue().get_name()
+            );
+            self.errors.add_error(CheckerError::new(
+                assign.get_lvalue().get_token().clone(),
+                vec![],
+                error_message
+            ));
+        }
+        self.lvalues.add_source(lvalue_id);
         self.visit_expression(assign.get_rvalue());
-        if self.lvalues.last() == Some(&assign.get_lvalue().get_id()) {
-            self.lvalues.pop();
+        if self.lvalues.has_top_source(&assign.get_lvalue().get_id()) {
+            self.lvalues.pop_source();
         }
         self.visit_var_ref(assign.get_lvalue());
     }
@@ -227,6 +301,7 @@ impl<'err, 'builder> ExpressionVisitor
         trace!("Visiting declaration of {}", declaration.get_name());
         let lvalue = declaration.get_ident();
         if let Some(_var_id) = self.builder.get(lvalue.get_name()) {
+            debug!("Found an already defined variable");
             // Variable already declared. Shadowing is an error.
             // `builder.get_local` = Rust level shadowing, more or less
             // `builder.get` = no shadowing at all (even over globals).
@@ -235,16 +310,13 @@ impl<'err, 'builder> ExpressionVisitor
             self.errors.add_error(CheckerError::new(
                 lvalue.get_token().clone(), vec![], err_text
             ));
+            return
         }
-        else {
-            let decl_id = self.current_id.clone();
-            trace!("Created id {:?} for var {}",
-                decl_id, lvalue.get_name());
-            lvalue.set_id(decl_id);
-            self.current_id.increment();
-        }
+        let decl_id = self.current_id.clone();
+        trace!("Created id {:?} for var {}", decl_id, lvalue.get_name());
+        lvalue.set_id(decl_id);
+        self.current_id.increment();
     }
-
     fn visit_fn_call(&mut self, fn_call: &FnCall) {
         if let Some(fn_id) = self.builder.get(fn_call.get_text()).cloned() {
             // Set fn ident

@@ -2,6 +2,7 @@
 
 use ast::ScopedId;
 
+/// Allows visitors to manage the `source` ID of their expressions.
 #[derive(Debug, Clone, Default)]
 pub struct OriginManager {
     lvalues: Vec<Option<ScopedId>>
@@ -23,6 +24,15 @@ impl OriginManager {
         self.lvalues.last()
                     .and_then(|top| top.as_ref())
                     .is_some()
+    }
+
+    /// Get the top source of the OriginManager
+    pub fn top_source(&self) -> Option<&ScopedId> {
+        self.lvalues.last().and_then(|last| last.as_ref())
+    }
+
+    pub fn has_top_source(&self, source: &ScopedId) -> bool {
+        self.top_source() == Some(source)
     }
 
     /// Supress `has_source` until `end_block` is called.
