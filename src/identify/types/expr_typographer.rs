@@ -3,7 +3,7 @@
 use ast::*;
 use visit;
 use visit::visitor::*;
-use identify::{ConcreteType, FnType, TypeScopeBuilder};
+use identify::{ConcreteType, FnType, TypeScopeBuilder, OriginManager};
 use identify::types::{TypeGraph, InferenceSource};
 use check::{CheckerError, ErrorCollector};
 
@@ -23,8 +23,7 @@ pub struct ExprTypographer<'err, 'builder, 'graph> {
     graph: &'graph mut TypeGraph,
     /// Type index obtained by visiting an expression
     current_type: NodeIndex,
-    /// Stack of values which need an rvalue.
-    lvalue_stack: Vec<NodeIndex>,
+    /// Return type of the current function
     fn_ret_type: NodeIndex,
 }
 
@@ -39,7 +38,6 @@ impl<'err, 'builder, 'graph> ExprTypographer<'err, 'builder, 'graph> {
             graph,
             current_type: NodeIndex::default(),
             fn_ret_type: NodeIndex::default(),
-            lvalue_stack: Vec::new()
         }
     }
 
@@ -83,10 +81,6 @@ impl<'err, 'builder, 'graph> ItemVisitor
             &block_fn.get_return_type().get_id())
             .expect("Could not determine fn return type");
 
-        if need_ret_value {
-            trace!("Pushing fn ret value to stack");
-            self.lvalue_stack.push(fn_ret_type);
-        }
         self.fn_ret_type = fn_ret_type;
 
         let fn_ix = self.graph.add_variable(fn_id.clone());
@@ -136,32 +130,16 @@ impl<'err, 'builder, 'graph> BlockVisitor
             return
         }
 
-        // We're doing an actual number for loop, so:
-        // - skip on 0 statements
-        // - loop doesn't ececute on 1 statement
-
+        // A valued empty block will also have previously triggered an error.
         if block.get_stmts().is_empty() {
-            trace!("Skipping empty block");
+            trace!("Visited empty block");
             self.current_type = self.primitive_type_ix("()");
             return
         }
 
-        // Make sure none of the statements in the block think
-        // they need a value
-        let needed_value = self.lvalue_stack.pop();
+        visit::walk_block(self, block);
 
-        let statements = block.get_stmts();
-
-        for i in 0 .. statements.len() - 1 {
-            self.visit_stmt(&statements[i])
-        }
-
-        // Check if the block needs to be assigned to a value.
-        if let Some(last_lvalue) = needed_value {
-            trace!("Block requires return value");
-            // Ensure the last statement knows it's needed.
-            self.lvalue_stack.push(last_lvalue);
-            self.visit_stmt(&statements.last().expect("Checked expect"));
+        if block.has_source() {
             let block_ty = self.graph.add_type(block.get_id().clone());
             self.graph.add_inference(block_ty, self.current_type,
                 InferenceSource::ImplicitReturn);
@@ -169,7 +147,6 @@ impl<'err, 'builder, 'graph> BlockVisitor
         }
         else {
             trace!("Block does not require return value");
-            self.visit_stmt(&statements.last().expect("Checked expect"));
             self.current_type = self.primitive_type_ix("()");
         }
     }
@@ -191,20 +168,10 @@ impl<'err, 'builder, 'graph> StatementVisitor
             return
         }
 
-        if !self.lvalue_stack.is_empty() && !if_block.has_else() {
-            debug!("If block's type is needed but it has no else");
-        }
-
-        let needed_rvalue = self.lvalue_stack.pop();
-        let if_block_type = if needed_rvalue.is_some() {
-            self.graph.add_expression()
-        }
-        else { // Variable is not used otherwise
-            NodeIndex::default()
-        };
+        let valued_if = if_block.has_source();
+        let if_block_type = self.graph.add_type(if_block.get_id().clone());
 
         let bool_ty_ix = self.primitive_type_ix("bool");
-
         for conditional in if_block.get_conditionals() {
             trace!("Checking conditional");
             self.visit_expression(conditional.get_condition());
@@ -213,11 +180,9 @@ impl<'err, 'builder, 'graph> StatementVisitor
             self.graph.add_inference(cond_ty_id, bool_ty_ix,
                 InferenceSource::IfConditionalBool);
 
-            if needed_rvalue.is_some() {
-            }
             self.visit_block(conditional.get_block());
             trace!("Checking conditional block");
-            if needed_rvalue.is_some() {
+            if valued_if {
                 self.graph.add_inference(self.current_type, if_block_type,
                     InferenceSource::IfBranchesSame);
             }
@@ -226,14 +191,15 @@ impl<'err, 'builder, 'graph> StatementVisitor
         if let Some(&(_, ref block)) = if_block.get_else() {
             trace!("Checking block else");
             self.visit_block(block);
-            if needed_rvalue.is_some() {
+            if valued_if {
                 self.graph.add_inference(self.current_type, if_block_type,
                     InferenceSource::IfBranchesSame);
             }
         }
+
         // Update the current type, only if asked and we could theoretically
         // match.
-        if needed_rvalue.is_some() {
+        if valued_if {
             self.current_type = if_block_type;
         }
         // Otherwise always set `()`
