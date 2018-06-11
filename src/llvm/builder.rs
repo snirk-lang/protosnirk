@@ -279,6 +279,16 @@ impl<'ctx> Builder<'ctx> {
         }
     }
 
+    pub fn build_fdiv(&self, lhs: &Value<'ctx>, rhs: &Value<'ctx>, name: &str) -> Value<'ctx> {
+        let name = CString::new(name).unwrap();
+        unsafe {
+            Value::from_ref(LLVMBuildFDiv(self.ptr(),
+                            lhs.ptr(),
+                            rhs.ptr(),
+                            name.as_ptr() as *const c_char))
+        }
+    }
+
     pub fn build_udiv(&self, lhs: &Value<'ctx>, rhs: &Value<'ctx>, name: &str) -> Value<'ctx> {
         let name = CString::new(name).unwrap();
         unsafe {
