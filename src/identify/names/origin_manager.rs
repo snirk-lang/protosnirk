@@ -48,7 +48,7 @@ impl OriginManager {
     }
 
     /// Pair with `end_block()` to supress `has_source`.
-    pub fn end_block(&mut self) -> bool{
+    pub fn end_block(&mut self) -> bool {
         let last = self.lvalues.pop();
         // Assert that the top of the stack is `None`.
         last.is_some() && last.expect("Checked expect").is_none()

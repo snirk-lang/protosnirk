@@ -34,8 +34,9 @@ impl Statement {
 #[derive(Debug, PartialEq, Clone)]
 pub struct Return {
     token: Token,
-    pub value: Option<Box<Expression>>
+    value: Option<Box<Expression>>
 }
+
 impl Return {
     pub fn new<V: Into<Option<Box<Expression>>>>(token: Token,
                                                  value: V) -> Return {

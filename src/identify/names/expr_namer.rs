@@ -2,7 +2,7 @@
 
 use lex::{Token, TextLocation};
 use ast::*;
-use identify::{NameScopeBuilder, names::OriginManager};
+use identify::{NameScopeBuilder, OriginManager};
 use check::{CheckerError, ErrorCollector};
 use visit;
 use visit::visitor::*;
@@ -150,7 +150,6 @@ impl<'err, 'builder> BlockVisitor for ExpressionVarIdentifier<'err, 'builder> {
             self.lvalues.add_source(block.get_id().clone());
             // We want the last source
             self.visit_stmt(block.get_stmts().last().expect("Checked expect"));
-
         }
         else {
             visit::walk_block(self, block);
@@ -317,6 +316,7 @@ impl<'err, 'builder> ExpressionVisitor
         lvalue.set_id(decl_id);
         self.current_id.increment();
     }
+
     fn visit_fn_call(&mut self, fn_call: &FnCall) {
         if let Some(fn_id) = self.builder.get(fn_call.get_text()).cloned() {
             // Set fn ident

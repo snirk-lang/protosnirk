@@ -50,6 +50,7 @@ mod type_scope_builder;
 pub use self::scope_builder::{ScopeBuilder, NameScopeBuilder};
 pub use self::type_scope_builder::TypeScopeBuilder;
 pub use self::concrete_type::*;
+pub use self::names::OriginManager;
 
 use ast::{Unit, ScopedId};
 use check::ErrorCollector;
