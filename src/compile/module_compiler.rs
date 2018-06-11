@@ -3,18 +3,18 @@ use std::collections::{HashMap, BTreeMap};
 use ast::*;
 use visit;
 use visit::visitor::*;
-use identify::ConcreteType;
+use identify::{ConcreteType, OriginManager};
 use check::TypeMapping;
 use compile::ModuleProvider;
 
-use llvm_sys::{LLVMRealPredicate, LLVMOpcode};
+use llvm_sys::{LLVMIntPredicate, LLVMRealPredicate, LLVMOpcode, LLVMTypeKind};
 use llvm_sys::analysis::LLVMVerifierFailureAction;
 
 use llvm::{Module, Value, Type, BasicBlock, Builder, Context};
 
-/// Produces LLVM modules for AST `Unit`s
 //#[derive(Debug)]
 // https://github.com/immington-industries/protosnirk/issues/52
+/// Produces LLVM modules for AST `Unit`s
 pub struct ModuleCompiler<'ctx, 'b, M: ModuleProvider<'ctx>> where 'ctx: 'b {
     module_provider: M,
     optimizations: bool,
@@ -22,8 +22,10 @@ pub struct ModuleCompiler<'ctx, 'b, M: ModuleProvider<'ctx>> where 'ctx: 'b {
     builder: &'ctx Builder<'ctx>,
     ir_code: &'b mut Vec<Value<'ctx>>,
     types: TypeMapping,
-    scope_manager: &'b mut HashMap<ScopedId, Value<'ctx>>
+    scope_manager: &'b mut HashMap<ScopedId, Value<'ctx>>,
+    origin_manager: OriginManager
 }
+
 impl<'ctx, 'b, M: ModuleProvider<'ctx>> ModuleCompiler<'ctx, 'b, M> {
     pub fn new(types: TypeMapping,
                provider: M,
@@ -39,7 +41,8 @@ impl<'ctx, 'b, M: ModuleProvider<'ctx>> ModuleCompiler<'ctx, 'b, M> {
             types,
             ir_code,
             scope_manager,
-            optimizations
+            optimizations,
+            origin_manager: OriginManager::new()
         }
     }
     pub fn decompose(self) -> (M, TypeMapping) {
@@ -154,8 +157,17 @@ impl<'ctx, 'b, M> ItemVisitor for ModuleCompiler<'ctx, 'b, M>
     }
 }
 
-impl<'ctx, 'b, M> DefaultBlockVisitor for ModuleCompiler<'ctx, 'b, M>
-    where M: ModuleProvider<'ctx>, 'ctx: 'b { }
+impl<'ctx, 'b, M> BlockVisitor for ModuleCompiler<'ctx, 'b, M>
+    where M: ModuleProvider<'ctx>, 'ctx: 'b {
+
+    fn visit_block(&mut self, block: &Block) {
+        trace!("Visiting block");
+        // We know from typeck that the last block statement must be an
+        // expression. So we just walk the block and assume that self.ir_code
+        // will receive the last expression.
+        visit::walk_block(self, block);
+    }
+}
 
 impl<'ctx, 'b, M> StatementVisitor for ModuleCompiler<'ctx, 'b, M>
     where M: ModuleProvider<'ctx>, 'ctx: 'b {
@@ -181,11 +193,13 @@ impl<'ctx, 'b, M> StatementVisitor for ModuleCompiler<'ctx, 'b, M>
         // Populate a list of the future blocks to have
         for (ix, _conditional) in if_block.get_conditionals().iter().enumerate() {
             trace!("Creating condition block {}", ix);
-            if ix != 0usize { // not sure why this is checked.
+            // We skip adding the first one to this list because we know we
+            // will have at least one later so we handle it separately.
+            if ix != 0usize {
                 let name = format!("if_{}_cond", ix + 1);
                 condition_blocks.push(
                     self.context.append_basic_block(&function, &name)
-                )
+                );
             }
             let name = format!("if_{}_then", ix + 1);
             condition_blocks.push(
@@ -200,8 +214,8 @@ impl<'ctx, 'b, M> StatementVisitor for ModuleCompiler<'ctx, 'b, M>
             );
         }
 
-        let double_type = Type::double(self.context);
-        let const_zero = double_type.const_real(0.0);
+        let int1_type = Type::int1(self.context);
+        let int1_zero = int1_type.const_int(0u64, false);
 
         trace!("Creating end block");
         condition_blocks.push(self.context.append_basic_block(&function,
@@ -214,13 +228,14 @@ impl<'ctx, 'b, M> StatementVisitor for ModuleCompiler<'ctx, 'b, M>
             let cond_value = self.ir_code.pop()
                 .expect("Did not get IR value from if block condition");
             let cond_cmp_name = format!("if_{}_cmp", ix);
-            let cond_cmp = self.builder
-                .build_fcmp(LLVMRealPredicate::LLVMRealOEQ, &cond_value, &const_zero, &cond_cmp_name);
+            let cond_cmp = self.builder.build_icmp(LLVMIntPredicate::LLVMIntEQ,
+                    &cond_value, &int1_zero, &cond_cmp_name);
 
-            trace!("Building a break to next blocks {} -> {}, {}", cond_cmp_name, ix, ix + 1);
+            trace!("Building a break to next blocks {} -> {}, {}",
+                cond_cmp_name, ix, ix + 1);
             self.builder.build_cond_br(&cond_cmp,
-                                                     &condition_blocks[ix],
-                                                     &condition_blocks[ix + 1]);
+                                                 &condition_blocks[ix],
+                                                 &condition_blocks[ix + 1]);
 
             // Go to the `if_true` block of this conditional
             trace!("Positioning at end of cond block {}", ix);
@@ -272,10 +287,12 @@ impl<'ctx, 'b, M> StatementVisitor for ModuleCompiler<'ctx, 'b, M>
                 .chunks(2)
                 .map(|c| c[0].clone())
                 .collect::<Vec<_>>();
-            incoming_conditions.push(condition_blocks.pop().expect("No condition blocks"));
+            incoming_conditions.push(condition_blocks.pop()
+                .expect("No condition blocks"));
             trace!("Generating phi node with {} values and {} edges",
                 incoming_values.len(), incoming_conditions.len());
-            let phi = self.builder.build_phi(&double_type, "if_phi");
+            let phi_type = self.llvm_type_of(&if_block.get_id());
+            let phi = self.builder.build_phi(&phi_type, "if_phi");
             phi.add_incoming(incoming_values, incoming_conditions);
             self.ir_code.push(phi);
         }
@@ -283,8 +300,8 @@ impl<'ctx, 'b, M> StatementVisitor for ModuleCompiler<'ctx, 'b, M>
 
     fn visit_return_stmt(&mut self, return_: &Return) {
         trace!("Checking return statement");
-        if let Some(ref return_expr) = return_.value {
-            self.visit_expression(&*return_expr);
+        if let Some(ref return_expr) = return_.get_value() {
+            self.visit_expression(return_expr);
             let return_val = self.ir_code.pop()
                 .expect("Could not generate value of return");
             let builder = self.builder;
@@ -395,33 +412,42 @@ impl<'ctx, 'b, M> ExpressionVisitor for ModuleCompiler<'ctx, 'b, M>
                 builder.build_fsub(&left_register, &right_register, "sub"),
             Operator::Multiplication =>
                 builder.build_fmul(&left_register, &right_register, "mul"),
-            Operator::Division =>
-                builder.build_binop(LLVMOpcode::LLVMFDiv, &left_register, &right_register, "div"),
-            Operator::Modulus =>
-                builder.build_frem(&left_register, &right_register, "rem"),
+            Operator::Division => {
+                builder.build_fdiv(&left_register, &right_register, "div")
+            },
+            Operator::Modulus => {
+                builder.build_frem(&left_register, &right_register, "rem")
+            },
             Operator::Equality => {
-                let eq = builder.build_fcmp(LLVMRealOEQ, &left_register, &right_register, "eqtmp");
-                builder.build_ui_to_fp(&eq, &Type::double(self.context), "eqcast")
+                let eq_type_kind = left_register.get_type().get_kind();
+
+                if eq_type_kind == LLVMTypeKind::LLVMDoubleTypeKind {
+                    // Not sure about NaN == NaN here.
+                    self.builder.build_fcmp(LLVMRealPredicate::LLVMRealOEQ,
+                        &left_register, &right_register, "eq_double")
+                }
+                else if eq_type_kind == LLVMTypeKind::LLVMIntegerTypeKind {
+                    self.builder.build_icmp(LLVMIntPredicate::LLVMIntEQ,
+                        &left_register, &right_register, "eq_int")
+                }
+                else {
+                    panic!("Unexpected type for equality check");
+                }
             },
             Operator::NonEquality => {
-                let neq = builder.build_fcmp(LLVMRealONE, &left_register, &right_register, "neqtmp");
-                builder.build_ui_to_fp(&neq, &Type::double(self.context), "neqcast")
+                builder.build_fcmp(LLVMRealONE, &left_register, &right_register, "neqtmp")
             },
             Operator::LessThan => {
-                let lt = builder.build_fcmp(LLVMRealOLT, &left_register, &right_register, "lttmp");
-                builder.build_ui_to_fp(&lt, &Type::double(self.context), "ltcast")
+                builder.build_fcmp(LLVMRealOLT, &left_register, &right_register, "lttmp")
             },
             Operator::LessThanEquals => {
-                let le = builder.build_fcmp(LLVMRealOLE, &left_register, &right_register, "letmp");
-                builder.build_ui_to_fp(&le, &Type::double(self.context), "lecast")
+                builder.build_fcmp(LLVMRealOLE, &left_register, &right_register, "letmp")
             },
             Operator::GreaterThan => {
-                let gt = builder.build_fcmp(LLVMRealOGT, &left_register, &right_register, "gttmp");
-                builder.build_ui_to_fp(&gt, &Type::double(self.context), "gtcast")
+                builder.build_fcmp(LLVMRealOGT, &left_register, &right_register, "gttmp")
             },
             Operator::GreaterThanEquals => {
-                let ge = builder.build_fcmp(LLVMRealOGE, &left_register, &right_register, "getmp");
-                builder.build_ui_to_fp(&ge, &Type::double(self.context), "gecast")
+                builder.build_fcmp(LLVMRealOGE, &left_register, &right_register, "getmp")
             }
             Operator::Custom => panic!("Cannot handle custom operator")
         };
@@ -430,22 +456,30 @@ impl<'ctx, 'b, M> ExpressionVisitor for ModuleCompiler<'ctx, 'b, M>
 
     fn visit_fn_call(&mut self, fn_call: &FnCall) {
         trace!("Checking call to {}", fn_call.get_text());
-        let mut arg_map = BTreeMap::<u32, u32>::new();
         let fn_type = match self.types[&fn_call.get_id()].clone() {
             ConcreteType::Function(fn_type) => fn_type,
             other => panic!("Function call's ident had non-fn type")
         };
 
         trace!("Found function type {:?}", fn_type);
+
+        let mut name_to_ix: HashMap<String, usize>
+            = HashMap::with_capacity(fn_type.get_params().len());
+        for (ix, &(ref name, _)) in fn_type.get_params().iter().enumerate() {
+            name_to_ix.insert(name.clone(), ix);
+        }
+
+        for (ix, ref arg) in fn_call.get_args().iter().enumerate() {
+            let ix = if let Some(name) = arg.get_name() {
+                name_to_ix[name.get_name()]
+            }
+            else {
+                ix
+            };
+            
+        }
         /*
         match *fn_call.get_args() {
-            FnCallArgs::SingleExpr(ref inner) => {
-                self.visit_expression(inner);
-                let arg_val = self.ir_code.pop()
-                    .expect("Could not generate value of function arg");
-                trace!("Insearting default value at index 0");
-                arg_map.insert(0usize, arg_val);
-            },
             FnCallArgs::Arguments(ref args) => {
                 // TODO just use a hashmap in fncall
                 // Also it's important to emut code in the order that
