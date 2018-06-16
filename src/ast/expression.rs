@@ -148,10 +148,10 @@ impl Literal {
 /// Maths style binary operations (may be split up later)
 #[derive(Debug, PartialEq, Clone)]
 pub struct BinaryOperation {
-    pub operator: Operator,
-    pub op_token: Token,
-    pub left: Box<Expression>,
-    pub right: Box<Expression>
+    operator: Operator,
+    op_token: Token,
+    left: Box<Expression>,
+    right: Box<Expression>
 }
 impl BinaryOperation {
     pub fn new(operator: Operator, op_token: Token,
@@ -177,9 +177,9 @@ impl BinaryOperation {
 /// Unary operation
 #[derive(Debug, PartialEq, Clone)]
 pub struct UnaryOperation {
-    pub operator: Operator,
-    pub op_token: Token,
-    pub expression: Box<Expression>
+    operator: Operator,
+    op_token: Token,
+    expression: Box<Expression>
 }
 impl UnaryOperation {
     /// Creates a new unary operation
@@ -203,9 +203,9 @@ impl UnaryOperation {
 /// Variable declaration
 #[derive(Debug, PartialEq, Clone)]
 pub struct Declaration {
-    pub mutable: bool,
-    pub ident: Identifier,
-    pub value: Box<Expression>,
+    mutable: bool,
+    ident: Identifier,
+    value: Box<Expression>,
     type_decl: Option<TypeExpression>
 }
 impl Declaration {
@@ -247,8 +247,8 @@ impl Declaration {
 /// An identifier is assigned to a value
 #[derive(Debug, PartialEq, Clone)]
 pub struct Assignment {
-    pub lvalue: Identifier,
-    pub rvalue: Box<Expression>
+    lvalue: Identifier,
+    rvalue: Box<Expression>
 }
 impl Assignment {
     pub fn new(name: Identifier, value: Box<Expression>) -> Assignment {

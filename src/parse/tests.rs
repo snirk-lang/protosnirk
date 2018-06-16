@@ -25,9 +25,9 @@ pub fn eof_parser() -> Parser<IterTokenizer<Chars<'static>>> {
 
 /// Check that two tokens are equal, without looking at locatoin
 pub fn token_eq(expected: Token, got: Token) {
-    assert_eq!(expected.data, got.data,
+    assert_eq!(expected.get_data(), got.get_data(),
         "token_eq: {:?} != {:?}", expected, got);
-    assert_eq!(expected.text, got.text,
+    assert_eq!(expected.get_text(), got.get_text(),
         "token_eq: {:?} != {:?}", expected, got);
 }
 

@@ -61,8 +61,8 @@ impl Return {
 /// Do <block> statement.
 #[derive(Debug, PartialEq, Clone)]
 pub struct DoBlock {
-    pub do_token: Token,
-    pub block: Box<Block>
+    do_token: Token,
+    block: Box<Block>
 }
 impl DoBlock {
     pub fn new(token: Token, block: Box<Block>) -> DoBlock {
@@ -110,8 +110,8 @@ impl DoBlock {
 /// The conditionals are in a list instead of nested.
 #[derive(Debug, PartialEq, Clone)]
 pub struct IfBlock {
-    pub conditionals: Vec<Conditional>,
-    pub else_block: Option<(Token, Block)>,
+    conditionals: Vec<Conditional>,
+    else_block: Option<(Token, Block)>,
     scoped_id: RefCell<ScopedId>,
     source: RefCell<Option<ScopedId>>
 }
@@ -119,9 +119,9 @@ pub struct IfBlock {
 /// A basic conditional
 #[derive(Debug, PartialEq, Clone)]
 pub struct Conditional {
-    pub if_token: Token,
-    pub condition: Expression,
-    pub block: Block,
+    if_token: Token,
+    condition: Expression,
+    block: Block,
 }
 
 impl IfBlock {

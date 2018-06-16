@@ -389,13 +389,13 @@ impl<'ctx, 'b, M> ExpressionVisitor for ModuleCompiler<'ctx, 'b, M>
     }
 
     fn visit_unary_op(&mut self, unary_op: &UnaryOperation) {
-        debug_assert!(unary_op.operator == Operator::Subtraction,
-            "Invalid unary operator {:?}", unary_op.operator);
+        debug_assert!(unary_op.get_operator() == Operator::Subtraction,
+            "Invalid unary operator {:?}", unary_op.get_operator());
         self.visit_expression(unary_op.get_inner());
         let inner_value = self.ir_code.pop()
             .expect("Did not generate value inside unary op");
         let builder = self.builder;
-        let (value, type_) = match unary_op.operator {
+        let (value, type_) = match unary_op.get_operator() {
             Operator::Subtraction =>
                 (builder.build_neg(&inner_value, "negate"),
                 Type::double(&self.context)),
