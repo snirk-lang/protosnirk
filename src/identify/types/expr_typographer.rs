@@ -77,6 +77,9 @@ impl<'err, 'builder, 'graph> ItemVisitor
             block_fn.get_return_type().get_id().deref() !=
             self.builder.get_named_type_id("()").expect("Primitive");
 
+        trace!("fn {} needs ret value? {}",
+            block_fn.get_name(), need_ret_value);
+
         let fn_ret_type = self.graph.get_type(
             &block_fn.get_return_type().get_id())
             .expect("Could not determine fn return type");
@@ -112,6 +115,7 @@ impl<'err, 'builder, 'graph> ItemVisitor
         // set its type to the current type and added an inference from its
         // type to the last expression, setting it up for an implicit return.
         if need_ret_value {
+            trace!("Inferring return value of {}", block_fn.get_name());
             // expr_inret: ty_fn_ret
             self.graph.add_inference(self.current_type,
                                      fn_ret_type,
@@ -140,10 +144,12 @@ impl<'err, 'builder, 'graph> BlockVisitor
         visit::walk_block(self, block);
 
         if block.has_source() {
-            let block_ty = self.graph.add_type(block.get_id().clone());
-            self.graph.add_inference(block_ty, self.current_type,
+            trace!("Checking block {:?} with source {:?}",
+                block.get_id(), block.get_source().as_ref().expect("Checked"));
+            let block_ix = self.graph.add_variable(block.get_id().clone());
+            self.graph.add_inference(block_ix, self.current_type,
                 InferenceSource::ImplicitReturn);
-            self.current_type = block_ty;
+            self.current_type = block_ix;
         }
         else {
             trace!("Block does not require return value");
@@ -169,7 +175,7 @@ impl<'err, 'builder, 'graph> StatementVisitor
         }
 
         let valued_if = if_block.has_source();
-        let if_block_type = self.graph.add_type(if_block.get_id().clone());
+        let if_block_type = self.graph.add_variable(if_block.get_id().clone());
 
         let bool_ty_ix = self.primitive_type_ix("bool");
         for conditional in if_block.get_conditionals() {
@@ -183,7 +189,9 @@ impl<'err, 'builder, 'graph> StatementVisitor
             self.visit_block(conditional.get_block());
             trace!("Checking conditional block");
             if valued_if {
-                self.graph.add_inference(self.current_type, if_block_type,
+                trace!("Conditional block must match: {:?} == {:?}",
+                    if_block_type, self.current_type);
+                self.graph.add_inference(if_block_type, self.current_type,
                     InferenceSource::IfBranchesSame);
             }
         }
@@ -480,16 +488,18 @@ impl<'err, 'builder, 'graph> ExpressionVisitor
 
         // We create an indirect node between call arguments and the function
         // type which the graph will simplify later.
-        for (arg_num, arg) in fn_call.get_args().iter().enumerate() {
+        for (_arg_num, arg) in fn_call.get_args().iter().enumerate() {
             // t_arg: fnArg(arg, fn)
             self.visit_expression(arg.get_expression());
             let expr_ty = self.current_type;
-            let arg_infer = if let Some(ident) = arg.get_name() {
-                self.graph.add_named_call_arg(ident.get_name().into(), fn_ix)
+            // https://github.com/immington-industries/protosnirk/issues/45
+            // implicit params will be available in the future.
+            let arg_infer = /*if let Some(ident) = arg.get_name()*/ {
+                self.graph.add_named_call_arg(arg.get_name().get_name().into(), fn_ix)
             }
-            else {
+            /*else {
                 self.graph.add_call_arg(arg_num, fn_ix)
-            };
+            }*/;
             self.graph.add_inference(arg_infer, expr_ty,
                 InferenceSource::CallArgument(fn_call.get_ident().clone()));
         }

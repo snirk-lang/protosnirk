@@ -33,7 +33,7 @@ impl<'err, 'builder> ItemVisitor for ExprTypeIdentifier<'err, 'builder> {
             trace!("Skipping unidentified block fn {}", block_fn.get_name());
             return
         }
-        visit::walk_block(self, block_fn.get_block());
+        self.visit_block(block_fn.get_block());
     }
 }
 
@@ -74,7 +74,9 @@ impl<'err, 'builder> ExpressionVisitor
         }
     }
 
-    fn visit_assignment(&mut self, assign: &Assignment) { }
+    fn visit_assignment(&mut self, assign: &Assignment) {
+        self.visit_expression(assign.get_rvalue());
+    }
 
     fn visit_declaration(&mut self, declaration: &Declaration) {
         if let Some(ref decl_ty) = declaration.get_type_decl() {

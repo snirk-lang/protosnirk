@@ -51,10 +51,10 @@ impl fmt::Debug for InferenceSource {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         use self::InferenceSource::*;
         match *self {
-            FnSignature(ref id) => f.debug_tuple("FnSignature")
+            FnSignature(ref id) => f.debug_tuple("IsTheFn")
                                  .field(&id.get_name())
                                  .finish(),
-            FnReturnType(ref id) => f.debug_tuple("FnReturnType")
+            FnReturnType(ref id) => f.debug_tuple("FnReturn")
                                   .field(&id.get_name())
                                   .finish(),
             FnParameter(ref id) => f.debug_tuple("FnParam")
@@ -75,15 +75,15 @@ impl fmt::Debug for InferenceSource {
             LiteralValue(ref lit) => f.debug_tuple("Literal")
                                    .field(&lit.get_value())
                                    .finish(),
-            IfConditionalBool => f.write_str("IfCondition"),
-            IfBranchesSame => f.write_str("IfBranches"),
-            ExplicitReturn => f.write_str("ExplicitReturn"),
-            ImplicitReturn => f.write_str("ImplicitReturn"),
-            Assignment => f.write_str("Assignment"),
-            NumericOperator => f.write_str("NumericOp"),
+            IfConditionalBool => f.write_str("IfCond"),
+            IfBranchesSame => f.write_str("IfBranchEq"),
+            ExplicitReturn => f.write_str("ReturnStmt"),
+            ImplicitReturn => f.write_str("ReturnExpr"),
+            Assignment => f.write_str("Assign"),
+            NumericOperator => f.write_str("NumOp"),
             BooleanOperator => f.write_str("BoolOp"),
             EqualityOperator => f.write_str("EqualOp"),
-            Inferred => f.write_str("Inferred")
+            Inferred => f.write_str("Infer")
          }
     }
 }

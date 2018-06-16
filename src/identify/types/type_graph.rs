@@ -93,9 +93,12 @@ impl TypeGraph {
     }
 
     pub fn add_variable(&mut self, var: ScopedId) -> NodeIndex {
+        trace!("Adding var {:?}", var);
         if let Some(found_ix) = self.variables.get(&var) {
+            trace!("Already in scope");
             return *found_ix
         }
+        trace!("Creating new entry");
         let new_ix = self.graph.add_node(TypeNode::VariableType(var.clone()));
         self.variables.insert(var, new_ix);
         new_ix
@@ -133,8 +136,12 @@ impl TypeGraph {
     pub fn infer_type_of_var(&mut self, var: &ScopedId)
                                         -> Result<(NodeIndex, ScopedId),
                                                    Vec<NodeIndex>> {
-        let var_ix = self.variables.get(var)
-            .expect("TypeGraph: asked to infer type of unknown variable");
+        trace!("Inferring type of {:?}", var);
+        let var_ix = self.variables.get(var);
+        if var_ix.is_none() {
+            panic!("type_graph: Asked to infer unknown var {:?}", var);
+        }
+        let var_ix = var_ix.expect("Checked expect");
         let mut dfs = Dfs::new(&self.graph, *var_ix);
         let mut found = Vec::new();
 
@@ -205,7 +212,7 @@ mod tests {
     #[test]
     fn create_type_graph() {
         let (.., graph)
-            = identify_tests::identify(parse_tests::FACT_AND_HELPER);
+            = identify_tests::identify(parse_tests::BLOCKS_IN_BLOCKS);
         graph.write_svg("/tmp/type-graph.svg");
     }
 
