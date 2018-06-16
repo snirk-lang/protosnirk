@@ -5,4 +5,4 @@ fn factorialHelper(acc: float, n: float)
         factorialHelper(acc: acc * n, n: n - 1)
 
 fn factorial(n: float)
-    factorialHelper(n, acc: 1)
+    factorialHelper(n: n, acc: 1)
