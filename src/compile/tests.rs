@@ -1,5 +1,4 @@
-use ast::ScopedId;
-use visit::visitor::UnitVisitor;
+use ast::{ScopedId, visit::UnitVisitor};
 use parse::tests::parser;
 use compile::{ModuleProvider, ModuleCompiler, SimpleModuleProvider};
 use llvm::{Context, Module, Builder, Value};

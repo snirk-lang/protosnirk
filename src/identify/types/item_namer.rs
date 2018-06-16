@@ -1,11 +1,9 @@
 //! ItemVisitor for mapping `TypeId`s to concrete types.
 
-use ast::*;
+use ast::{*, visit::*};
 use check::{CheckerError, ErrorCollector};
 use identify::{ConcreteType, FnType, TypeScopeBuilder};
 use identify::types::TypeIdentifier;
-use visit;
-use visit::visitor::*;
 
 /// Identifies type expressions in items, such as function parameters and
 /// function names as concrete function types.

@@ -1,9 +1,8 @@
 use parse::tests as parse_tests;
 
-use ast::Unit;
+use ast::{Unit, visit::UnitVisitor};
 use identify::{NameScopeBuilder, TypeScopeBuilder, ASTIdentifier};
 use identify::types::{ASTTypeChecker, TypeGraph};
-use visit::visitor::UnitVisitor;
 use check::ErrorCollector;
 
 /// Identify an AST and return the compiler state.

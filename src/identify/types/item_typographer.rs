@@ -1,8 +1,7 @@
 //! Builds the `TypeGraph` using code defined in items
 
 use ast::*;
-use visit;
-use visit::visitor::{ItemVisitor, TypeVisitor, DefaultUnitVisitor};
+use ast::visit::{ItemVisitor, TypeVisitor, DefaultUnitVisitor};
 use identify::{ConcreteType, TypeScopeBuilder};
 use identify::types::{TypeGraph, InferenceSource};
 use check::ErrorCollector;

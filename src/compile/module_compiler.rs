@@ -1,8 +1,6 @@
 use std::collections::{HashMap, BTreeMap};
 
-use ast::*;
-use visit;
-use visit::visitor::*;
+use ast::{*, visit::*};
 use identify::{ConcreteType, OriginManager};
 use check::TypeMapping;
 use compile::ModuleProvider;

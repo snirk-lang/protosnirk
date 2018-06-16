@@ -1,10 +1,8 @@
 //! AST visitor which assigns the ScopedIds of types on items.
 
-use ast::*;
+use ast::{*, visit::*};
 use check::{CheckerError, ErrorCollector};
 use identify::NameScopeBuilder;
-use visit;
-use visit::visitor::*;
 
 /// Identifies names of items that can be used in expressions,
 /// namely function definitions.

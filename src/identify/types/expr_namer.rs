@@ -1,12 +1,10 @@
 //! AST visitor which assigns the ScopedIds of type expressions
 //! within items.
 
-use ast::*;
+use ast::{*, visit::*};
 use check::{CheckerError, ErrorCollector};
 use identify::TypeScopeBuilder;
 use identify::types::TypeIdentifier;
-use visit;
-use visit::visitor::*;
 
 /// Identifies the names of type expressions within functions, namely
 /// cases where named types are explicitly declared.

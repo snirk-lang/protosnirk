@@ -2,11 +2,9 @@
 //! things.
 
 use lex::Token;
-use ast::*;
+use ast::{*, visit::*};
 use check::{CheckerError, ErrorCollector};
 use identify::{ConcreteType, FnType, TypeGraph, TypeScopeBuilder};
-use visit;
-use visit::visitor::*;
 
 use std::collections::HashMap;
 

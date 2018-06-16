@@ -1,8 +1,6 @@
 //! Builds the `TypeGraph` using code within functions
 
-use ast::*;
-use visit;
-use visit::visitor::*;
+use ast::{*, visit::*};
 use identify::{ConcreteType, FnType, TypeScopeBuilder, OriginManager};
 use identify::types::{TypeGraph, InferenceSource};
 use check::{CheckerError, ErrorCollector};
