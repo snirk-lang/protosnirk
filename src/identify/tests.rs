@@ -20,18 +20,18 @@ pub fn identify(input: &'static str)
     info!("Running ASTIdentifer");
     ASTIdentifier::new(&mut name_builder, &mut type_builder, &mut errors)
         .visit_unit(&unit);
-    if !errors.get_errors().is_empty() {
-        panic!("Got errors running ASTIdentifier: {:?}", errors.get_errors());
+    if !errors.errors().is_empty() {
+        panic!("Got errors running ASTIdentifier: {:?}", errors.errors());
     }
     debug!("Running ASTTypeChecker");
     ASTTypeChecker::new(&mut type_builder, &mut errors, &mut graph)
                    .visit_unit(&unit);
-    if !errors.get_errors().is_empty() {
-        panic!("Got errors running ASTTypeChecker: {:?}", errors.get_errors());
+    if !errors.errors().is_empty() {
+        panic!("Got errors running ASTTypeChecker: {:?}", errors.errors());
     }
 
-    assert!(errors.get_errors().is_empty(),
-        "Errors during identification: {:?}", errors.get_errors());
+    assert!(errors.errors().is_empty(),
+        "Errors during identification: {:?}", errors.errors());
 
     return (unit, errors, name_builder, type_builder, graph);
 }

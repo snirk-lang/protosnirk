@@ -25,13 +25,13 @@ impl CheckerError {
             text: text,
         }
     }
-    pub fn get_offender(&self) -> &Token {
+    pub fn offender(&self) -> &Token {
         &self.offender
     }
-    pub fn get_references(&self) -> &[Token] {
+    pub fn references(&self) -> &[Token] {
         &self.references
     }
-    pub fn get_text(&self) -> &str {
+    pub fn text(&self) -> &str {
         &self.text
     }
 }

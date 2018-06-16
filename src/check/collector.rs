@@ -25,23 +25,23 @@ impl ErrorCollector {
         self.lints.push(lint);
     }
 
-    pub fn get_errors(&self) -> &[CheckerError] {
+    pub fn errors(&self) -> &[CheckerError] {
         &self.errors
     }
-    pub fn get_warnings(&self) -> &[CheckerError] {
+    pub fn warnings(&self) -> &[CheckerError] {
         &self.warnings
     }
-    pub fn get_lints(&self) -> &[CheckerError] {
+    pub fn lints(&self) -> &[CheckerError] {
         &self.lints
     }
 
-    pub fn get_errors_mut(&mut self) -> &mut [CheckerError] {
+    pub fn errors_mut(&mut self) -> &mut [CheckerError] {
         &mut self.errors
     }
-    pub fn get_warnings_mut(&mut self) -> &mut [CheckerError] {
+    pub fn warnings_mut(&mut self) -> &mut [CheckerError] {
         &mut self.warnings
     }
-    pub fn get_lints_mut(&mut self) -> &mut [CheckerError] {
+    pub fn lints_mut(&mut self) -> &mut [CheckerError] {
         &mut self.errors
     }
 

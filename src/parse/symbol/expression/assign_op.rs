@@ -32,7 +32,7 @@ impl<T: Tokenizer> InfixParser<Expression, T> for AssignOpParser {
             Box::new(right_value)));
         Ok(Expression::Assignment(Assignment::new(lvalue, Box::new(right_expr))))
     }
-    fn get_precedence(&self) -> Precedence {
+    fn precedence(&self) -> Precedence {
         Precedence::Assign
     }
 }

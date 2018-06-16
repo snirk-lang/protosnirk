@@ -14,7 +14,7 @@ pub struct TextLocation {
 /// and keeps track of its location.
 pub trait TextIter : Iterator {
     fn peek(&mut self) -> Option<char>;
-    fn get_location(&self) -> TextLocation;
+    fn location(&self) -> TextLocation;
 }
 
 /// A `TextIter` which uses an internal `Peekable<T>`.
@@ -44,7 +44,7 @@ impl<T: Iterator<Item=char>> TextIter for PeekTextIter<T> {
     fn peek(&mut self) -> Option<char> {
         self.iter.peek().cloned()
     }
-    fn get_location(&self) -> TextLocation {
+    fn location(&self) -> TextLocation {
         TextLocation {
             index: self.current_char,
             line: self.current_line,

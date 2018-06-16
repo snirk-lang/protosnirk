@@ -21,7 +21,7 @@ pub fn check(input: &'static str)
         tc.visit_unit(&unit);
         tc.into_results()
     };
-    if !errors.get_errors().is_empty() {
+    if !errors.errors().is_empty() {
         panic!("Got errors running TypeConcretifier: {:#?}", errors);
     }
 

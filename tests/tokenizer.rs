@@ -53,8 +53,8 @@ fn verify_keywords_list(fixture_name: &'static str) {
             assert_eq!(expected_type, token.get_type(),
                 "\nExpected {:?} from line {}, got {:?}", expected_type, current_line, token);
             println!("{}: Matched type {:?}", current_line, expected_type);
-            assert_eq!(token_text, token.get_text(),
-                "\nExpected {} from line {}, got {}", token_text, current_line, token.get_text());
+            assert_eq!(token_text, token.text(),
+                "\nExpected {} from line {}, got {}", token_text, current_line, token.text());
             println!("{}: Matched text {}", current_line, token_text);
         }
         else if token.get_type() != TokenType::EOF {

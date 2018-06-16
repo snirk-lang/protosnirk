@@ -32,7 +32,7 @@ impl NamedType {
         NamedType { name }
     }
 
-    pub fn get_name(&self) -> &str {
+    pub fn name(&self) -> &str {
         &self.name
     }
 }
@@ -48,10 +48,10 @@ impl FnType {
     pub fn new(args: Vec<(String, ConcreteType)>, ret: ConcreteType) -> FnType {
         FnType { args, ret: Box::new(ret) }
     }
-    pub fn get_params(&self) -> &[(String, ConcreteType)] {
+    pub fn params(&self) -> &[(String, ConcreteType)] {
         &self.args
     }
-    pub fn get_return_ty(&self) -> &ConcreteType {
+    pub fn return_ty(&self) -> &ConcreteType {
         &*self.ret
     }
 }

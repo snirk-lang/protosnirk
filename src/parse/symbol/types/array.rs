@@ -11,7 +11,7 @@ pub struct ArrayTypeParser;
 
 impl<T: Tokenizer> PrefixParser<T, TypeExpression> for ArrayTypeParser {
     fn parse(&self, parser: &mut Parser<T>, token: Token) -> ParseResult<TypeExpression> {
-        debug_assert!(token.get_type() == TokenType::LeftBracket,
+        debug_assert!(token.type() == TokenType::LeftBracket,
             "Array type parser called with token {:?}", token);
         let main_type = try!(parser.type_expr());
         match parser.next_type() {

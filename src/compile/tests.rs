@@ -52,6 +52,6 @@ fn compile_example() {
                 "FACT_HELPER",
                 &context);
 
-        module_provider.get_module().dump();
+        module_provider.module().dump();
     }
 }

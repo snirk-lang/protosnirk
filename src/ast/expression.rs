@@ -99,7 +99,7 @@ impl Literal {
     /// Creates a new boolean literal from the given token and boolean value.
     pub fn new_bool(token: Token, value: bool) -> Literal {
         debug_assert!(
-            match *token.get_data() {
+            match *token.data() {
                 TokenData::BoolLiteral(_) => true, _ => false
             },
             "Literal bool created with bad token {:?}", token);
@@ -112,7 +112,7 @@ impl Literal {
     /// Creates a new unit type literal `()` from the given token.
     pub fn new_unit(token: Token) -> Literal {
         debug_assert!(
-            match *token.get_data() {
+            match *token.data() {
                 TokenData::UnitLiteral => true, _ => false
             },
             "Literal unit created with bad token {:?}", token);
@@ -125,7 +125,7 @@ impl Literal {
     /// Creates a new floating point literal from the given token and value.
     pub fn new_f64(token: Token, value: f64) -> Literal {
         debug_assert!(
-            match *token.get_data() {
+            match *token.data() {
                 TokenData::NumberLiteral(_) => true, _ => false
             },
             "Literal f64 called with bad token {:?}", token);
@@ -136,11 +136,11 @@ impl Literal {
     }
 
     /// Gets the `LiteralValue` of this literal expression.
-    pub fn get_value(&self) -> &LiteralValue {
+    pub fn value(&self) -> &LiteralValue {
         &self.value
     }
     /// Gets the token of this literal.
-    pub fn get_token(&self) -> &Token {
+    pub fn token(&self) -> &Token {
         &self.token
     }
 }
@@ -163,13 +163,13 @@ impl BinaryOperation {
             right: right
         }
     }
-    pub fn get_operator(&self) -> Operator {
+    pub fn operator(&self) -> Operator {
         self.operator
     }
-    pub fn get_left(&self) -> &Expression {
+    pub fn left(&self) -> &Expression {
         &self.left
     }
-    pub fn get_right(&self) -> &Expression {
+    pub fn right(&self) -> &Expression {
         &self.right
     }
 }
@@ -192,10 +192,10 @@ impl UnaryOperation {
             expression: expression
         }
     }
-    pub fn get_operator(&self) -> Operator {
+    pub fn operator(&self) -> Operator {
         self.operator
     }
-    pub fn get_inner(&self) -> &Expression {
+    pub fn inner(&self) -> &Expression {
         &self.expression
     }
 }
@@ -215,28 +215,28 @@ impl Declaration {
                value: Box<Expression>) -> Declaration {
         Declaration { ident, mutable, type_decl, value }
     }
-    pub fn get_name(&self) -> &str {
-        &self.ident.get_name()
+    pub fn name(&self) -> &str {
+        &self.ident.name()
     }
-    pub fn get_value(&self) -> &Expression {
+    pub fn value(&self) -> &Expression {
         &self.value
     }
     pub fn is_mut(&self) -> bool {
         self.mutable
     }
-    pub fn get_ident(&self) -> &Identifier {
+    pub fn ident(&self) -> &Identifier {
         &self.ident
     }
-    pub fn get_token(&self) -> &Token {
-        self.ident.get_token()
+    pub fn token(&self) -> &Token {
+        self.ident.token()
     }
-    pub fn get_id<'a>(&'a self) -> Ref<'a, ScopedId> {
-        self.get_ident().get_id()
+    pub fn id<'a>(&'a self) -> Ref<'a, ScopedId> {
+        self.ident().id()
     }
     pub fn set_id(&self, id: ScopedId) {
-        self.get_ident().set_id(id);
+        self.ident().set_id(id);
     }
-    pub fn get_type_decl(&self) -> Option<&TypeExpression> {
+    pub fn type_decl(&self) -> Option<&TypeExpression> {
         self.type_decl.as_ref()
     }
     pub fn has_declared_type(&self) -> bool {
@@ -254,10 +254,10 @@ impl Assignment {
     pub fn new(name: Identifier, value: Box<Expression>) -> Assignment {
         Assignment { lvalue: name, rvalue: value }
     }
-    pub fn get_lvalue(&self) -> &Identifier {
+    pub fn lvalue(&self) -> &Identifier {
         &self.lvalue
     }
-    pub fn get_rvalue(&self) -> &Expression {
+    pub fn rvalue(&self) -> &Expression {
         &self.rvalue
     }
 }
@@ -282,16 +282,16 @@ impl IfExpression {
             else_expr: else_expr
         }
     }
-    pub fn get_token(&self) -> &Token {
+    pub fn token(&self) -> &Token {
         &self.if_token
     }
-    pub fn get_condition(&self) -> &Expression {
+    pub fn condition(&self) -> &Expression {
         &self.condition
     }
-    pub fn get_true_expr(&self) -> &Expression {
+    pub fn true_expr(&self) -> &Expression {
         &self.true_expr
     }
-    pub fn get_else(&self) -> &Expression {
+    pub fn else_expr(&self) -> &Expression {
         &self.else_expr
     }
 }
@@ -310,24 +310,24 @@ impl FnCall {
                args: Vec<CallArgument>) -> FnCall {
         FnCall { lvalue, paren_token: token, args }
     }
-    pub fn get_ident(&self) -> &Identifier {
+    pub fn ident(&self) -> &Identifier {
         &self.lvalue
     }
-    pub fn get_text(&self) -> &str {
-        self.get_ident().get_name()
+    pub fn text(&self) -> &str {
+        self.ident().name()
     }
-    pub fn get_token(&self) -> &Token {
+    pub fn token(&self) -> &Token {
         &self.paren_token
     }
-    pub fn get_args(&self) -> &[CallArgument] {
+    pub fn args(&self) -> &[CallArgument] {
         &self.args
     }
 
-    pub fn get_id<'a>(&'a self) -> Ref<'a, ScopedId> {
-        self.get_ident().get_id()
+    pub fn id<'a>(&'a self) -> Ref<'a, ScopedId> {
+        self.ident().id()
     }
     pub fn set_id(&self, id: ScopedId) {
-        self.get_ident().set_id(id);
+        self.ident().set_id(id);
     }
 }
 
@@ -343,11 +343,11 @@ impl CallArgument {
     }
 
     /// Gets the value of the CallArgument.
-    pub fn get_expression(&self) -> &Expression {
+    pub fn expression(&self) -> &Expression {
         &self.value
     }
 
-    pub fn get_name(&self) -> &Identifier {
+    pub fn name(&self) -> &Identifier {
         &self.param
     }
 

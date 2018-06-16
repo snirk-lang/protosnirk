@@ -31,7 +31,7 @@ pub trait PrefixParser<E, T: Tokenizer> {
 /// Generic parser trait used to parse AST nodes of type E in the infix position.
 pub trait InfixParser<E, T: Tokenizer> {
     fn parse(&self, parser: &mut Parser<T>, left: E, token: Token) -> ParseResult<E>;
-    fn get_precedence(&self) -> Precedence;
+    fn precedence(&self) -> Precedence;
 }
 
 // TODO This can't be implemented until we have a way of knowing when to stop calling
@@ -63,7 +63,7 @@ impl<'p, E, T: Tokenizer> PrefixParser for CommaSeparatedParser<'p, E, T> {
         let mut found = Vec::new();
         loop {
             let next_token = parser.consume();
-            if next_token.get_type() == TokenType::Comma {
+            if next_token.type() == TokenType::Comma {
                 trace!("Comma parser: found leading comma");
                 return Err(ParseError::LazyString("Unexpected comma in comma separated list"))
             }

@@ -26,15 +26,15 @@ pub struct Token {
 
 impl Token {
     /// Gets the original source text of this token.
-    pub fn get_text(&self) -> &str {
+    pub fn text(&self) -> &str {
         &self.text
     }
 
-    pub fn get_data(&self) -> &TokenData {
+    pub fn data(&self) -> &TokenData {
         &self.data
     }
 
-    pub fn get_location(&self) -> &TextLocation {
+    pub fn location(&self) -> &TextLocation {
         &self.location
     }
 
