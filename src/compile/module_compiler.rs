@@ -19,8 +19,9 @@ pub struct ModuleCompiler<'ctx, 'b, M: ModuleProvider<'ctx>> where 'ctx: 'b {
     module_provider: M,
     optimizations: bool,
     context: &'ctx Context,
-    builder: &'ctx Builder<'ctx>,
+    builder: &'b Builder<'ctx>,
     ir_code: &'b mut Vec<Value<'ctx>>,
+    current_type: Type<'ctx>,
     types: TypeMapping,
     scope_manager: &'b mut HashMap<ScopedId, Value<'ctx>>,
     origin_manager: OriginManager
@@ -30,7 +31,7 @@ impl<'ctx, 'b, M: ModuleProvider<'ctx>> ModuleCompiler<'ctx, 'b, M> {
     pub fn new(types: TypeMapping,
                provider: M,
                context: &'ctx Context,
-               builder: &'ctx Builder<'ctx>,
+               builder: &'b Builder<'ctx>,
                ir_code: &'b mut Vec<Value<'ctx>>,
                scope_manager: &'b mut HashMap<ScopedId, Value<'ctx>>,
                optimizations: bool) -> ModuleCompiler<'ctx, 'b, M> {
@@ -42,6 +43,7 @@ impl<'ctx, 'b, M: ModuleProvider<'ctx>> ModuleCompiler<'ctx, 'b, M> {
             ir_code,
             scope_manager,
             optimizations,
+            current_type: Type::void(&context),
             origin_manager: OriginManager::new()
         }
     }
@@ -54,6 +56,7 @@ impl<'ctx, 'b, M: ModuleProvider<'ctx>> ModuleCompiler<'ctx, 'b, M> {
     }
 
     fn llvm_type_of(&self, id: &ScopedId) -> Type<'ctx> {
+        trace!("Finding type of ID {:?}", id);
         let concrete = self.types.get(id)
             .expect("Attempted to find unknown type");
         self.llvm_type_of_concrete(concrete)
@@ -166,6 +169,10 @@ impl<'ctx, 'b, M> BlockVisitor for ModuleCompiler<'ctx, 'b, M>
         // expression. So we just walk the block and assume that self.ir_code
         // will receive the last expression.
         visit::walk_block(self, block);
+        if block.has_source() {
+            trace!("Block has source, setting ID");
+            self.current_type = self.llvm_type_of(&block.get_id());
+        }
     }
 }
 
@@ -295,6 +302,7 @@ impl<'ctx, 'b, M> StatementVisitor for ModuleCompiler<'ctx, 'b, M>
             let phi = self.builder.build_phi(&phi_type, "if_phi");
             phi.add_incoming(incoming_values, incoming_conditions);
             self.ir_code.push(phi);
+            self.current_type = phi_type;
         }
     }
 
@@ -313,6 +321,7 @@ impl<'ctx, 'b, M> StatementVisitor for ModuleCompiler<'ctx, 'b, M>
             // Hopefully doesn't happen, protosnirk doesn't support void types
             builder.build_ret_void();
         }
+        self.current_type = Type::void(&self.context);
     }
 }
 
@@ -322,15 +331,16 @@ impl<'ctx, 'b, M> ExpressionVisitor for ModuleCompiler<'ctx, 'b, M>
     fn visit_literal_expr(&mut self, literal: &Literal) {
         use ast::LiteralValue;
         trace!("Checking literal {}", literal.get_token().get_text());
-        let float_value = literal.get_value();
-        let literal_value = match float_value {
+        let (literal_value, literal_type) = match literal.get_value() {
             &LiteralValue::Bool(b) => {
                 let bool_value = if b { 1u64 } else { 0u64 };
-                Type::int1(&self.context)
-                     .const_int(bool_value, false)
+                (Type::int1(&self.context)
+                     .const_int(bool_value, false),
+                 Type::int1(&self.context))
             },
             &LiteralValue::Float(f) => {
-                    Type::double(self.context).const_real(f)
+                (Type::double(&self.context).const_real(f),
+                Type::double(&self.context))
             },
             &LiteralValue::Unit => {
                 // Not directly used.
@@ -338,17 +348,21 @@ impl<'ctx, 'b, M> ExpressionVisitor for ModuleCompiler<'ctx, 'b, M>
                 unimplemented!()
             }
         };
+        self.current_type = literal_type;
         self.ir_code.push(literal_value);
     }
 
     fn visit_var_ref(&mut self, ident_ref: &Identifier) {
-        trace!("Checking variable ref {}", ident_ref.get_name());
+        trace!("Checking variable ref {} ({:?})",
+            ident_ref.get_name(), ident_ref.get_id());
         let var_alloca = self.scope_manager.get(&ident_ref.get_id())
-            .expect("Attempted to check var ref but had no alloca")
+            .expect("Attempted to check var ref but had no alloca for it")
             .clone();
         let load_name = format!("load_{}", ident_ref.get_name());
+        trace!("Creating {}", load_name);
         let builder = self.builder;
         let var_load = builder.build_load(&var_alloca, &load_name);
+        self.current_type = self.llvm_type_of(&ident_ref.get_id());
         self.ir_code.push(var_load);
     }
 
@@ -359,18 +373,17 @@ impl<'ctx, 'b, M> ExpressionVisitor for ModuleCompiler<'ctx, 'b, M>
         let decl_value = self.ir_code.pop()
             .expect("Did not have rvalue of declaration");
         let builder = self.builder;
-        let decl_type = self.llvm_type_of(&decl.get_id());
-        let alloca = builder.build_alloca(&decl_type, decl.get_name());
+        let alloca = builder.build_alloca(&self.current_type, decl.get_name());
         builder.build_store(&decl_value, &alloca);
         self.scope_manager.insert(decl.get_id().clone(), alloca);
     }
 
     fn visit_assignment(&mut self, assign: &Assignment) {
-        trace!("Checking assignment of {}", assign.lvalue.get_name());
-        self.visit_expression(&*assign.rvalue);
+        trace!("Checking assignment of {}", assign.get_lvalue().get_name());
+        self.visit_expression(assign.get_rvalue());
         let rvalue = self.ir_code.pop()
             .expect("Could not generate rvalue of assignment");
-        let var_alloca = self.scope_manager.get(&assign.lvalue.get_id())
+        let var_alloca = self.scope_manager.get(&assign.get_lvalue().get_id())
             .expect("Could not find existing var for assignment!")
             .clone();
         let builder = self.builder;
@@ -380,48 +393,58 @@ impl<'ctx, 'b, M> ExpressionVisitor for ModuleCompiler<'ctx, 'b, M>
     fn visit_unary_op(&mut self, unary_op: &UnaryOperation) {
         debug_assert!(unary_op.operator == Operator::Subtraction,
             "Invalid unary operator {:?}", unary_op.operator);
-        self.visit_expression(&*unary_op.expression);
+        self.visit_expression(unary_op.get_inner());
         let inner_value = self.ir_code.pop()
             .expect("Did not generate value inside unary op");
         let builder = self.builder;
-        let value = match unary_op.operator {
+        let (value, type_) = match unary_op.operator {
             Operator::Subtraction =>
-                builder.build_neg(&inner_value, "negate"),
+                (builder.build_neg(&inner_value, "negate"),
+                Type::double(&self.context)),
             other => panic!("Invalid unary operator {:?}", other)
         };
+        self.current_type = type_;
         self.ir_code.push(value);
     }
 
     fn visit_binary_op(&mut self, binary_op: &BinaryOperation) {
         trace!("Checking binary operation {:?}", binary_op.get_operator());
         trace!("Checking {:?} lvalue", binary_op.get_operator());
-        self.visit_expression(&*binary_op.left);
+        self.visit_expression(binary_op.get_left());
         let left_register = self.ir_code.pop()
             .expect("Could not generate lvalue of binary op");
         trace!("Checking {:?} rvalue", binary_op.get_operator());
-        self.visit_expression(&*binary_op.right);
+        self.visit_expression(binary_op.get_right());
         let right_register = self.ir_code.pop()
             .expect("Could not generate rvalue of binary op");
         let builder = self.builder;
         trace!("Appending binary operation");
         use llvm_sys::LLVMRealPredicate::*;
-        let bin_op_value = match binary_op.get_operator() {
-            Operator::Addition =>
-                builder.build_fadd(&left_register, &right_register, "add"),
-            Operator::Subtraction =>
-                builder.build_fsub(&left_register, &right_register, "sub"),
-            Operator::Multiplication =>
-                builder.build_fmul(&left_register, &right_register, "mul"),
+        let (bin_op_value, bin_op_type) = match binary_op.get_operator() {
+            Operator::Addition => {
+                (builder.build_fadd(&left_register, &right_register, "add"),
+                Type::double(&self.context))
+            },
+            Operator::Subtraction => {
+                (builder.build_fsub(&left_register, &right_register, "sub"),
+                Type::double(&self.context))
+            },
+            Operator::Multiplication => {
+                (builder.build_fmul(&left_register, &right_register, "mul"),
+                Type::double(&self.context))
+            },
             Operator::Division => {
-                builder.build_fdiv(&left_register, &right_register, "div")
+                (builder.build_fdiv(&left_register, &right_register, "div"),
+                Type::double(&self.context))
             },
             Operator::Modulus => {
-                builder.build_frem(&left_register, &right_register, "rem")
+                (builder.build_frem(&left_register, &right_register, "rem"),
+                Type::double(&self.context))
             },
             Operator::Equality => {
                 let eq_type_kind = left_register.get_type().get_kind();
 
-                if eq_type_kind == LLVMTypeKind::LLVMDoubleTypeKind {
+                (if eq_type_kind == LLVMTypeKind::LLVMDoubleTypeKind {
                     // Not sure about NaN == NaN here.
                     self.builder.build_fcmp(LLVMRealPredicate::LLVMRealOEQ,
                         &left_register, &right_register, "eq_double")
@@ -432,25 +455,32 @@ impl<'ctx, 'b, M> ExpressionVisitor for ModuleCompiler<'ctx, 'b, M>
                 }
                 else {
                     panic!("Unexpected type for equality check");
-                }
+                },
+                Type::int1(&self.context))
             },
             Operator::NonEquality => {
-                builder.build_fcmp(LLVMRealONE, &left_register, &right_register, "neqtmp")
+                (builder.build_fcmp(LLVMRealONE, &left_register, &right_register, "neqtmp"),
+                Type::int1(&self.context))
             },
             Operator::LessThan => {
-                builder.build_fcmp(LLVMRealOLT, &left_register, &right_register, "lttmp")
+                (builder.build_fcmp(LLVMRealOLT, &left_register, &right_register, "lttmp"),
+                Type::int1(&self.context))
             },
             Operator::LessThanEquals => {
-                builder.build_fcmp(LLVMRealOLE, &left_register, &right_register, "letmp")
+                (builder.build_fcmp(LLVMRealOLE, &left_register, &right_register, "letmp"),
+                Type::int1(&self.context))
             },
             Operator::GreaterThan => {
-                builder.build_fcmp(LLVMRealOGT, &left_register, &right_register, "gttmp")
+                (builder.build_fcmp(LLVMRealOGT, &left_register, &right_register, "gttmp"),
+                Type::int1(&self.context))
             },
             Operator::GreaterThanEquals => {
-                builder.build_fcmp(LLVMRealOGE, &left_register, &right_register, "getmp")
+                (builder.build_fcmp(LLVMRealOGE, &left_register, &right_register, "getmp"),
+                Type::int1(&self.context))
             }
             Operator::Custom => panic!("Cannot handle custom operator")
         };
+        self.current_type = bin_op_type;
         self.ir_code.push(bin_op_value);
     }
 
@@ -458,65 +488,30 @@ impl<'ctx, 'b, M> ExpressionVisitor for ModuleCompiler<'ctx, 'b, M>
         trace!("Checking call to {}", fn_call.get_text());
         let fn_type = match self.types[&fn_call.get_id()].clone() {
             ConcreteType::Function(fn_type) => fn_type,
-            other => panic!("Function call's ident had non-fn type")
+            _other => panic!("Function call's ident had non-fn type")
         };
 
         trace!("Found function type {:?}", fn_type);
 
-        let mut name_to_ix: HashMap<String, usize>
-            = HashMap::with_capacity(fn_type.get_params().len());
-        for (ix, &(ref name, _)) in fn_type.get_params().iter().enumerate() {
-            name_to_ix.insert(name.clone(), ix);
-        }
+        let mut arg_values = Vec::with_capacity(fn_call.get_args().len());
 
-        for (ix, ref arg) in fn_call.get_args().iter().enumerate() {
-            let ix = if let Some(name) = arg.get_name() {
-                name_to_ix[name.get_name()]
-            }
-            else {
-                ix
-            };
-            
-        }
-        /*
-        match *fn_call.get_args() {
-            FnCallArgs::Arguments(ref args) => {
-                // TODO just use a hashmap in fncall
-                // Also it's important to emut code in the order that
-                // the arguments are given to the function rather than
-                // sort the arguments by how the callee does.
-                for arg in args {
-                    let (ix, _declared_type) = fn_type.get_arg(arg.get_text())
-                        .expect("Function arg check did not pass");
-                    // TODO type check the param types
-                    // No value so must be a ref
-                    if !arg.has_value() {
-                        self.visit_var_ref(arg.get_name());
-                        let arg_ref = self.ir_code.pop()
-                            .expect("Could not get alloca for implicit var for fn arg");
-                        arg_map.insert(ix, arg_ref);
-                    }
-                    else {
-                        self.visit_expression(arg.get_expr().expect("Checked expect"));
-                        let value_ref = self.ir_code.pop()
-                            .expect("Could not get alloca for named var of fn arg");
-                        arg_map.insert(ix, value_ref);
-                    }
+        for (_ix, &(ref name, _)) in fn_type.get_params().iter().enumerate() {
+            for arg in fn_call.get_args() {
+                if arg.get_name().get_name() == name {
+                    self.visit_expression(arg.get_expression());
+                    arg_values.push(self.ir_code.pop()
+                        .expect("Could not get alloca for named var of fn arg"));
+                    break
                 }
             }
         }
-        let mut arg_values: Vec<Value> =
-            Vec::with_capacity(fn_call.get_args().len());
-        for (_ix, value) in arg_map.into_iter() {
-            arg_values.push(value);
-        }
-        debug_assert_eq!(arg_values.len(), fn_type.get_args().len());
+
         let name = format!("call_{}", fn_call.get_text());
         let fn_ref = &self.scope_manager[&fn_call.get_id()];
         trace!("Got a function ref to call");
-        let call = self.builder
-                               .build_call(fn_ref, arg_values, &name);
-        self.ir_code.push(call);*/
+        let call = self.builder.build_call(fn_ref, arg_values, &name);
+        self.current_type = self.llvm_type_of_concrete(fn_type.get_return_ty());
+        self.ir_code.push(call);
     }
 
     fn visit_if_expr(&mut self, if_expr: &IfExpression) {
@@ -524,11 +519,14 @@ impl<'ctx, 'b, M> ExpressionVisitor for ModuleCompiler<'ctx, 'b, M>
         self.visit_expression(if_expr.get_condition());
         let condition_expr = self.ir_code.pop()
             .expect("Did not get value from if conditional");
-        let float_type = Type::double(&self.context);
-        let const_zero = float_type.const_real(0f64);
+        let bool_type = Type::int1(&self.context);
+        let const_false = bool_type.const_real(0f64);
         // hack: compare it to 0, due to lack of booleans right now
         let condition = self.builder
-            .build_fcmp(LLVMRealPredicate::LLVMRealOEQ, &condition_expr, &const_zero, "ife_cond");
+            .build_icmp(LLVMIntPredicate::LLVMIntEQ,
+                        &condition_expr,
+                        &const_false,
+                        "ife_cond");
         // Create basic blocks in the function
         let function = self.builder.insert_block().get_parent()
             .expect("Just now inserted a block");
@@ -548,18 +546,20 @@ impl<'ctx, 'b, M> ExpressionVisitor for ModuleCompiler<'ctx, 'b, M>
 
         // Emit the else code
         self.builder.position_at_end(&else_block);
-        self.visit_expression(if_expr.get_else());
+        self.visit_expression(if_expr.get_else()); // self.current_type set
         let else_value = self.ir_code.pop()
             .expect("Did not get IR value from visiting `else` clause of if expression");
         self.builder.build_br(&end_block);
         let else_end_block = self.builder.insert_block();
 
         self.builder.position_at_end(&end_block);
-        let phi = self.builder.build_phi(&float_type, "ifephi");
+
+        let phi = self.builder.build_phi(&self.current_type, "ifephi");
 
         phi.add_incoming(vec![then_value], vec![then_end_block]);
         phi.add_incoming(vec![else_value], vec![else_end_block]);
         self.ir_code.push(phi);
+        // self.current_type stays the same.
     }
 
 }
