@@ -17,11 +17,11 @@ use lex::{TextLocation, CowStr};
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct Token {
     /// Location of the token in a file
-    pub location: TextLocation,
+    pub(crate) location: TextLocation,
     /// Text of the token at that location
-    pub text: CowStr,
+    pub(crate) text: CowStr,
     /// Additional data (type/literal) provided by the lexer
-    pub data: TokenData
+    pub(crate) data: TokenData
 }
 
 impl Token {
