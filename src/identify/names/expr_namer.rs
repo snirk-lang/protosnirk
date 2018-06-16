@@ -172,10 +172,6 @@ impl<'err, 'builder> StatementVisitor
 
     fn visit_if_block(&mut self, if_block: &IfBlock) {
         trace!("Visiting if block");
-        if if_block.get_id().is_default() {
-            debug!("Skipping if block without ID");
-            return
-        }
 
         if_block.set_id(self.current_id.clone());
         self.current_id.push();
@@ -312,6 +308,7 @@ impl<'err, 'builder> ExpressionVisitor
             return
         }
         let decl_id = self.current_id.clone();
+        self.builder.define_local(declaration.get_name().into(), decl_id.clone());
         trace!("Created id {:?} for var {}", decl_id, lvalue.get_name());
         lvalue.set_id(decl_id);
         self.current_id.increment();

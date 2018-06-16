@@ -96,6 +96,11 @@ impl<'err, 'builder> ItemVisitor for ItemVarIdentifier<'err, 'builder> {
                 self.current_id, block_fn.get_name(), param.get_name());
             self.builder.define_local(param_name.to_string(),
                                       self.current_id.clone());
+            // We also put the param in the global scope as this is the only
+            // scope visible outside the visitor.
+            self.builder.define_global(
+                    format!("{}::{}", block_fn.get_name(), param_name),
+                    self.current_id.clone());
             param.set_id(self.current_id.clone());
 
             self.current_id.increment();
