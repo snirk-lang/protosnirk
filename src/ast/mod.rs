@@ -16,6 +16,7 @@ mod item;
 mod stmt;
 mod operator;
 pub mod types;
+pub mod visit;
 
 pub use self::index::*;
 pub use self::expression::*;

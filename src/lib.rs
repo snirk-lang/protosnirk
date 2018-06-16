@@ -91,7 +91,6 @@ pub mod lex;
 pub mod ast;
 pub mod parse;
 pub mod llvm;
-pub mod visit;
 pub mod identify;
 pub mod check;
 pub mod lint;

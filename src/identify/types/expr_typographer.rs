@@ -1,8 +1,6 @@
 //! Builds the `TypeGraph` using code within functions
 
-use ast::*;
-use visit;
-use visit::visitor::*;
+use ast::{*, visit::*};
 use identify::{ConcreteType, FnType, TypeScopeBuilder, OriginManager};
 use identify::types::{TypeGraph, InferenceSource};
 use check::{CheckerError, ErrorCollector};
@@ -49,8 +47,14 @@ impl<'err, 'builder, 'graph> ExprTypographer<'err, 'builder, 'graph> {
     }
 }
 
-impl<'err, 'builder, 'graph> DefaultUnitVisitor
-    for ExprTypographer<'err, 'builder, 'graph> { }
+impl<'err, 'builder, 'graph> UnitVisitor
+    for ExprTypographer<'err, 'builder, 'graph> {
+
+    fn visit_unit(&mut self, unit: &Unit) {
+        trace!("Visiting a unit");
+        visit::walk_unit(self, unit);
+    }
+}
 
 impl<'err, 'builder, 'graph> ItemVisitor
     for ExprTypographer<'err, 'builder, 'graph> {

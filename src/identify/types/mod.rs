@@ -18,8 +18,7 @@ use self::item_typographer::ItemTypographer;
 mod expr_typographer;
 use self::expr_typographer::ExprTypographer;
 
-use ast::Unit;
-use visit::visitor::UnitVisitor;
+use ast::{Unit, visit::UnitVisitor};
 use identify::TypeScopeBuilder;
 use check::ErrorCollector;
 

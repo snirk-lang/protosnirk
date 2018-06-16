@@ -1,11 +1,9 @@
 //! ItemVisitor for mapping `TypeId`s to concrete types.
 
-use ast::*;
+use ast::{*, visit::*};
 use check::{CheckerError, ErrorCollector};
 use identify::{ConcreteType, FnType, TypeScopeBuilder};
 use identify::types::TypeIdentifier;
-use visit;
-use visit::visitor::*;
 
 /// Identifies type expressions in items, such as function parameters and
 /// function names as concrete function types.
@@ -23,12 +21,20 @@ impl<'err, 'builder> ItemTypeIdentifier<'err, 'builder> {
     }
 }
 
-impl<'err, 'builder> DefaultUnitVisitor
-    for ItemTypeIdentifier<'err, 'builder> { }
+impl<'err, 'builder> UnitVisitor for ItemTypeIdentifier<'err, 'builder> {
+    fn visit_unit(&mut self, unit: &Unit) {
+        trace!("Visting a unit");
+        visit::walk_unit(self, unit);
+    }
+}
 
 impl<'err, 'builder> ItemVisitor for ItemTypeIdentifier<'err, 'builder> {
     fn visit_block_fn_decl(&mut self, fn_decl: &BlockFnDeclaration) {
-        if fn_decl.get_id().is_default() { return }
+        trace!("Visiting block fn declaration");
+        if fn_decl.get_id().is_default() {
+            debug!("Skipping fn {} with default ID", fn_decl.get_name());
+            return
+        }
 
         // Declared functions' types are handled here because we do not want
         // to run full type inference at the item level.

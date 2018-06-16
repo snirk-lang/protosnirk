@@ -1,12 +1,10 @@
 //! AST visitor which assigns the ScopedIds of type expressions
 //! within items.
 
-use ast::*;
+use ast::{*, visit::*};
 use check::{CheckerError, ErrorCollector};
 use identify::TypeScopeBuilder;
 use identify::types::TypeIdentifier;
-use visit;
-use visit::visitor::*;
 
 /// Identifies the names of type expressions within functions, namely
 /// cases where named types are explicitly declared.
@@ -24,8 +22,12 @@ impl<'err, 'builder> ExprTypeIdentifier<'err, 'builder> {
     }
 }
 
-impl<'err, 'builder> DefaultUnitVisitor
-    for ExprTypeIdentifier<'err, 'builder> { }
+impl<'err, 'builder> UnitVisitor for ExprTypeIdentifier<'err, 'builder> {
+    fn visit_unit(&mut self, unit: &Unit) {
+        trace!("Visiting a unit");
+        visit::walk_unit(self, unit);
+    }
+}
 
 impl<'err, 'builder> ItemVisitor for ExprTypeIdentifier<'err, 'builder> {
     fn visit_block_fn_decl(&mut self, block_fn: &BlockFnDeclaration) {
@@ -37,16 +39,34 @@ impl<'err, 'builder> ItemVisitor for ExprTypeIdentifier<'err, 'builder> {
     }
 }
 
-impl<'err, 'builder> DefaultBlockVisitor
-    for ExprTypeIdentifier<'err, 'builder> { }
+impl<'err, 'builder> BlockVisitor for ExprTypeIdentifier<'err, 'builder> {
+    fn visit_block(&mut self, block: &Block) {
+        trace!("Visiting a block");
+        visit::walk_block(self, block);
+    }
+}
 
 // The goal of being an ExpressionVisitor is to find places where types are
 // explicitly used within a function. For now this occurs only within a
 // declaration, which is an expression:
 // https://github.com/immington-industries/protosnirk/issues/30
 
-impl<'err, 'builder> DefaultStmtVisitor
-    for ExprTypeIdentifier<'err, 'builder> { }
+impl<'err, 'builder> StatementVisitor for ExprTypeIdentifier<'err, 'builder> {
+    fn visit_return_stmt(&mut self, return_: &Return) {
+        trace!("Visiting a return statement");
+        visit::walk_return(self, return_);
+    }
+
+    fn visit_if_block(&mut self, if_block: &IfBlock) {
+        trace!("Visiting an if block");
+        visit::walk_if_block(self, if_block);
+    }
+
+    fn visit_do_block(&mut self, do_block: &DoBlock) {
+        trace!("Visiting a do block");
+        visit::walk_do_block(self, do_block);
+    }
+}
 
 impl<'err, 'builder> ExpressionVisitor
     for ExprTypeIdentifier<'err, 'builder> {

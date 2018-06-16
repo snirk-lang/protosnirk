@@ -2,11 +2,9 @@
 //! things.
 
 use lex::Token;
-use ast::*;
+use ast::{*, visit::*};
 use check::{CheckerError, ErrorCollector};
 use identify::{ConcreteType, FnType, TypeGraph, TypeScopeBuilder};
-use visit;
-use visit::visitor::*;
 
 use std::collections::HashMap;
 
@@ -92,8 +90,14 @@ impl<'err, 'builder, 'graph> TypeConcretifier<'err, 'builder, 'graph> {
     }
 }
 
-impl<'err, 'builder, 'graph> DefaultUnitVisitor
-    for TypeConcretifier<'err, 'builder, 'graph> { }
+impl<'err, 'builder, 'graph> UnitVisitor
+    for TypeConcretifier<'err, 'builder, 'graph> {
+
+    fn visit_unit(&mut self, unit: &Unit) {
+        trace!("Visiting a unit");
+        visit::walk_unit(self, unit);
+    }
+}
 
 impl<'err, 'builder, 'graph> ItemVisitor
     for TypeConcretifier<'err, 'builder, 'graph> {
@@ -141,8 +145,24 @@ impl<'err, 'builder, 'graph> BlockVisitor
     }
 }
 
-impl<'err, 'builder, 'graph> DefaultStmtVisitor
-    for TypeConcretifier<'err, 'builder, 'graph> { }
+impl<'err, 'builder, 'graph> StatementVisitor
+    for TypeConcretifier<'err, 'builder, 'graph> {
+
+    fn visit_return_stmt(&mut self, return_: &Return) {
+        trace!("Visiting return statement");
+        visit::walk_return(self, return_);
+    }
+
+    fn visit_if_block(&mut self, if_block: &IfBlock) {
+        trace!("Visiting if block");
+        visit::walk_if_block(self, if_block);
+    }
+
+    fn visit_do_block(&mut self, do_block: &DoBlock) {
+        trace!("Visiting do block");
+        visit::walk_do_block(self, do_block);
+    }
+}
 
 impl<'err, 'builder, 'graph> ExpressionVisitor
     for TypeConcretifier<'err, 'builder, 'graph> {

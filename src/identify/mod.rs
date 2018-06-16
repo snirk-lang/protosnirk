@@ -52,9 +52,8 @@ pub use self::type_scope_builder::TypeScopeBuilder;
 pub use self::concrete_type::*;
 pub use self::names::OriginManager;
 
-use ast::{Unit, ScopedId};
+use ast::{Unit, ScopedId, visit::UnitVisitor};
 use check::ErrorCollector;
-use visit::visitor::UnitVisitor;
 
 use self::names::*;
 use self::types::*;

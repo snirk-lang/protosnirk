@@ -1,11 +1,9 @@
 //! Set the `ScopedId`s of expressions in the AST.
 
 use lex::{Token, TextLocation};
-use ast::*;
+use ast::{*, visit::*};
 use identify::{NameScopeBuilder, OriginManager};
 use check::{CheckerError, ErrorCollector};
-use visit;
-use visit::visitor::*;
 
 use std::mem;
 
