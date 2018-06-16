@@ -17,7 +17,7 @@ use parse::symbol::PrefixParser;
 #[derive(Debug)]
 pub struct NamedTypeParser { }
 impl<T: Tokenizer> PrefixParser<TypeExpression, T> for NamedTypeParser {
-    fn parse(&self, parser: &mut Parser<T>, token: Token)
+    fn parse(&self, _parser: &mut Parser<T>, token: Token)
              -> ParseResult<TypeExpression> {
         debug_assert!(token.get_type() == TokenType::Ident,
             "NamedTypeParser called with non-name token {:?}", token);

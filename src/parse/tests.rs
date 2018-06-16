@@ -170,9 +170,9 @@ fn fact(n: float) -> float
     factHelper(n: n, acc: 1)
 "#;
 
-const BLOCKS_IN_BLOCKS: &str =
+pub const BLOCKS_IN_BLOCKS: &str =
 r#"
-fn blocksInBlocks(x) -> float
+fn blocksInBlocks(x: float) -> float
     do
         do
             if x < 0
@@ -196,6 +196,9 @@ fn parse_example() {
     for input in inputs {
         let mut parser = parser(input);
         trace!("Parsing input:\n{}\n", input);
-        trace!("Resulting program:\n{:#?}", parser.parse_unit());
+        match parser.parse_unit() {
+            Ok(unit) => { trace!("Parsed unit: {:#?}", unit); }
+            Err(err) => { trace!("Error while parsing unit: {:?}", err); }
+        }
     }
 }

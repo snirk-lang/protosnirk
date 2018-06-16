@@ -42,8 +42,11 @@ impl<T: Tokenizer> InfixParser<Expression, T> for FnCallParser {
                         call_args.push(CallArgument::named(ident, arg_value));
                     }
                     else {
-                        call_args.push(CallArgument::implicit(
-                            Expression::VariableRef(ident)));
+                        //call_args.push(CallArgument::implicit(
+                        //    Expression::VariableRef(ident)));
+                        // https://github.com/immington-industries/protosnirk/issues/45
+                        return Err(ParseError::LazyString(
+                            "Non-named params not supported right now".into()))
                     }
                 }
                 else {

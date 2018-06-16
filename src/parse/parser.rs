@@ -218,7 +218,7 @@ impl<T: Tokenizer> Parser<T> {
                 let consumed = self.consume();
                 NamedTypeParser { }.parse(self, consumed)
             },
-            other => {
+            _other => {
                 trace!("Invalid token for type expr");
                 // TODO this is also a bad error
                 return Err(ParseError::LazyString(format!(
@@ -446,7 +446,6 @@ impl<T: Tokenizer> Parser<T> {
         }
         trace!("Parsed {} items", items.len());
         let unit = Unit::new(items);
-        trace!("Parsed unit {:#?}", unit);
         Ok(unit)
     }
 
