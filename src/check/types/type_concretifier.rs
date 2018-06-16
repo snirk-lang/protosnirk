@@ -41,11 +41,11 @@ impl<'err, 'builder, 'graph> TypeConcretifier<'err, 'builder, 'graph> {
                  id: &ScopedId,
                  source: &Token,
                  context: String) -> bool {
+        trace!("Inferring {:?} in context {:?}", id, context);
         if let Some(_known) = self.results.get(id) {
             trace!("Known type of {:?}", id);
             return true
         }
-        trace!("Inferring the type of {}", source.get_text());
         let inferred = self.graph.infer_type_of_var(id);
         match inferred {
             Ok((_ix, ty)) => {
@@ -62,19 +62,23 @@ impl<'err, 'builder, 'graph> TypeConcretifier<'err, 'builder, 'graph> {
                 }
             },
             Err(possibles) => {
-                if possibles.is_empty() {
+                debug!("Encountered an error in type inferring");
+                if !possibles.is_empty() {
+                    debug!("Conflicts in determining a type");
                     self.errors.add_error(CheckerError::new(
                         source.clone(),
                         vec![],
-                        format!("Could not determine type of {} (conflicts)",
-                                context)
+                        format!("Could not determine type of {} - got {:?}",
+                                context, possibles)
                     ));
                 }
                 else {
+                    debug!("No sources for determining a type");
                     self.errors.add_error(CheckerError::new(
                         source.clone(),
                         vec![],
-                        format!("Could not type of {}", context)
+                        format!("Could not determine type of {} - no info",
+                            context)
                     ));
                 }
                 false
@@ -95,21 +99,47 @@ impl<'err, 'builder, 'graph> ItemVisitor
     for TypeConcretifier<'err, 'builder, 'graph> {
 
     fn visit_block_fn_decl(&mut self, block_fn: &BlockFnDeclaration) {
+        trace!("Visiting declaration of fn {}", block_fn.get_name());
         self.infer_var(&block_fn.get_id(), block_fn.get_token(),
             format!("fn declaration {}", block_fn.get_name()));
 
         for &(ref param, ref _param_ty) in block_fn.get_params() {
+            trace!("Inferring the type of {} param {}",
+                block_fn.get_name(), param.get_name());
             self.infer_var(&param.get_id(), param.get_token(),
                 format!("fn {} param {}",
                     block_fn.get_name(), param.get_name()));
         }
 
-        visit::walk_block(self, block_fn.get_block());
+        // We can't attempt to infer the type of fn params right now because
+        // they're not kept in the global scope:
+        self.visit_block(block_fn.get_block());
     }
 }
 
-impl<'err, 'builder, 'graph> DefaultBlockVisitor
-    for TypeConcretifier<'err, 'builder, 'graph> { }
+impl<'err, 'builder, 'graph> BlockVisitor
+    for TypeConcretifier<'err, 'builder, 'graph> {
+
+    fn visit_block(&mut self, block: &Block) {
+        trace!("Visiting block {:?}", block.get_id());
+        if block.has_source() {
+            trace!("Block {:?} has source {:?}, checking.",
+                block.get_id(), block.get_source());
+
+            let context = Token::default();
+            self.infer_var(block.get_source().as_ref().expect("Checked expect"),
+                &context,
+                format!("block {:?} source", block.get_id()));
+            self.infer_var(&block.get_id(), &context,
+                format!("block {:?}", block.get_id()));
+        }
+        else {
+            trace!("Block {:?} has no source", block.get_id());
+        }
+
+        visit::walk_block(self, block);
+    }
+}
 
 impl<'err, 'builder, 'graph> DefaultStmtVisitor
     for TypeConcretifier<'err, 'builder, 'graph> { }
