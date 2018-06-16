@@ -1,9 +1,9 @@
 [package]
 name = "protosnirk"
-description = "An in-progress simple programming language implemented in Rust"
+description = "An in-progress programming language implemented in Rust"
 version = "0.0.1"
-repository = ""
-keywords = ["protosnirk", "programming", "scripting", "language"]
+repository = "https://github.com/immington-industries/protosnirk"
+keywords = ["protosnirk", "snirk", "programming", "language"]
 readme = "README.md"
 authors = ["Snirk Immington <snirk.immington@gmail.com>"]
 license = "MIT"

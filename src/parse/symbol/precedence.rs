@@ -31,28 +31,6 @@ pub enum Precedence {
     Max
 }
 
-impl Precedence {
-    /// Get an operator precedence one bigger than the current one
-    pub fn bigger(&self) -> Self {
-        debug_assert!(*self != Precedence::Max,
-                      "Cannot increment Precedence::Max");
-        let num_self = *self as u8;
-        unsafe {
-            mem::transmute::<u8, Precedence>(num_self + 1)
-        }
-    }
-
-    /// Get an operator precedence one smaller than the current one
-    pub fn smaller(&self) -> Self {
-        debug_assert!(*self != Precedence::Min,
-                      "Cannot decrement Precedence::Min");
-        let num_self = *self as u8;
-        unsafe {
-            mem::transmute::<u8, Precedence>(num_self - 1)
-        }
-    }
-}
-
 #[cfg(test)]
 mod test {
     use std::mem;
@@ -62,17 +40,5 @@ mod test {
     fn it_has_derived_ord() {
         assert!(Precedence::Max > Precedence::Min);
         assert!(Precedence::MulDiv > Precedence::AddSub);
-    }
-
-    #[test]
-    fn it_is_repr_as_a_u8() {
-        let _value = Precedence::Max as u8;
-        assert_eq!(mem::size_of::<Precedence>(), mem::size_of::<u8>());
-    }
-
-    #[test]
-    fn it_makes_a_bigger_precedence() {
-        let min = Precedence::Min;
-        assert!(min.bigger() == Precedence::Return);
     }
 }
