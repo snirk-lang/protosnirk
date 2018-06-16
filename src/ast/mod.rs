@@ -31,7 +31,7 @@ use lex::Token;
 /// Basic identifier type
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Identifier {
-    pub token: Token,
+    token: Token,
     id: RefCell<ScopedId>,
 }
 impl Identifier {
@@ -39,7 +39,7 @@ impl Identifier {
         Identifier { token, id: RefCell::default() }
     }
     pub fn get_name(&self) -> &str {
-        &self.token.text
+        &self.token.get_text()
     }
     pub fn get_token(&self) -> &Token {
         &self.token
