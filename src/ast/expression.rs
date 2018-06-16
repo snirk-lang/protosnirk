@@ -334,16 +334,12 @@ impl FnCall {
 /// Represents arguments given to call a function with
 #[derive(Debug, PartialEq, Clone)]
 pub struct CallArgument {
-    param: Option<Identifier>,
+    param: Identifier,
     value: Expression
 }
 impl CallArgument {
-    pub fn implicit(value: Expression) -> CallArgument {
-        CallArgument { param: None, value }
-    }
-
     pub fn named(param: Identifier, value: Expression) -> CallArgument {
-        CallArgument { param: Some(param), value }
+        CallArgument { param, value }
     }
 
     /// Gets the value of the CallArgument.
@@ -351,8 +347,8 @@ impl CallArgument {
         &self.value
     }
 
-    pub fn get_name(&self) -> Option<&Identifier> {
-        self.param.as_ref()
+    pub fn get_name(&self) -> &Identifier {
+        &self.param
     }
 
 }
