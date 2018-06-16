@@ -1,10 +1,13 @@
+//! Parse an AST from a stream of `Token`s.
+//!
+//! The parser is responsible for turning the incoming token stream into
+//! an AST. It emits errors if the code is written incorrectly (i.e. missing
+//! paren, as well as some linting errors such as spacing that occur at the token
+//! level.
+
 mod errors;
-mod program;
-pub mod ast;
 mod parser;
-mod ast_visitor;
-mod verify;
-mod types;
+
 pub mod symbol;
 
 #[cfg(test)]
@@ -12,8 +15,3 @@ pub mod tests;
 
 pub use self::errors::{ParseError, ParseResult, ExpectedNextType};
 pub use self::parser::{Parser, IndentationRule};
-pub use self::program::Program;
-pub use self::ast_visitor::ASTVisitor;
-
-pub use self::verify::{VerifyError, ErrorCollector};
-pub use self::verify::scope::{ScopeIndex, SymbolTable};

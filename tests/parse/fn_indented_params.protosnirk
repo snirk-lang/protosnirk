@@ -1,4 +1,4 @@
 // item
-fn manyParams(x, y, longParamName,
-              otherLongParam)
+fn manyParams(x: X, y: Y, longParamName: LongParamType,
+              otherLongParam: Ty)
     stmt()

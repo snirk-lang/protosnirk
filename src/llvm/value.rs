@@ -10,6 +10,7 @@ use llvm_sys::prelude::*;
 use llvm_sys::analysis::{LLVMVerifierFailureAction, LLVMVerifyFunction};
 
 use llvm::BasicBlock;
+use llvm::types::Type;
 
 /// Represents many LLVM value types.
 ///
@@ -23,6 +24,10 @@ pub struct Value<'ctx> {
 
 impl<'ctx> Value<'ctx> {
     llvm_methods! { Value<'ctx> => LLVMValueRef }
+
+    llvm_passthrough! {
+        pub fn get_type() -> Type<'ctx> => LLVMTypeOf;
+    }
 
     pub fn is_null_value(&self) -> bool {
         unsafe {

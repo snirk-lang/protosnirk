@@ -9,10 +9,10 @@ use std::rc::Rc;
 use std::cell::Cell;
 
 use lex::{CowStr, Token, TokenType, TokenData, Tokenizer};
-use parse::{Program, ParseError, ParseResult};
-use parse::ast::*;
+use parse::{ParseError, ParseResult};
+use ast::*;
+use ast::types::*;
 use parse::symbol::*;
-use parse::verify::Verifier;
 
 /// Parser object which parses things
 pub struct Parser<T: Tokenizer> {
@@ -21,17 +21,17 @@ pub struct Parser<T: Tokenizer> {
     /// Lookahead queue for peeking
     lookahead: VecDeque<Token>,
     /// Parsers used for prefix symbols in statements (`return`, `do`)
-    stmt_prefix_parsers: HashMap<(TokenType, CowStr), Rc<PrefixParser<Statement, T> + 'static>>,
+    stmt_prefix_parsers: HashMap<TokenType, Rc<PrefixParser<Statement, T> + 'static>>,
     /// Parsers used for infix symbols in expressions (`+`, `<`)
-    expr_infix_parsers: HashMap<(TokenType, CowStr), Rc<InfixParser<Expression, T> + 'static>>,
+    expr_infix_parsers: HashMap<TokenType, Rc<InfixParser<Expression, T> + 'static>>,
     /// Parsers used for prefix symbols in expressions (`not`, `let`)
-    expr_prefix_parsers: HashMap<(TokenType, CowStr), Rc<PrefixParser<Expression, T> + 'static>>,
+    expr_prefix_parsers: HashMap<TokenType, Rc<PrefixParser<Expression, T> + 'static>>,
     /// Parses for parsing program items (struct/enum/fn declarations, etc.)
-    item_parsers: HashMap<(TokenType, CowStr), Rc<PrefixParser<Item, T> + 'static>>,
+    item_parsers: HashMap<TokenType, Rc<PrefixParser<Item, T> + 'static>>,
     /// Mapping of tokens to applied operators
-    token_operators: HashMap<(TokenType, CowStr), Operator>,
+    token_operators: HashMap<TokenType, Operator>,
     /// Allows the parser to skip over unneeded indentation
-    indent_rules: Vec<IndentationRule>
+    indent_rules: Vec<IndentationRule>,
 }
 
 impl<T: Tokenizer> Parser<T> {
@@ -44,7 +44,7 @@ impl<T: Tokenizer> Parser<T> {
     pub fn peek_indented(&mut self) -> (bool, &Token) {
         let mut indent = false;
         for size in 1usize.. {
-            let peeked_type = self.look_ahead(size).data.get_type();
+            let peeked_type = self.look_ahead(size).get_type();
             if peeked_type != TokenType::BeginBlock {
                 return (indent, self.look_ahead(size))
             }
@@ -73,7 +73,7 @@ impl<T: Tokenizer> Parser<T> {
     /// applied.
     pub fn consume_indented(&mut self, rule: IndentationRule) -> (bool, Token) {
         let next = self.consume();
-        if next.data.get_type() == TokenType::BeginBlock {
+        if next.get_type() == TokenType::BeginBlock {
             self.indent_rules.push(rule);
             (true, self.consume())
         } else {
@@ -106,18 +106,18 @@ impl<T: Tokenizer> Parser<T> {
                     // Ignore indentation until match found
                     IndentationRule::DisableUntil(indent_data) => {
                         // If match is found, disable this rule, return the match
-                        if next.data.get_type() == indent_data {
+                        if next.get_type() == indent_data {
                             self.indent_rules.pop();
                         }
                         // If indentation is found, skip it
-                        else if next.data.get_type() == TokenType::BeginBlock
-                                || next.data.get_type() == TokenType::EndBlock {
+                        else if next.get_type() == TokenType::BeginBlock
+                                || next.get_type() == TokenType::EndBlock {
                             continue
                         }
                     },
                     // Negate the next EndBlock
                     IndentationRule::NegateDeindent => {
-                        if next.data.get_type() == TokenType::EndBlock {
+                        if next.get_type() == TokenType::EndBlock {
                             // Remove this rule so it won't trigger next time
                             // and go onto the next token.
                             self.indent_rules.pop();
@@ -126,8 +126,8 @@ impl<T: Tokenizer> Parser<T> {
                     },
                     // Negate all the indentation
                     IndentationRule::DisableIndentation => {
-                        if next.data.get_type() == TokenType::BeginBlock
-                            || next.data.get_type() == TokenType::EndBlock {
+                        if next.get_type() == TokenType::BeginBlock
+                            || next.get_type() == TokenType::EndBlock {
                             continue
                         }
                     },
@@ -142,7 +142,7 @@ impl<T: Tokenizer> Parser<T> {
     pub fn consume_type(&mut self, expected_type: TokenType) -> Result<Token, ParseError> {
         trace!("Consuming type {:?}", expected_type);
         let token = self.consume();
-        if token.data.get_type() != expected_type {
+        if token.get_type() != expected_type {
             Err(ParseError::ExpectedToken {
                 expected: expected_type,
                 got: token.into()
@@ -189,7 +189,7 @@ impl<T: Tokenizer> Parser<T> {
 
     /// Peek at the next token without consuming it.
     pub fn next_type(&mut self) -> TokenType {
-        self.peek().data.get_type()
+        self.peek().get_type()
     }
 
     /// Push an indentation rule manually onto the stack
@@ -202,6 +202,31 @@ impl<T: Tokenizer> Parser<T> {
         self.indent_rules.pop()
     }
 
+    /// Parses a type expression from the token stream.
+    pub fn type_expr(&mut self) -> Result<TypeExpression, ParseError> {
+        use parse::symbol::types::*;
+        let next_type = self.next_type();
+        trace!("Parsing type expression with {:?}", next_type);
+
+        // Type expressions don't really have infixes so we just parse them -
+        // the specifics of the array brackets/generic angles are handled by those
+        // prefix parsers anyway.
+        // Generic bounds (like `T: Managed + Cloneable`) will also have infix parsing.
+        match next_type {
+            TokenType::Ident => {
+                trace!("Parsing named type expr");
+                let consumed = self.consume();
+                NamedTypeParser { }.parse(self, consumed)
+            },
+            _other => {
+                trace!("Invalid token for type expr");
+                // TODO this is also a bad error
+                return Err(ParseError::LazyString(format!(
+                    "Unexpected token {:?} for type expression", next_type)))
+            }
+        }
+    }
+
     /// Parses any expression with the given precedence.
     ///
     /// This parser will push a `NegateDeindent` rule to the rule stack.
@@ -210,24 +235,20 @@ impl<T: Tokenizer> Parser<T> {
         trace!("Parsing expression(precedence={:?}) with {}", precedence, token);
         if _indented { trace!("Parsing indented expression"); }
         let prefix: Rc<PrefixParser<Expression, T> + 'static>;
-        if token.data.get_type() == TokenType::EOF {
-            trace!("Parsing received EOF!");
-            return Err(ParseError::EOF);
+        let token_type = token.get_type();
+        match token_type {
+            TokenType::EOF => {
+                trace!("Unexpected EOF parsing expression");
+                return Err(ParseError::EOF);
+            },
+            TokenType::EndBlock => {
+                trace!("Unexpected EndBlock parsing expression");
+                return Err(ParseError::EOF);
+            },
+            _ => { /* We don't need to return early. */ }
         }
-        else if token.data.get_type() == TokenType::EndBlock {
-            trace!("Received end block mid-parse");
-            return Err(ParseError::LazyString("Unexpected EndBlock".to_string()))
-        }
-        else if token.data.get_type() == TokenType::Ident {
-            trace!("Parsing an identifier, using the identifier parser");
-            prefix = Rc::new(IdentifierParser {});
-        }
-        else if token.data.get_type() == TokenType::Literal {
-            trace!("Got a literal token");
-            prefix = Rc::new(LiteralParser {});
-        }
-        else if let Some(found_parser) = self.expr_prefix_parsers.get(&(token.data.get_type(), Cow::Borrowed(&*token.text))) {
-            trace!("Found a parser to parse ({:?}, {:?})", token.data.get_type(), token.text);
+        if let Some(found_parser) = self.expr_prefix_parsers.get(&token_type) {
+            trace!("Found a parser to parse ({:?}, {:?})", token.get_type(), token.text);
             prefix = found_parser.clone();
         }
         else {
@@ -242,14 +263,16 @@ impl<T: Tokenizer> Parser<T> {
             let (_infix_indented, new_token) = self.consume_indented(IndentationRule::NegateDeindent);
             trace!("Consumed {:?}, indentation: {}", new_token, _infix_indented);
             token = new_token;
-            if let Some(infix) = self.expr_infix_parsers.get(&(token.data.get_type(), Cow::Borrowed(&*token.text))).map(Rc::clone) {
+            let token_type = token.get_type();
+            if let Some(infix) = self.expr_infix_parsers.get(&token_type).map(Rc::clone) {
                 trace!("Parsing via infix parser!");
                 left = try!(infix.parse(self, left, token));
             }
-            // consuming might be an issue here
-            //else {
-            //    break
-            //}
+            else {
+                trace!("Unable to find an infix parser for {:?}", token_type);
+                // At this point, we've probably hit the border of the expression.
+                break // Will probably also be hit by the while loop conditional.
+            }
             trace!("Checking that {:?} < {:?}", precedence, self.current_precedence());
         }
         trace!("Done parsing expression");
@@ -257,27 +280,21 @@ impl<T: Tokenizer> Parser<T> {
     }
 
     /// Parse a single statement.
-    ///
     pub fn statement(&mut self) -> Result<Statement, ParseError> {
-        let mut found_parser: Option<Rc<PrefixParser<Statement, T> + 'static>> = None;
-        let peek_data = (self.next_type(), Cow::Owned(self.peek().text.to_string()));
-        if let Some(stmt_parser) = self.stmt_prefix_parsers.get(&(peek_data.0, Cow::Borrowed(&*peek_data.1))) {
-            trace!("Found statement parser for {}", &peek_data.1);
-            found_parser = Some(stmt_parser.clone());
+        let peek_type = self.next_type();
+        if let Some(stmt_parser) = self.stmt_prefix_parsers.get(&peek_type).cloned() {
+            trace!("Found statement parser for {:?}", &peek_type);
+            let token = self.consume();
+            stmt_parser.parse(self, token)
         }
-        if found_parser.is_none() {
+        else {
             trace!("Using expr parser for statement");
-            return self.expression(Precedence::Min).map(Expression::to_statement)
+            self.expression(Precedence::Min)
+                .map(Expression::to_statement)
         }
-        let token = self.consume();
-        return found_parser.expect("Checked expect").parse(self, token)
     }
 
     /// Parse a block of code.
-    ///
-    /// This is synonymous with a "program" as programs do not support
-    /// nested blocks. Later on, this will be using the lexer's significant whitespace parsing
-    /// to support `Indent` and `Outdent` tokens for begin/end blocks.
     ///
     /// Block parsing assumes the `BeginBlock` token has already been consumed.
     pub fn block(&mut self) -> Result<Block, ParseError> {
@@ -299,27 +316,23 @@ impl<T: Tokenizer> Parser<T> {
 
     /// Parse an item from a program (a function definition)
     pub fn item(&mut self) -> Result<Item, ParseError> {
-        let mut found_parser: Option<Rc<PrefixParser<Item, T> + 'static>> = None;
-        let peek_data = (self.next_type(), Cow::Owned(self.peek().text.to_string()));
-        if let Some(item_parser) = self.item_parsers.get(&(peek_data.0, Cow::Borrowed(&*peek_data.1))) {
-            trace!("Found item parser for {}", &peek_data.1);
-            found_parser = Some(item_parser.clone());
+        let peek_type = self.next_type();
+        if let Some(item_parser) = self.item_parsers.get(&peek_type).cloned() {
+            trace!("Found item parser for {:?}", &peek_type);
+            let token = self.consume();
+            item_parser.parse(self, token)
         }
-        match found_parser {
-            Some(parser) => {
-                let token = self.consume();
-                parser.parse(self, token)
-            },
-            None =>
-                Err(ParseError::LazyString(format!("Unexpeted item token `{}`", &peek_data.1)))
+        else {
+            Err(ParseError::LazyString(format!("Unexpected item token `{:?}`",
+                &peek_type)))
         }
     }
 
-    ///Grab an lvalue from the token stream
+    /// Grab an lvalue from the token stream
     pub fn lvalue(&mut self) -> Result<Identifier, ParseError> {
         let token = self.consume();
         trace!("Getting an lvalue from {}", token);
-        if token.data.get_type() == TokenType::Ident {
+        if token.get_type() == TokenType::Ident {
             IdentifierParser { }.parse(self, token)
                 .and_then(|e| e.expect_identifier())
         } else {
@@ -333,7 +346,7 @@ impl<T: Tokenizer> Parser<T> {
     /// Gets the operator registered for the given token.
     pub fn operator(&self, token_type: TokenType, text: &CowStr) -> Result<Operator, ParseError> {
         use std::ops::Deref;
-        if let Some(op) = self.token_operators.get(&(token_type, Cow::Borrowed(text.deref()))) {
+        if let Some(op) = self.token_operators.get(&token_type) {
             Ok(*op)
         } else {
             Err(ParseError::UnknownOperator { text: text.clone(), token_type: token_type })
@@ -343,70 +356,72 @@ impl<T: Tokenizer> Parser<T> {
     /// Create a new parser from the given tokenizer, initializing its fields to match
     pub fn new(tokenizer: T) -> Parser<T> {
         use parse::symbol::*;
-        use lex::tokens;
         use lex::TokenType::*;
-        let expr_infix_map: HashMap<(TokenType, CowStr), Rc<InfixParser<Expression, T> + 'static>> =
+        let expr_infix_map: HashMap<TokenType, Rc<InfixParser<Expression, T> + 'static>> =
         hashmap![
-            (Symbol, tokens::Equals) => Rc::new(AssignmentParser { }) as Rc<InfixParser<Expression, T>>,
+            Equals => Rc::new(AssignmentParser { }) as Rc<InfixParser<Expression, T>>,
 
-            (Symbol, tokens::Plus) => BinOpExprSymbol::with_precedence(Precedence::AddSub),
-            (Symbol, tokens::Minus) => BinOpExprSymbol::with_precedence(Precedence::AddSub),
-            (Symbol, tokens::Star) => BinOpExprSymbol::with_precedence(Precedence::MulDiv),
-            (Symbol, tokens::Slash) => BinOpExprSymbol::with_precedence(Precedence::MulDiv),
+            Plus => BinOpExprSymbol::with_precedence(Precedence::AddSub),
+            Minus => BinOpExprSymbol::with_precedence(Precedence::AddSub),
+            Star => BinOpExprSymbol::with_precedence(Precedence::MulDiv),
+            Slash => BinOpExprSymbol::with_precedence(Precedence::MulDiv),
 
-            (Symbol, tokens::Percent) => BinOpExprSymbol::with_precedence(Precedence::Modulo),
+            Percent => BinOpExprSymbol::with_precedence(Precedence::Modulo),
 
-            (Symbol, tokens::LeftParen) => Rc::new(FnCallParser { }) as Rc<InfixParser<Expression, T>>,
+            LeftParen => Rc::new(FnCallParser { }) as Rc<InfixParser<Expression, T>>,
 
-            (Symbol, tokens::LeftAngle) => BinOpExprSymbol::with_precedence(Precedence::EqualityCompare),
-            (Symbol, tokens::RightAngle) => BinOpExprSymbol::with_precedence(Precedence::EqualityCompare),
-            (Symbol, tokens::LessThanEquals) => BinOpExprSymbol::with_precedence(Precedence::EqualityCompare),
-            (Symbol, tokens::GreaterThanEquals) => BinOpExprSymbol::with_precedence(Precedence::EqualityCompare),
+            LeftAngle => BinOpExprSymbol::with_precedence(Precedence::EqualityCompare),
+            RightAngle => BinOpExprSymbol::with_precedence(Precedence::EqualityCompare),
+            LessThanEquals => BinOpExprSymbol::with_precedence(Precedence::EqualityCompare),
+            GreaterThanEquals => BinOpExprSymbol::with_precedence(Precedence::EqualityCompare),
 
-            (Symbol, tokens::DoubleEquals) => BinOpExprSymbol::with_precedence(Precedence::Equality),
-            (Symbol, tokens::NotEquals) => BinOpExprSymbol::with_precedence(Precedence::Equality),
+            DoubleEquals => BinOpExprSymbol::with_precedence(Precedence::Equality),
+            NotEquals => BinOpExprSymbol::with_precedence(Precedence::Equality),
 
-            (Symbol, tokens::PlusEquals) => Rc::new(AssignOpParser { }) as Rc<InfixParser<Expression, T>>,
-            (Symbol, tokens::MinusEquals) => Rc::new(AssignOpParser { }) as Rc<InfixParser<Expression, T>>,
-            (Symbol, tokens::StarEquals) => Rc::new(AssignOpParser { }) as Rc<InfixParser<Expression, T>>,
-            (Symbol, tokens::PercentEquals) => Rc::new(AssignOpParser { }) as Rc<InfixParser<Expression, T>>,
-            (Symbol, tokens::SlashEquals) => Rc::new(AssignOpParser { }) as Rc<InfixParser<Expression, T>>
+            PlusEquals => Rc::new(AssignOpParser { }) as Rc<InfixParser<Expression, T>>,
+            MinusEquals => Rc::new(AssignOpParser { }) as Rc<InfixParser<Expression, T>>,
+            StarEquals => Rc::new(AssignOpParser { }) as Rc<InfixParser<Expression, T>>,
+            PercentEquals => Rc::new(AssignOpParser { }) as Rc<InfixParser<Expression, T>>,
+            SlashEquals => Rc::new(AssignOpParser { }) as Rc<InfixParser<Expression, T>>
         ];
-        let expr_prefix_map: HashMap<(TokenType, CowStr), Rc<PrefixParser<Expression, T> + 'static>> =
+        let expr_prefix_map: HashMap<TokenType, Rc<PrefixParser<Expression, T> + 'static>> =
         hashmap![
-            (Keyword, tokens::Let) => Rc::new(DeclarationParser { }) as Rc<PrefixParser<Expression, T>>,
-            (Keyword, tokens::If) => Rc::new(IfExpressionParser { }) as Rc<PrefixParser<Expression, T>>,
+            Let => Rc::new(DeclarationParser { }) as Rc<PrefixParser<Expression, T>>,
+            If => Rc::new(IfExpressionParser { }) as Rc<PrefixParser<Expression, T>>,
 
-            (Symbol, tokens::Minus) => UnaryOpExprSymbol::with_precedence(Precedence::NumericPrefix),
-            (Symbol, tokens::LeftParen) => Rc::new(ParensParser { }) as Rc<PrefixParser<Expression, T>>,
+            Minus => UnaryOpExprSymbol::with_precedence(Precedence::NumericPrefix),
+            LeftParen => Rc::new(ParensParser { }) as Rc<PrefixParser<Expression, T>>,
+
+            Ident => Rc::new(IdentifierParser { }) as Rc<PrefixParser<Expression, T>>,
+            Literal => Rc::new(LiteralParser { }) as Rc<PrefixParser<Expression, T>>,
         ];
-        let stmt_prefix_map: HashMap<(TokenType, CowStr), Rc<PrefixParser<Statement, T> + 'static>> =
+        let stmt_prefix_map: HashMap<TokenType, Rc<PrefixParser<Statement, T> + 'static>> =
         hashmap![
-            (Keyword, tokens::Return) => Rc::new(ReturnParser { }) as Rc<PrefixParser<Statement, T>>,
-            (Keyword, tokens::Do) => Rc::new(DoBlockParser { }) as Rc<PrefixParser<Statement, T>>,
-            (Keyword, tokens::If) => Rc::new(IfBlockParser { }) as Rc<PrefixParser<Statement, T>>,
+            Return => Rc::new(ReturnParser { }) as Rc<PrefixParser<Statement, T>>,
+            Do => Rc::new(DoBlockParser { }) as Rc<PrefixParser<Statement, T>>,
+            If => Rc::new(IfBlockParser { }) as Rc<PrefixParser<Statement, T>>,
         ];
-        let item_prefix_map: HashMap<(TokenType, CowStr), Rc<PrefixParser<Item, T> + 'static>> =
+        let item_prefix_map: HashMap<TokenType, Rc<PrefixParser<Item, T> + 'static>> =
         hashmap![
-            (Keyword, tokens::Fn) => Rc::new(FnDeclarationParser { }) as Rc<PrefixParser<Item, T>>,
+            Fn => Rc::new(FnDeclarationParser { }) as Rc<PrefixParser<Item, T>>,
         ];
-        let operator_map: HashMap<(TokenType, CowStr), Operator> = hashmap![
-            (Symbol, tokens::Plus) => Operator::Addition,
-            (Symbol, tokens::PlusEquals) => Operator::Addition,
-            (Symbol, tokens::Minus) => Operator::Subtraction,
-            (Symbol, tokens::MinusEquals) => Operator::Subtraction,
-            (Symbol, tokens::Star) => Operator::Multiplication,
-            (Symbol, tokens::StarEquals) => Operator::Multiplication,
-            (Symbol, tokens::Slash) => Operator::Division,
-            (Symbol, tokens::SlashEquals) => Operator::Division,
-            (Symbol, tokens::Percent) => Operator::Modulus,
-            (Symbol, tokens::PercentEquals) => Operator::Modulus,
-            (Symbol, tokens::LeftAngle) => Operator::LessThan,
-            (Symbol, tokens::LessThanEquals) => Operator::LessThanEquals,
-            (Symbol, tokens::RightAngle) => Operator::GreaterThan,
-            (Symbol, tokens::GreaterThanEquals) => Operator::GreaterThan,
-            (Symbol, tokens::DoubleEquals) => Operator::Equality,
-            (Symbol, tokens::NotEquals) => Operator::NonEquality
+        let operator_map: HashMap<TokenType, Operator> = hashmap![
+            Plus => Operator::Addition,
+            PlusEquals => Operator::Addition,
+            Minus => Operator::Subtraction,
+            MinusEquals => Operator::Subtraction,
+            Star => Operator::Multiplication,
+            StarEquals => Operator::Multiplication,
+            Slash => Operator::Division,
+            SlashEquals => Operator::Division,
+            Percent => Operator::Modulus,
+            PercentEquals => Operator::Modulus,
+            LeftAngle => Operator::LessThan,
+            LessThanEquals => Operator::LessThanEquals,
+            RightAngle => Operator::GreaterThan,
+            GreaterThanEquals => Operator::GreaterThan,
+            DoubleEquals => Operator::Equality,
+            NotEquals => Operator::NonEquality
         ];
 
         Parser {
@@ -417,12 +432,12 @@ impl<T: Tokenizer> Parser<T> {
             expr_prefix_parsers: expr_prefix_map,
             expr_infix_parsers: expr_infix_map,
             token_operators: operator_map,
-            indent_rules: Vec::new()
+            indent_rules: Vec::new(),
         }
     }
 
     /// Parse a program and verify it for errors
-    pub fn parse_unit(&mut self) -> Result<Program, ParseError> {
+    pub fn parse_unit(&mut self) -> Result<Unit, ParseError> {
         let mut items = Vec::with_capacity(10);
         while self.next_type() != TokenType::EOF {
             let item = try!(self.item());
@@ -431,21 +446,14 @@ impl<T: Tokenizer> Parser<T> {
         }
         trace!("Parsed {} items", items.len());
         let unit = Unit::new(items);
-        trace!("Parsed unit {:#?}", unit);
-        let program = Verifier { }.verify_unit(unit);
-        program.map_err(|errors| ParseError::VerifierError { collection: errors })
+        Ok(unit)
     }
 
     /// Get the current precedence
     fn current_precedence(&mut self) -> Precedence {
         use std::ops::Deref;
-        let lookup: (TokenType, CowStr);
-        {
-            let looked_ahead = self.look_ahead(1);
-            lookup = (looked_ahead.data.get_type(),
-                      Cow::Owned(looked_ahead.text.deref().into()));
-        }
-        if let Some(infix_parser) = self.expr_infix_parsers.get(&lookup) {
+            let looked_ahead = self.look_ahead(1).get_type();
+        if let Some(infix_parser) = self.expr_infix_parsers.get(&looked_ahead).cloned() {
             infix_parser.get_precedence()
         } else {
             Precedence::Min

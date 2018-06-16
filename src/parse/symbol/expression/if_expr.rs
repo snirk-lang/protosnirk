@@ -1,7 +1,7 @@
 //! If expression parser.
 
-use lex::{tokens, Token, Tokenizer, TokenType, TokenData};
-use parse::ast::*;
+use lex::{Token, Tokenizer, TokenType, TokenData};
+use ast::*;
 use parse::{Parser, ParseError, ParseResult};
 use parse::symbol::{PrefixParser, Precedence};
 
@@ -26,11 +26,11 @@ impl<T: Tokenizer> PrefixParser<Expression, T> for IfExpressionParser {
         trace!("Parsing conditional of if expression");
         let condition = try!(parser.expression(Precedence::Min));
         trace!("Parsed if conditional");
-        try!(parser.consume_name(TokenType::Symbol, tokens::InlineArrow));
+        try!(parser.consume_type(TokenType::InlineArrow));
         trace!("Consumed inline arrow token");
         let true_expr = try!(parser.expression(Precedence::Min));
         trace!("Parsed sucess half of conditional");
-        try!(parser.consume_name(TokenType::Keyword, tokens::Else));
+        try!(parser.consume_type(TokenType::Else));
         trace!("Parsing else half of conditional");
         let else_expr = try!(parser.expression(Precedence::Min));
         let if_expr = IfExpression::new(token,

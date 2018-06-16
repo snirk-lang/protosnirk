@@ -1,8 +1,8 @@
 //! Parser for function declarations
 
-use lex::{tokens, Token, Tokenizer, TokenType, TokenData};
+use lex::{Token, Tokenizer, TokenType, TokenData};
+use ast::*;
 use parse::{Parser, ParseResult, ParseError, IndentationRule};
-use parse::ast::*;
 use parse::symbol::{PrefixParser, Precedence, AssignmentParser, InfixParser};
 
 /// Parses a function declaration.
@@ -15,58 +15,66 @@ use parse::symbol::{PrefixParser, Precedence, AssignmentParser, InfixParser};
 ///     stmt*
 ///
 /// fn foo (bar, baz, \+ bliz) -> int \- \+ stmt* \-
-/// fn foo(arg1, arg2, argn) => expr
 /// ```
 #[derive(Debug, PartialEq, Clone)]
 pub struct FnDeclarationParser { }
 impl<T: Tokenizer> PrefixParser<Item, T> for FnDeclarationParser {
     fn parse(&self, parser: &mut Parser<T>, token: Token) -> ParseResult<Item> {
-        debug_assert!(token.get_text() == tokens::Fn,
+        debug_assert!(token.get_type() == TokenType::Fn,
             "Unexpected token {:?} to fn parser", token);
         let name = try!(parser.lvalue());
 
         // Args
+
+        // TODO Eventually params should be a separate parser?
+        // altough the fn signature type parser would be a little different
+        // from the first-class-fn type parser.
+
         // left paren cannot be indented
-        try!(parser.consume_name(TokenType::Symbol, tokens::LeftParen));
+        try!(parser.consume_type(TokenType::LeftParen));
         // S1 -> ")", done | name, S2
         // S2 -> ",", S1 | ")", done
-        let mut args = Vec::new();
-        let mut arg_name = true;
+        let mut params = Vec::new();
+        let mut param_name = true;
         loop {
-            if parser.peek().get_text() == tokens::RightParen {
+            if parser.next_type() == TokenType::RightParen {
                 parser.consume(); // right paren
                 break
             }
             // name
-            if arg_name {
+            if param_name {
                 parser.apply_indentation(IndentationRule::NegateDeindent);
                 let name = try!(parser.lvalue());
-                args.push(name);
-                arg_name = false;
+                try!(parser.consume_type(TokenType::Colon));
+                let type_ = try!(parser.type_expr());
+                params.push((name, type_));
+                param_name = false;
             }
             // comma
             else {
-                try!(parser.consume_name_indented(TokenType::Symbol,
-                                                  tokens::Comma,
+                try!(parser.consume_type_indented(TokenType::Comma,
                                                   IndentationRule::NegateDeindent));
-                arg_name = true;
+                param_name = true;
             }
         }
-        // TODO `->` result type
 
-        // Inline fn syntax
-        let block = if parser.peek().get_text() == tokens::InlineArrow {
+        // Explicitly differentiating between omitted return type for block fns
+        // This is gonna be `None` for inline fns
+        let (return_ty, explicit) = if parser.next_type() == TokenType::Arrow {
             parser.consume();
-            Block::new(vec![Statement::Expression(
-                try!(parser.expression(Precedence::Min)))])
+            (try!(parser.type_expr()), true)
         }
-        // Indented fn syntax
         else {
-            try!(parser.consume_type(TokenType::BeginBlock));
-            try!(parser.block())
+            (TypeExpression::Named(NamedTypeExpression::new(Identifier::new(
+                Token::new_ident("()",
+                        name.get_token().get_location().clone())))), false)
         };
 
-        let decl = FnDeclaration::new(token, name, args, block);
-        Ok(Item::FnDeclaration(decl))
+        // This is gonna require a comment in the place of Python's `pass`.
+        try!(parser.consume_type(TokenType::BeginBlock));
+        let block = try!(parser.block());
+        Ok(Item::BlockFnDeclaration(BlockFnDeclaration::new(
+            token, name, params, return_ty, explicit, block
+        )))
     }
 }

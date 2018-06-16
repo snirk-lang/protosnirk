@@ -1,7 +1,7 @@
 //! Function call - inline `(`
 
-use lex::{tokens, Token, Tokenizer, TokenType, TokenData};
-use parse::ast::*;
+use lex::{Token, Tokenizer, TokenType, TokenData};
+use ast::*;
 use parse::{Parser, ParseResult, ParseError, IndentationRule};
 use parse::symbol::{InfixParser, Precedence};
 
@@ -18,15 +18,15 @@ impl<T: Tokenizer> InfixParser<Expression, T> for FnCallParser {
     fn parse(&self, parser: &mut Parser<T>,
              left: Expression, token: Token) -> ParseResult<Expression> {
         trace!("Parsing a function call of {:?}", left);
-        debug_assert!(token.get_text() == tokens::LeftParen,
+        debug_assert!(token.get_type() == TokenType::LeftParen,
             "FnCallParser: called on token {:?}", token);
 
         let lvalue = try!(left.expect_identifier());
 
-        let mut called_args = Vec::new();
+        let mut call_args = Vec::new();
         let mut arg_name = true;
         loop {
-            if parser.peek().get_text() == tokens::RightParen {
+            if parser.next_type() == TokenType::RightParen {
                 parser.consume();
                 trace!("Function call complete");
                 break
@@ -35,37 +35,35 @@ impl<T: Tokenizer> InfixParser<Expression, T> for FnCallParser {
                 trace!("Parsing an argument");
                 let arg = try!(parser.expression(Precedence::Min));
                 if let Expression::VariableRef(ident) = arg {
-                    trace!("Argument {} is probably named", ident.get_name());
-                    if parser.peek().get_text() == tokens::Colon {
+                    if parser.next_type() == TokenType::Colon {
                         trace!("Argument {} is a named arg", ident.get_name());
                         parser.consume();
                         let arg_value = try!(parser.expression(Precedence::Min));
-                        called_args.push(CallArgument::var_value(ident, arg_value));
+                        call_args.push(CallArgument::named(ident, arg_value));
                     }
                     else {
-                        trace!("Adding inferred `{0} = {0}`", ident.get_name());
-                        called_args.push(CallArgument::var_name(ident));
+                        //call_args.push(CallArgument::implicit(
+                        //    Expression::VariableRef(ident)));
+                        // https://github.com/immington-industries/protosnirk/issues/45
+                        return Err(ParseError::LazyString(
+                            "Non-named params not supported right now".into()))
                     }
                 }
-                // TODO need to give better errors/handle multiple exprs
-                // being written
                 else {
-                    try!(parser.consume_name_indented(TokenType::Symbol,
-                                                      tokens::RightParen,
+                    try!(parser.consume_type_indented(TokenType::RightParen,
                                                       IndentationRule::NegateDeindent));
-                    let fn_call = FnCall::single_expr(lvalue, token, arg);
-                    return Ok(Expression::FnCall(fn_call))
+                    trace!("Function call complete");
+                    break
                 }
                 arg_name = false;
             }
             else {
-                try!(parser.consume_name_indented(TokenType::Symbol,
-                                                  tokens::Comma,
+                try!(parser.consume_type_indented(TokenType::Comma,
                                                   IndentationRule::NegateDeindent));
                 arg_name = true;
             }
         }
-        let call = FnCall::named(lvalue, token, called_args);
+        let call = FnCall::new(lvalue, token, call_args);
         Ok(Expression::FnCall(call))
     }
 

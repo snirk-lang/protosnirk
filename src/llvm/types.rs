@@ -99,7 +99,6 @@ impl<'ctx> Type<'ctx> {
         let params_ptrs = unsafe {
             mem::transmute::<&mut [Type<'ctx>], &mut [LLVMTypeRef]>(params_ref)
         };
-        trace!("Param_ptrs: {:?}", params_ptrs);
         unsafe {
             Type::from_ref(LLVMFunctionType(ret.ptr(),
                              params_ptrs.as_mut_ptr(),
@@ -177,6 +176,13 @@ impl<'ctx> Type<'ctx> {
     }
 
     // From Core / Values / Constants / Scalar
+
+    pub fn const_int(&self, val: u64, sign_extend: bool) -> Value<'ctx> {
+        unsafe {
+            Value::from_ref(LLVMConstInt(self.ptr(),
+                val as c_ulonglong, sign_extend as LLVMBool))
+        }
+    }
 
     pub fn const_real(&self, n: f64) -> Value<'ctx> {
         unsafe {

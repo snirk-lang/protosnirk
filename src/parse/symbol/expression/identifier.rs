@@ -4,7 +4,7 @@
 
 use lex::{Token, Tokenizer, TokenType};
 use parse::{Parser, ParseResult};
-use parse::ast::*;
+use ast::*;
 use parse::symbol::PrefixParser;
 
 /// Returns an identifier
@@ -26,7 +26,7 @@ impl<T: Tokenizer> PrefixParser<Expression, T> for IdentifierParser {
 mod tests {
     use std::borrow::Cow;
     use lex::{Token, TokenData, TokenType, TextLocation};
-    use parse::ast::{Expression, Identifier};
+    use ast::{Expression, Identifier};
     use parse::symbol::{PrefixParser, IdentifierParser};
     use parse::tests as parse_tests;
 

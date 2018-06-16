@@ -3,9 +3,9 @@ use std::str::Chars;
 
 use lex::{Token, TokenData, TextLocation, Tokenizer, IterTokenizer};
 use lex::tests::make_tokenizer;
+use ast::*;
 use parse::{Parser};
 use parse::symbol::{self, Precedence};
-use parse::ast::*;
 
 pub fn expect_eq<T: ::std::fmt::Debug + PartialEq>(got: T, expected: T) {
     assert!(got == expected,
@@ -38,7 +38,7 @@ pub fn expression_match(expected: &Expression, got: &Expression) {
     match (expected, got) {
         (&Expression::Literal(ref lit), &Expression::Literal(ref lit2)) => {
             assert_eq!(lit.get_value(), lit2.get_value(),
-                "Expression mismatch in literals: expected {}, got {}",
+                "Expression mismatch in literals: expected {:?}, got {:?}",
                 lit.get_value(), lit2.get_value());
         },
         (&Expression::VariableRef(ref var), &Expression::VariableRef(ref var2)) => {
@@ -103,10 +103,10 @@ pub fn statement_match(expected: &Statement, got: &Statement) {
         (&Statement::Return(ref left), &Statement::Return(ref right)) => {
             println!("Checking return stmts");
             match (left.get_value(), right.get_value()) {
-                (&Some(ref left_val), &Some(ref right_val)) => {
+                (Some(ref left_val), Some(ref right_val)) => {
                     expression_match(left_val, right_val);
                 },
-                (&None, &None) => { },
+                (None, None) => { },
                 (ref left_val, ref right_val) => {
                     panic!("Return stmt values did not match:\nExpected {:#?}\nGot {:#?}",
                         left_val, right_val);
@@ -159,25 +159,46 @@ pub fn statement_match(expected: &Statement, got: &Statement) {
     }
 }
 
-//#[test]
-fn _parse_example() {
-    let inputs = &[
+pub const FACT_AND_HELPER: &str =
 r#"
-fn factHelper(acc, n)
+fn factHelper(acc: float, n: float) -> float
     if n == 0
         acc
     else
         factHelper(acc: acc * n, n: n - 1)
-fn fact(n)
+fn fact(n: float) -> float
     factHelper(n: n, acc: 1)
-"#,
-];
+"#;
+
+pub const BLOCKS_IN_BLOCKS: &str =
+r#"
+fn blocksInBlocks(x: float) -> float
+    do
+        do
+            if x < 0
+                do
+                    let y = x + 1
+                    y + 2
+            else if x == 1
+                let z = x - 1
+                z + 2
+            else
+                x + 1
+"#;
+
+#[ignore]
+#[test]
+fn parse_example() {
+    let inputs = &[FACT_AND_HELPER];
     ::env_logger::Builder::new()
         .parse("TRACE")
         .init();
     for input in inputs {
         let mut parser = parser(input);
-        trace!("Parsing input {:?}", input);
-        trace!("Resulting program:\n{:#?}", parser.parse_unit());
+        trace!("Parsing input:\n{}\n", input);
+        match parser.parse_unit() {
+            Ok(unit) => { trace!("Parsed unit: {:#?}", unit); }
+            Err(err) => { trace!("Error while parsing unit: {:?}", err); }
+        }
     }
 }

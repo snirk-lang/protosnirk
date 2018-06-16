@@ -1,8 +1,7 @@
 //! Error handling in parsers
 
 use lex::{CowStr, Token, TokenType};
-use parse::ast::{Expression};
-use parse::verify::ErrorCollector;
+use ast::{Expression};
 
 /// Result given from main and expression parsers
 pub type ParseResult<T> = Result<T, ParseError>;
@@ -20,9 +19,6 @@ pub enum ParseError {
     },
     ExpectedLValue(Expression),
     ExpectedRValue(Expression),
-    VerifierError {
-        collection: ErrorCollector
-    },
     UnknownOperator {
         text: CowStr,
         token_type: TokenType
@@ -39,5 +35,6 @@ pub enum ExpectedNextType {
     AnyItem,
     Lvalue,
     Rvalue,
+    TypeExpression,
     SpecificToken(CowStr),
 }
