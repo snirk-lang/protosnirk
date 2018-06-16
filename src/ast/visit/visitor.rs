@@ -6,7 +6,7 @@ use lex::Token;
 use ast::*;
 use ast::Expression as BaseExpression;
 
-pub use visit::default::*; // Reexport `DefaultVisitor`s here.
+pub use ast::visit::default::*; // Reexport `DefaultVisitor`s here.
 
 /// A visitor which can visit a unit of code.
 pub trait UnitVisitor {

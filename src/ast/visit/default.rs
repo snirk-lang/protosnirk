@@ -1,8 +1,7 @@
 //! Default visitors.
 
-use visit;
-use visit::visitor::*;
-use ast::*;
+use ast::{*, visit};
+use ast::visit::visitor::*;
 
 /// A trait which allows a `ItemVisitor` to become a `UnitVisitor`
 /// by visiting all items in a unit.

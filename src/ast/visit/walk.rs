@@ -1,7 +1,7 @@
 //! Methods for walking the AST.
 
 use ast::*;
-use visit::visitor::*;
+use ast::visit::visitor::*;
 
 /// Visit each item in a `Unit`.
 #[inline]
