@@ -31,11 +31,11 @@ impl<'err, 'builder> UnitVisitor for ExprTypeIdentifier<'err, 'builder> {
 
 impl<'err, 'builder> ItemVisitor for ExprTypeIdentifier<'err, 'builder> {
     fn visit_block_fn_decl(&mut self, block_fn: &BlockFnDeclaration) {
-        if block_fn.get_id().is_default() {
-            trace!("Skipping unidentified block fn {}", block_fn.get_name());
+        if block_fn.id().is_default() {
+            trace!("Skipping unidentified block fn {}", block_fn.name());
             return
         }
-        self.visit_block(block_fn.get_block());
+        self.visit_block(block_fn.block());
     }
 }
 
@@ -89,17 +89,17 @@ impl<'err, 'builder> ExpressionVisitor
 
     fn visit_fn_call(&mut self, fn_call: &FnCall) {
         // Technically shouldn't be allowed, but see #30 above.
-        for arg in fn_call.get_args() {
-            self.visit_expression(arg.get_expression());
+        for arg in fn_call.args() {
+            self.visit_expression(arg.expression());
         }
     }
 
     fn visit_assignment(&mut self, assign: &Assignment) {
-        self.visit_expression(assign.get_rvalue());
+        self.visit_expression(assign.rvalue());
     }
 
     fn visit_declaration(&mut self, declaration: &Declaration) {
-        if let Some(ref decl_ty) = declaration.get_type_decl() {
+        if let Some(ref decl_ty) = declaration.type_decl() {
             // visit the declaration
             TypeIdentifier::new(self.errors, self.builder)
                           .visit_type_expr(decl_ty);

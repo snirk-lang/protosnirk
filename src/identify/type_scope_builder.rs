@@ -45,11 +45,11 @@ impl TypeScopeBuilder {
         self.types.get(id)
     }
 
-    pub fn get_named_type_id(&self, name: &str) -> Option<&ScopedId> {
+    pub fn named_type_id(&self, name: &str) -> Option<&ScopedId> {
         self.names.get(name)
     }
 
-    pub fn get_named_type(&self, name: &str) -> Option<&ConcreteType> {
+    pub fn named_type(&self, name: &str) -> Option<&ConcreteType> {
         self.names.get(name).and_then(|id| self.types.get(id))
     }
 

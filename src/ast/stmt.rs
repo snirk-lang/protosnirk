@@ -50,10 +50,10 @@ impl Return {
             false
         }
     }
-    pub fn get_value(&self) -> Option<&Expression> {
+    pub fn value(&self) -> Option<&Expression> {
         self.value.as_ref().map(|expr| expr.as_ref())
     }
-    pub fn get_token(&self) -> &Token {
+    pub fn token(&self) -> &Token {
         &self.token
     }
 }
@@ -69,20 +69,20 @@ impl DoBlock {
         DoBlock { do_token: token, block: block }
     }
 
-    pub fn get_block(&self) -> &Block {
+    pub fn block(&self) -> &Block {
         &self.block
     }
 
-    pub fn get_id<'a>(&'a self) -> Ref<'a, ScopedId> {
-        self.block.get_id()
+    pub fn id<'a>(&'a self) -> Ref<'a, ScopedId> {
+        self.block.id()
     }
 
     pub fn set_id(&self, id: ScopedId) {
         self.block.set_id(id);
     }
 
-    pub fn get_source<'a>(&'a self) -> Ref<'a, Option<ScopedId>> {
-        self.block.get_source()
+    pub fn source<'a>(&'a self) -> Ref<'a, Option<ScopedId>> {
+        self.block.source()
     }
 
     pub fn set_source(&self, source: ScopedId) {
@@ -142,23 +142,23 @@ impl IfBlock {
     pub fn has_else(&self) -> bool {
         self.else_block.is_some()
     }
-    pub fn get_conditionals(&self) -> &Vec<Conditional> {
+    pub fn conditionals(&self) -> &Vec<Conditional> {
         &self.conditionals
     }
-    pub fn get_condition(&self) -> &Expression {
+    pub fn condition(&self) -> &Expression {
         &self.conditionals[0].condition
     }
-    pub fn get_else(&self) -> Option<&(Token, Block)> {
+    pub fn else_block(&self) -> Option<&(Token, Block)> {
         self.else_block.as_ref()
     }
-    pub fn get_id<'a>(&'a self) -> Ref<'a, ScopedId> {
+    pub fn id<'a>(&'a self) -> Ref<'a, ScopedId> {
         self.scoped_id.borrow()
     }
     pub fn set_id(&self, id: ScopedId) {
         *self.scoped_id.borrow_mut() = id;
     }
 
-    pub fn get_source<'a>(&'a self) -> Ref<'a, Option<ScopedId>> {
+    pub fn source<'a>(&'a self) -> Ref<'a, Option<ScopedId>> {
         self.source.borrow()
     }
     pub fn set_source(&self, source: ScopedId) {
@@ -179,18 +179,18 @@ impl Conditional {
             block: block
         }
     }
-    pub fn get_condition(&self) -> &Expression {
+    pub fn condition(&self) -> &Expression {
         &self.condition
     }
-    pub fn get_block(&self) -> &Block {
+    pub fn block(&self) -> &Block {
         &self.block
     }
-    pub fn get_token(&self) -> &Token {
+    pub fn token(&self) -> &Token {
         &self.if_token
     }
 
-    pub fn get_source<'a>(&'a self) -> Ref<'a, Option<ScopedId>> {
-        self.block.get_source()
+    pub fn source<'a>(&'a self) -> Ref<'a, Option<ScopedId>> {
+        self.block.source()
     }
 
     pub fn set_source(&self, source: ScopedId) {

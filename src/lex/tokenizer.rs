@@ -121,9 +121,9 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
         if self.indent_size_stack.len() > 1 {
             self.indent_size_stack.pop();
             trace!("Returning an outdent");
-            return Token::new_outdent(self.iter.get_location())
+            return Token::new_outdent(self.iter.location())
         }
-        return Token::new_eof(self.iter.get_location())
+        return Token::new_eof(self.iter.location())
     }
 
     /// Get the next `BlockBegin` token(s)
@@ -167,7 +167,7 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
         else if space_count > current_indent {
             trace!("Indentation greater, pushing {} and returning a BeginBlock", space_count);
             self.indent_size_stack.push(space_count);
-            Token::new_indent(self.iter.get_location())
+            Token::new_indent(self.iter.location())
         }
         else { // space_count < current_indent
             trace!("Indentation is less, going to emit outdents");
@@ -179,7 +179,7 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
     /// Emit all needed outdents until tabbing lines up.
     fn next_outdent(&mut self) -> Token {
         trace!("Calling next_outdent");
-        let location = self.iter.get_location();
+        let location = self.iter.location();
         trace!("Current pos: {:?}", location);
         trace!("Indent stack: {:?}", self.indent_size_stack);
         if self.indent_size_stack.len() > 1usize {
@@ -206,7 +206,7 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
             trace!("There shouldn't be any indentation but we are indented");
             self.indent_size_stack.push(location.column);
             self.tokenizer_state = TokenizerState::LookingForNewline;
-            return Token::new_indent(self.iter.get_location())
+            return Token::new_indent(self.iter.location())
         }
         trace!("next_outdent done with outdents, calling next_line");
         self.tokenizer_state = TokenizerState::LookingForNewline;
@@ -259,7 +259,7 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
             // Give an error for \r at EOF
             if self.iter.peek().is_none() {
                 // TODO error here
-                panic!("Hanging `\\r` at EOF, {:?}", self.iter.get_location());
+                panic!("Hanging `\\r` at EOF, {:?}", self.iter.location());
             }
             // Peek for the \n
             let expected_newline = self.iter.peek().expect("Already peeked");
@@ -294,7 +294,7 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
     /// it attempts to match bigger symbols
     fn parse_symbol(&mut self) -> Token {
         use lex::TokenizerSymbolRule::*;
-        let location = self.iter.get_location();
+        let location = self.iter.location();
         let mut sym = String::new();
 
         loop {
@@ -358,7 +358,7 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
     /// Parse keyword or identifier
     fn parse_keyword_or_ident(&mut self) -> Token {
         let mut token_string = String::new();
-        let location = self.iter.get_location();
+        let location = self.iter.location();
         let is_kw = self.take_while_ident(&mut token_string);
         if is_kw && self.keywords.get(&Cow::Borrowed(&*token_string)).is_some() {
             Token::new(token_string, location, TokenData::Keyword)
@@ -370,7 +370,7 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
     /// Parse a floating point literal
     fn parse_float_literal(&mut self) -> Token {
         let mut token_string = String::new();
-        let location = self.iter.get_location();
+        let location = self.iter.location();
         self.take_while(char::is_number, &mut token_string);
         // First part of number done. Is it a decimal?
         if self.iter.peek().unwrap_or(' ') == '.' {

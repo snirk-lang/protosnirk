@@ -41,7 +41,7 @@ impl<'err, 'builder, 'graph> ExprTypographer<'err, 'builder, 'graph> {
 
     /// Get the "injected" primitive type
     fn primitive_type_ix(&self, name: &str) -> NodeIndex {
-        self.builder.get_named_type_id(name)
+        self.builder.named_type_id(name)
             .and_then(|unary_id| self.graph.get_type(unary_id))
             .expect("Primitive")
     }
@@ -60,14 +60,14 @@ impl<'err, 'builder, 'graph> ItemVisitor
     for ExprTypographer<'err, 'builder, 'graph> {
 
     fn visit_block_fn_decl(&mut self, block_fn: &BlockFnDeclaration) {
-        trace!("Visiting fn {}", block_fn.get_name());
-        let fn_id = block_fn.get_id();
+        trace!("Visiting fn {}", block_fn.name());
+        let fn_id = block_fn.id();
         if fn_id.is_default() {
-            debug!("Skipping fn {}, has no ID", block_fn.get_name());
+            debug!("Skipping fn {}, has no ID", block_fn.name());
             return
         }
-        if block_fn.get_return_type().get_id().is_default() {
-            debug!("Skipping fn {}, unknown return type", block_fn.get_name());
+        if block_fn.return_type().id().is_default() {
+            debug!("Skipping fn {}, unknown return type", block_fn.name());
             return
         }
 
@@ -78,14 +78,14 @@ impl<'err, 'builder, 'graph> ItemVisitor
         // inferring returns.
 
         let need_ret_value =
-            block_fn.get_return_type().get_id().deref() !=
-            self.builder.get_named_type_id("()").expect("Primitive");
+            block_fn.return_type().id().deref() !=
+            self.builder.named_type_id("()").expect("Primitive");
 
         trace!("fn {} needs ret value? {}",
-            block_fn.get_name(), need_ret_value);
+            block_fn.name(), need_ret_value);
 
         let fn_ret_type = self.graph.get_type(
-            &block_fn.get_return_type().get_id())
+            &block_fn.return_type().id())
             .expect("Could not determine fn return type");
 
         self.fn_ret_type = fn_ret_type;
@@ -95,14 +95,14 @@ impl<'err, 'builder, 'graph> ItemVisitor
 
         // var_f: ty_f
         self.graph.add_inference(fn_ix, fn_ty_ix,
-            InferenceSource::FnSignature(block_fn.get_ident().clone()));
+            InferenceSource::FnSignature(block_fn.ident().clone()));
 
         // Add in connections to the parameter variables.
-        for &(ref param_ident, ref param_expr) in block_fn.get_params() {
+        for &(ref param_ident, ref param_expr) in block_fn.params() {
             trace!("Checking {} param {}",
-                block_fn.get_name(), param_ident.get_name());
-            let param_id = param_ident.get_id();
-            let param_ty_id = param_expr.get_id();
+                block_fn.name(), param_ident.name());
+            let param_id = param_ident.id();
+            let param_ty_id = param_expr.id();
 
             // x: <param type>
             let param_ix = self.graph.add_variable(param_id.clone());
@@ -113,17 +113,17 @@ impl<'err, 'builder, 'graph> ItemVisitor
                 InferenceSource::FnParameter(param_ident.clone()));
         }
 
-        self.visit_block(block_fn.get_block());
+        self.visit_block(block_fn.block());
 
         // If the function needs a return expression, the block _should have_
         // set its type to the current type and added an inference from its
         // type to the last expression, setting it up for an implicit return.
         if need_ret_value {
-            trace!("Inferring return value of {}", block_fn.get_name());
+            trace!("Inferring return value of {}", block_fn.name());
             // expr_inret: ty_fn_ret
             self.graph.add_inference(self.current_type,
                                      fn_ret_type,
-                InferenceSource::FnReturnType(block_fn.get_ident().clone()));
+                InferenceSource::FnReturnType(block_fn.ident().clone()));
         }
     }
 }
@@ -132,14 +132,14 @@ impl<'err, 'builder, 'graph> BlockVisitor
     for ExprTypographer<'err, 'builder, 'graph> {
 
     fn visit_block(&mut self, block: &Block) {
-        trace!("Visiting block with id {:?}", block.get_id());
-        if block.get_id().is_default() {
+        trace!("Visiting block with id {:?}", block.id());
+        if block.id().is_default() {
             debug!("Skipping block without ID");
             return
         }
 
         // A valued empty block will also have previously triggered an error.
-        if block.get_stmts().is_empty() {
+        if block.stmts().is_empty() {
             trace!("Visited empty block");
             self.current_type = self.primitive_type_ix("()");
             return
@@ -149,8 +149,8 @@ impl<'err, 'builder, 'graph> BlockVisitor
 
         if block.has_source() {
             trace!("Checking block {:?} with source {:?}",
-                block.get_id(), block.get_source().as_ref().expect("Checked"));
-            let block_ix = self.graph.add_variable(block.get_id().clone());
+                block.id(), block.source().as_ref().expect("Checked"));
+            let block_ix = self.graph.add_variable(block.id().clone());
             self.graph.add_inference(block_ix, self.current_type,
                 InferenceSource::ImplicitReturn);
             self.current_type = block_ix;
@@ -173,24 +173,24 @@ impl<'err, 'builder, 'graph> StatementVisitor
 
     fn visit_if_block(&mut self, if_block: &IfBlock) {
         trace!("Visiting if block");
-        if if_block.get_id().is_default() {
+        if if_block.id().is_default() {
             debug!("Skipping if block without ID");
             return
         }
 
         let valued_if = if_block.has_source();
-        let if_block_type = self.graph.add_variable(if_block.get_id().clone());
+        let if_block_type = self.graph.add_variable(if_block.id().clone());
 
         let bool_ty_ix = self.primitive_type_ix("bool");
-        for conditional in if_block.get_conditionals() {
+        for conditional in if_block.conditionals() {
             trace!("Checking conditional");
-            self.visit_expression(conditional.get_condition());
+            self.visit_expression(conditional.condition());
             let cond_ty_id = self.current_type;
             // tcond = tbool
             self.graph.add_inference(cond_ty_id, bool_ty_ix,
                 InferenceSource::IfConditionalBool);
 
-            self.visit_block(conditional.get_block());
+            self.visit_block(conditional.block());
             trace!("Checking conditional block");
             if valued_if {
                 trace!("Conditional block must match: {:?} == {:?}",
@@ -200,7 +200,7 @@ impl<'err, 'builder, 'graph> StatementVisitor
             }
         }
 
-        if let Some(&(_, ref block)) = if_block.get_else() {
+        if let Some(&(_, ref block)) = if_block.else_block() {
             trace!("Checking block else");
             self.visit_block(block);
             if valued_if {
@@ -225,7 +225,7 @@ impl<'err, 'builder, 'graph> StatementVisitor
         // t_ret_expr = tfn
         self.current_type = self.primitive_type_ix("()");
         // return <expr>
-        if let Some(expr) = return_.get_value() {
+        if let Some(expr) = return_.value() {
             self.visit_expression(expr);
             if self.current_type != self.primitive_type_ix("()") {
                 self.graph.add_inference(self.current_type,
@@ -248,14 +248,14 @@ impl<'err, 'builder, 'graph> ExpressionVisitor
     for ExprTypographer<'err, 'builder, 'graph> {
 
     fn visit_var_ref(&mut self, ident: &Identifier) {
-        trace!("Checking reference to {}", ident.get_name());
+        trace!("Checking reference to {}", ident.name());
         // Set the type id to be the ident's type.
         // tx
-        if ident.get_id().is_default() {
-            debug!("Skipping unidentified var {}", ident.get_name());
+        if ident.id().is_default() {
+            debug!("Skipping unidentified var {}", ident.name());
             return
         }
-        self.current_type = self.graph.get_variable(&ident.get_id())
+        self.current_type = self.graph.variable(&ident.id())
             .expect("Graph did not contain identified variable");
     }
 
@@ -291,16 +291,16 @@ impl<'err, 'builder, 'graph> ExpressionVisitor
 
         let if_expr_ty = self.graph.add_expression();
 
-        self.visit_expression(if_expr.get_condition());
+        self.visit_expression(if_expr.condition());
         let bool_ty_ix = self.primitive_type_ix("bool");
 
         self.graph.add_inference(self.current_type, bool_ty_ix,
             InferenceSource::IfConditionalBool);
 
-        self.visit_expression(if_expr.get_true_expr());
+        self.visit_expression(if_expr.true_expr());
         let left_ty_id = self.current_type;
 
-        self.visit_expression(if_expr.get_else());
+        self.visit_expression(if_expr.else_expr());
         let right_ty_id = self.current_type;
 
         // We do not point them at each other here to avoid a loop.
@@ -323,9 +323,9 @@ impl<'err, 'builder, 'graph> ExpressionVisitor
     fn visit_unary_op(&mut self, unary_op: &UnaryOperation) {
         let float_type = self.primitive_type_ix("float");
         // Require a numeric value for `-expr`
-        match unary_op.get_operator() {
+        match unary_op.operator() {
             Operator::Subtraction | Operator::Addition => {
-                self.visit_expression(unary_op.get_inner());
+                self.visit_expression(unary_op.inner());
                 // t_expr = tint
                 self.graph.add_inference(self.current_type, float_type,
                     InferenceSource::NumericOperator);
@@ -345,15 +345,15 @@ impl<'err, 'builder, 'graph> ExpressionVisitor
         use ast::Operator::*;
         // Depending on the binary operation, we can infer types of each side.
         // Get the left and right TypeIds.
-        self.visit_expression(bin_op.get_left());
+        self.visit_expression(bin_op.left());
         let left_type_id = self.current_type;
 
-        self.visit_expression(bin_op.get_right());
+        self.visit_expression(bin_op.right());
         let right_type_id = self.current_type;
 
         let binop_type = self.graph.add_expression();
 
-        match bin_op.get_operator() {
+        match bin_op.operator() {
             Equality | NonEquality => {
                 let bool_type = self.primitive_type_ix("bool");
                 // lhs and rhs must be the same type, result is bool.
@@ -401,17 +401,17 @@ impl<'err, 'builder, 'graph> ExpressionVisitor
 
     fn visit_assignment(&mut self, assign: &Assignment) {
         trace!("Visiting assignment");
-        self.visit_expression(assign.get_rvalue());
+        self.visit_expression(assign.rvalue());
 
         // var matches assignment type.
-        let lvalue_id = assign.get_lvalue().get_id();
+        let lvalue_id = assign.lvalue().id();
         if lvalue_id.is_default() {
             debug!("Skipping assignment to unknown lvalue {}",
-                assign.get_lvalue().get_name());
+                assign.lvalue().name());
             return
         }
 
-        let lvalue_type = self.graph.get_variable(&lvalue_id)
+        let lvalue_type = self.graph.variable(&lvalue_id)
             .expect("Graph did not have known lvalue of assignment");
 
         // tleft = tright
@@ -422,24 +422,24 @@ impl<'err, 'builder, 'graph> ExpressionVisitor
     }
 
     fn visit_declaration(&mut self, decl: &Declaration) {
-        trace!("Visiting declaration of {}", decl.get_ident().get_name());
+        trace!("Visiting declaration of {}", decl.ident().name());
 
-        self.visit_expression(decl.get_value());
+        self.visit_expression(decl.value());
 
         // var matches declaration and declared type.
-        let var_ix = self.graph.add_variable(decl.get_id().clone());
+        let var_ix = self.graph.add_variable(decl.id().clone());
 
-        if let Some(ty_expr) = decl.get_type_decl() {
-            let ty_ix = self.graph.get_type(&ty_expr.get_id())
+        if let Some(ty_expr) = decl.type_decl() {
+            let ty_ix = self.graph.get_type(&ty_expr.id())
                 .expect("Did not have type for existing type");
 
             // t_var: ty_expr
             self.graph.add_inference(var_ix, ty_ix,
-                InferenceSource::ExplicitDecl(decl.get_ident().clone()));
+                InferenceSource::ExplicitDecl(decl.ident().clone()));
         }
         // tvar = texpr
         self.graph.add_inference(var_ix, self.current_type,
-            InferenceSource::Declaration(decl.get_ident().clone()));
+            InferenceSource::Declaration(decl.ident().clone()));
 
         self.current_type = self.primitive_type_ix("()");
     }
@@ -448,7 +448,7 @@ impl<'err, 'builder, 'graph> ExpressionVisitor
         trace!("Visiting literal");
         // We create a new ID with the literal's type.
         let literal_type_id =
-            match *literal.get_value() {
+            match *literal.value() {
                 LiteralValue::Bool(_) => self.primitive_type_ix("bool"),
                 LiteralValue::Float(_) => self.primitive_type_ix("float"),
                 LiteralValue::Unit => self.primitive_type_ix("()")
@@ -462,29 +462,29 @@ impl<'err, 'builder, 'graph> ExpressionVisitor
     fn visit_fn_call(&mut self, fn_call: &FnCall) {
         use ast::CallArgument;
 
-        trace!("Visting a call to {}", fn_call.get_text());
+        trace!("Visting a call to {}", fn_call.text());
 
         // fn foo() => ...
         // let x = foo
         // let y = x(1, 2)
 
-        let fn_id = fn_call.get_id();
+        let fn_id = fn_call.id();
         if fn_id.is_default() {
-            debug!("Ignoring call to unknown function {}", fn_call.get_text());
+            debug!("Ignoring call to unknown function {}", fn_call.text());
             return
         }
 
         // Attempt to find the function, either through top-level declaration
         // or through local binding.
         let fn_ix = self.graph.get_type(&fn_id)
-            .or_else(|| self.graph.get_variable(&fn_id));
+            .or_else(|| self.graph.variable(&fn_id));
 
         if fn_ix.is_none() {
-            debug!("Could not find type of function {}", fn_call.get_text());
+            debug!("Could not find type of function {}", fn_call.text());
             self.errors.add_error(CheckerError::new(
-                fn_call.get_token().clone(),
+                fn_call.token().clone(),
                 vec![],
-                format!("Unknown function {}", fn_call.get_text())
+                format!("Unknown function {}", fn_call.text())
             ));
             return
         }
@@ -492,20 +492,20 @@ impl<'err, 'builder, 'graph> ExpressionVisitor
 
         // We create an indirect node between call arguments and the function
         // type which the graph will simplify later.
-        for (_arg_num, arg) in fn_call.get_args().iter().enumerate() {
+        for (_arg_num, arg) in fn_call.args().iter().enumerate() {
             // t_arg: fnArg(arg, fn)
-            self.visit_expression(arg.get_expression());
+            self.visit_expression(arg.expression());
             let expr_ty = self.current_type;
             // https://github.com/immington-industries/protosnirk/issues/45
             // implicit params will be available in the future.
-            let arg_infer = /*if let Some(ident) = arg.get_name()*/ {
-                self.graph.add_named_call_arg(arg.get_name().get_name().into(), fn_ix)
+            let arg_infer = /*if let Some(ident) = arg.name()*/ {
+                self.graph.add_named_call_arg(arg.name().name().into(), fn_ix)
             }
             /*else {
                 self.graph.add_call_arg(arg_num, fn_ix)
             }*/;
             self.graph.add_inference(arg_infer, expr_ty,
-                InferenceSource::CallArgument(fn_call.get_ident().clone()));
+                InferenceSource::CallArgument(fn_call.ident().clone()));
         }
 
         // t_current = t_return(fn)

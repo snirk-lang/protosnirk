@@ -27,15 +27,15 @@ impl<'err, 'builder> TypeIdentifier<'err, 'builder> {
 impl<'err, 'builder> TypeVisitor for TypeIdentifier<'err, 'builder> {
     fn visit_named_type_expr(&mut self, named_ty: &NamedTypeExpression) {
         if let Some(type_id) =
-            self.builder.get_named_type_id(named_ty.get_name()) {
+            self.builder.named_type_id(named_ty.name()) {
             // Found the already defined type.
             named_ty.set_id(type_id.clone());
         }
         else {
             self.errors.add_error(CheckerError::new(
-                named_ty.get_ident().get_token().clone(),
+                named_ty.ident().token().clone(),
                 vec![],
-                format!("Unknown type {}", named_ty.get_name())
+                format!("Unknown type {}", named_ty.name())
             ));
         }
     }

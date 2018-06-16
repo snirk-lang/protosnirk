@@ -19,7 +19,7 @@ impl Unit {
         Unit { items: items }
     }
     /// Gets the collection of exported items
-    pub fn get_items(&self) -> &[Item] {
+    pub fn items(&self) -> &[Item] {
         &self.items
     }
 }
@@ -55,34 +55,34 @@ impl BlockFnDeclaration {
         }
     }
     /// Get the `fn` token
-    pub fn get_token(&self) -> &Token {
+    pub fn token(&self) -> &Token {
         &self.fn_token
     }
     /// Get the identifier of the function
-    pub fn get_ident(&self) -> &Identifier {
+    pub fn ident(&self) -> &Identifier {
         &self.ident
     }
-    pub fn get_params(&self) -> &[(Identifier, TypeExpression)] {
+    pub fn params(&self) -> &[(Identifier, TypeExpression)] {
         &self.params
     } 
-    pub fn get_return_type(&self) -> &TypeExpression {
+    pub fn return_type(&self) -> &TypeExpression {
         &self.ret_ty
     }
     pub fn has_explicit_return_type(&self) -> bool {
         self.explicit_ret_ty
     }
-    pub fn get_id<'a>(&'a self) -> Ref<'a, ScopedId> {
-        self.ident.get_id()
+    pub fn id<'a>(&'a self) -> Ref<'a, ScopedId> {
+        self.ident.id()
     }
     pub fn set_id(&self, id: ScopedId) {
         self.ident.set_id(id);
     }
     /// Get the textual name of the function
-    pub fn get_name(&self) -> &str {
-        &self.ident.get_name()
+    pub fn name(&self) -> &str {
+        &self.ident.name()
     }
     /// Get the block inside the function
-    pub fn get_block(&self) -> &Block {
+    pub fn block(&self) -> &Block {
         &self.block
     }
 }

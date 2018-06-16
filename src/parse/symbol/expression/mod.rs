@@ -39,7 +39,7 @@ impl<T: Tokenizer> InfixParser<Expression, T> for BinOpExprSymbol {
         Ok(Expression::BinaryOp(
             BinaryOperation::new(bin_operator, token, Box::new(left), Box::new(right))))
     }
-    fn get_precedence(&self) -> Precedence {
+    fn precedence(&self) -> Precedence {
         self.precedence
     }
 }

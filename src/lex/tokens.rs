@@ -64,7 +64,7 @@ macro_rules! declare_tokens {
 
         impl Token {
             pub fn get_type(&self) -> TokenType {
-                match *self.get_data() {
+                match *self.data() {
                     TokenData::NumberLiteral(_)
                     | TokenData::UnitLiteral
                     | TokenData::BoolLiteral(_) => TokenType::Literal,
@@ -73,7 +73,7 @@ macro_rules! declare_tokens {
                     TokenData::EndBlock => TokenType::EndBlock,
                     TokenData::EOF => TokenType::EOF,
                     TokenData::Keyword => {
-                        match self.get_text() {
+                        match self.text() {
                             $(
                                 $kw_val => TokenType::$kw_name,
                             )*
@@ -81,7 +81,7 @@ macro_rules! declare_tokens {
                         }
                     },
                     TokenData::Symbol => {
-                        match self.get_text() {
+                        match self.text() {
                             $(
                                 $sym_val => TokenType::$sym_name,
                             )*
@@ -89,7 +89,7 @@ macro_rules! declare_tokens {
                         }
                     },
                     TokenData::TypeName => {
-                        match self.get_text() {
+                        match self.text() {
                             $(
                                 $ty_val => TokenType::$ty_name,
                             )*

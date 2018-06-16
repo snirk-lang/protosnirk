@@ -39,14 +39,14 @@ impl Identifier {
     pub fn new(token: Token) -> Self {
         Identifier { token, id: RefCell::default() }
     }
-    pub fn get_name(&self) -> &str {
-        &self.token.get_text()
+    pub fn name(&self) -> &str {
+        &self.token.text()
     }
-    pub fn get_token(&self) -> &Token {
+    pub fn token(&self) -> &Token {
         &self.token
     }
 
-    pub fn get_id<'a>(&'a self) -> Ref<'a, ScopedId> {
+    pub fn id<'a>(&'a self) -> Ref<'a, ScopedId> {
         self.id.borrow()
     }
 
@@ -83,16 +83,16 @@ impl Block {
         }
     }
 
-    pub fn get_stmts(&self) -> &[Statement] {
+    pub fn stmts(&self) -> &[Statement] {
         &self.statements
     }
-    pub fn get_id<'a>(&'a self) -> Ref<'a, ScopedId> {
+    pub fn id<'a>(&'a self) -> Ref<'a, ScopedId> {
         self.scope_id.borrow()
     }
     pub fn set_id(&self, id: ScopedId) {
         *self.scope_id.borrow_mut() = id;
     }
-    pub fn get_source<'a>(&'a self) -> Ref<'a, Option<ScopedId>> {
+    pub fn source<'a>(&'a self) -> Ref<'a, Option<ScopedId>> {
         self.source.borrow()
     }
     pub fn set_source(&self, source: ScopedId) {

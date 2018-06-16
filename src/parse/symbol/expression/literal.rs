@@ -15,7 +15,7 @@ use ast::*;
 pub struct LiteralParser { }
 impl<T: Tokenizer> PrefixParser<Expression, T> for LiteralParser {
     fn parse(&self, _parser: &mut Parser<T>, token: Token) -> ParseResult<Expression> {
-        match *token.get_data() {
+        match *token.data() {
             TokenData::NumberLiteral(val) =>
                 Ok(Expression::Literal(Literal::new(token, LiteralValue::Float(val)))),
             _ => Err(ParseError::ExpectedToken {

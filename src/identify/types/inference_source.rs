@@ -52,28 +52,28 @@ impl fmt::Debug for InferenceSource {
         use self::InferenceSource::*;
         match *self {
             FnSignature(ref id) => f.debug_tuple("IsTheFn")
-                                 .field(&id.get_name())
+                                 .field(&id.name())
                                  .finish(),
             FnReturnType(ref id) => f.debug_tuple("FnReturn")
-                                  .field(&id.get_name())
+                                  .field(&id.name())
                                   .finish(),
             FnParameter(ref id) => f.debug_tuple("FnParam")
-                                 .field(&id.get_name())
+                                 .field(&id.name())
                                  .finish(),
             CallArgument(ref id) => f.debug_tuple("CallArg")
-                                  .field(&id.get_name())
+                                  .field(&id.name())
                                   .finish(),
             CallReturnType(ref id) => f.debug_tuple("CallReturn")
-                                    .field(&id.get_name())
+                                    .field(&id.name())
                                     .finish(),
             ExplicitDecl(ref id) => f.debug_tuple("ExplicitLet")
-                                  .field(&id.get_name())
+                                  .field(&id.name())
                                   .finish(),
             Declaration(ref id) => f.debug_tuple("Let")
-                                 .field(&id.get_name())
+                                 .field(&id.name())
                                  .finish(),
             LiteralValue(ref lit) => f.debug_tuple("Literal")
-                                   .field(&lit.get_value())
+                                   .field(&lit.value())
                                    .finish(),
             IfConditionalBool => f.write_str("IfCond"),
             IfBranchesSame => f.write_str("IfBranchEq"),

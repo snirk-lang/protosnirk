@@ -59,7 +59,7 @@ impl<T: Tokenizer> Parser<T> {
     // line
     pub fn peek_is_newline(&mut self, current: &Token) -> bool {
         let (indent, peeked) = self.peek_indented();
-        indent || peeked.get_location().line > current.get_location().line
+        indent || peeked.location().line > current.location().line
     }
 
     /// Consumes the next token from the tokenizer.
@@ -166,7 +166,7 @@ impl<T: Tokenizer> Parser<T> {
             -> Result<Token, ParseError> {
         trace!("Consuming name {}", expected_name);
         let token = try!(self.consume_type(expected_type));
-        if token.get_text() != expected_name {
+        if token.text() != expected_name {
             Err(ParseError::ExpectedToken {
                 expected: expected_type,
                 got: token.into()
@@ -249,7 +249,7 @@ impl<T: Tokenizer> Parser<T> {
         }
         if let Some(found_parser) = self.expr_prefix_parsers.get(&token_type) {
             trace!("Found a parser to parse ({:?}, {:?})",
-                token.get_type(), token.get_text());
+                token.get_type(), token.text());
             prefix = found_parser.clone();
         }
         else {
@@ -459,7 +459,7 @@ impl<T: Tokenizer> Parser<T> {
         use std::ops::Deref;
             let looked_ahead = self.look_ahead(1).get_type();
         if let Some(infix_parser) = self.expr_infix_parsers.get(&looked_ahead).cloned() {
-            infix_parser.get_precedence()
+            infix_parser.precedence()
         } else {
             Precedence::Min
         }

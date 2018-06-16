@@ -36,7 +36,7 @@ impl<T: Tokenizer> InfixParser<Expression, T> for FnCallParser {
                 let arg = try!(parser.expression(Precedence::Min));
                 if let Expression::VariableRef(ident) = arg {
                     if parser.next_type() == TokenType::Colon {
-                        trace!("Argument {} is a named arg", ident.get_name());
+                        trace!("Argument {} is a named arg", ident.name());
                         parser.consume();
                         let arg_value = try!(parser.expression(Precedence::Min));
                         call_args.push(CallArgument::named(ident, arg_value));
@@ -67,7 +67,7 @@ impl<T: Tokenizer> InfixParser<Expression, T> for FnCallParser {
         Ok(Expression::FnCall(call))
     }
 
-    fn get_precedence(&self) -> Precedence {
+    fn precedence(&self) -> Precedence {
         Precedence::Paren
     }
 }

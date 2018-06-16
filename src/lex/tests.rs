@@ -594,7 +594,7 @@ fn log_parses(input: &'static str) {
         next = tokenizer.next();
     }
     for token in tokens {
-        trace!("{} ({:?})", token.get_text(), token.get_type());
+        trace!("{} ({:?})", token.text(), token.get_type());
     }
     trace!("===================\n");
 }

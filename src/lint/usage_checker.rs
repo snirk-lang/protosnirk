@@ -13,17 +13,17 @@ impl UsageChecker {
                 "Did not expect immutable {:?} to be mutated", sym);
             if !sym.is_used() {
                 let err_message = format!("{} {} is declared but never used",
-                    sym.get_source().get_name(),
-                    sym.get_declaration().text);
+                    sym.source().name(),
+                    sym.declaration().text);
                 warns.add_warning(
-                    CheckerError::new(sym.get_declaration().clone(), vec![], err_message));
+                    CheckerError::new(sym.declaration().clone(), vec![], err_message));
             }
             if sym.is_mutable() && !sym.is_mutated() {
                 let err_message = format!("{} {} is declared mutable but never mutated",
-                    sym.get_source().get_name(),
-                    sym.get_declaration().text);
+                    sym.source().name(),
+                    sym.declaration().text);
                 warns.add_warning(
-                    CheckerError::new(sym.get_declaration().clone(), vec![], err_message));
+                    CheckerError::new(sym.declaration().clone(), vec![], err_message));
             }
         }
     }
@@ -57,7 +57,7 @@ mod tests {
             vec![],
             "variable x is declared but never used".to_string())
         ];
-        assert_eq!(errors.get_warnings(), &*expected);
+        assert_eq!(errors.warnings(), &*expected);
     }
 
     #[test]
@@ -69,7 +69,7 @@ mod tests {
         sym_checker.check_block(&block);
         let (sym_table, mut errors) = sym_checker.decompose();
         UsageChecker { }.warn_for_unsused(&mut errors, &sym_table);
-        assert_eq!(errors.get_warnings(), &*vec![]);
+        assert_eq!(errors.warnings(), &*vec![]);
     }
 
     #[test]
@@ -81,7 +81,7 @@ mod tests {
         sym_checker.check_block(&block);
         let (sym_table, mut errors) = sym_checker.decompose();
         UsageChecker { }.warn_for_unsused(&mut errors, &sym_table);
-        assert_eq!(errors.get_warnings(), &*vec![]);
+        assert_eq!(errors.warnings(), &*vec![]);
     }
 
     #[test]
@@ -93,7 +93,7 @@ mod tests {
         sym_checker.check_block(&block);
         let (sym_table, mut errors) = sym_checker.decompose();
         UsageChecker { }.warn_for_unsused(&mut errors, &sym_table);
-        assert_eq!(errors.get_warnings(), &*vec![]);
+        assert_eq!(errors.warnings(), &*vec![]);
     }
 
     #[test]
@@ -105,7 +105,7 @@ mod tests {
         sym_checker.check_block(&block);
         let (sym_table, mut errors) = sym_checker.decompose();
         UsageChecker { }.warn_for_unsused(&mut errors, &sym_table);
-        assert_eq!(errors.get_warnings(), &*vec![]);
+        assert_eq!(errors.warnings(), &*vec![]);
     }
 
     #[test]
@@ -126,7 +126,7 @@ mod tests {
             vec![],
             "variable y is declared but never used".to_string())
         ];
-        assert_eq!(errors.get_warnings(), &*expected);
+        assert_eq!(errors.warnings(), &*expected);
     }
 
     #[test]
@@ -147,7 +147,7 @@ mod tests {
             vec![],
             "variable x is declared but never used".to_string())
         ];
-        assert_eq!(errors.get_warnings(), &*expected);
+        assert_eq!(errors.warnings(), &*expected);
     }
 
 }

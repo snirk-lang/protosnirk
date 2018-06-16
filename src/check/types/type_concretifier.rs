@@ -49,7 +49,7 @@ impl<'err, 'builder, 'graph> TypeConcretifier<'err, 'builder, 'graph> {
             Ok((_ix, ty)) => {
                 if let Some(concrete) = self.builder.get_type(&ty) {
                     debug!("Type of {} {:?} => {:?}",
-                        source.get_text(), id, ty);
+                        source.text(), id, ty);
                     self.results.insert(id.clone(), concrete.clone());
                     true
                 }
@@ -103,21 +103,21 @@ impl<'err, 'builder, 'graph> ItemVisitor
     for TypeConcretifier<'err, 'builder, 'graph> {
 
     fn visit_block_fn_decl(&mut self, block_fn: &BlockFnDeclaration) {
-        trace!("Visiting declaration of fn {}", block_fn.get_name());
-        self.infer_var(&block_fn.get_id(), block_fn.get_token(),
-            format!("fn declaration {}", block_fn.get_name()));
+        trace!("Visiting declaration of fn {}", block_fn.name());
+        self.infer_var(&block_fn.id(), block_fn.token(),
+            format!("fn declaration {}", block_fn.name()));
 
-        for &(ref param, ref _param_ty) in block_fn.get_params() {
+        for &(ref param, ref _param_ty) in block_fn.params() {
             trace!("Inferring the type of {} param {}",
-                block_fn.get_name(), param.get_name());
-            self.infer_var(&param.get_id(), param.get_token(),
+                block_fn.name(), param.name());
+            self.infer_var(&param.id(), param.token(),
                 format!("fn {} param {}",
-                    block_fn.get_name(), param.get_name()));
+                    block_fn.name(), param.name()));
         }
 
         // We can't attempt to infer the type of fn params right now because
         // they're not kept in the global scope:
-        self.visit_block(block_fn.get_block());
+        self.visit_block(block_fn.block());
     }
 }
 
@@ -125,20 +125,20 @@ impl<'err, 'builder, 'graph> BlockVisitor
     for TypeConcretifier<'err, 'builder, 'graph> {
 
     fn visit_block(&mut self, block: &Block) {
-        trace!("Visiting block {:?}", block.get_id());
+        trace!("Visiting block {:?}", block.id());
         if block.has_source() {
             trace!("Block {:?} has source {:?}, checking.",
-                block.get_id(), block.get_source());
+                block.id(), block.source());
 
             let context = Token::default();
-            self.infer_var(block.get_source().as_ref().expect("Checked expect"),
+            self.infer_var(block.source().as_ref().expect("Checked expect"),
                 &context,
-                format!("block {:?} source", block.get_id()));
-            self.infer_var(&block.get_id(), &context,
-                format!("block {:?}", block.get_id()));
+                format!("block {:?} source", block.id()));
+            self.infer_var(&block.id(), &context,
+                format!("block {:?}", block.id()));
         }
         else {
-            trace!("Block {:?} has no source", block.get_id());
+            trace!("Block {:?} has no source", block.id());
         }
 
         visit::walk_block(self, block);
@@ -172,8 +172,8 @@ impl<'err, 'builder, 'graph> ExpressionVisitor
     }
 
     fn visit_var_ref(&mut self, ident: &Identifier) {
-        self.infer_var(&ident.get_id(), ident.get_token(),
-            format!("Variable {}", ident.get_name()));
+        self.infer_var(&ident.id(), ident.token(),
+            format!("Variable {}", ident.name()));
     }
 
     fn visit_if_expr(&mut self, if_expr: &IfExpression) {
@@ -189,24 +189,24 @@ impl<'err, 'builder, 'graph> ExpressionVisitor
     }
 
     fn visit_fn_call(&mut self, fn_call: &FnCall) {
-        self.infer_var(&fn_call.get_id(), fn_call.get_token(),
-            format!("Call to {}", fn_call.get_text()));
-        for arg in fn_call.get_args() {
-            self.visit_expression(arg.get_expression());
+        self.infer_var(&fn_call.id(), fn_call.token(),
+            format!("Call to {}", fn_call.text()));
+        for arg in fn_call.args() {
+            self.visit_expression(arg.expression());
         }
     }
 
     fn visit_assignment(&mut self, assign: &Assignment) {
-        self.visit_expression(assign.get_rvalue());
-        self.infer_var(&assign.get_lvalue().get_id(),
-            assign.get_lvalue().get_token(),
+        self.visit_expression(assign.rvalue());
+        self.infer_var(&assign.lvalue().id(),
+            assign.lvalue().token(),
             format!("assignment to {}",
-                    assign.get_lvalue().get_name()));
+                    assign.lvalue().name()));
     }
 
     fn visit_declaration(&mut self, decl: &Declaration) {
-        self.visit_expression(decl.get_value());
-        self.infer_var(&decl.get_id(), decl.get_token(),
-            format!("definition of variable {}", decl.get_token()));
+        self.visit_expression(decl.value());
+        self.infer_var(&decl.id(), decl.token(),
+            format!("definition of variable {}", decl.token()));
     }
 }

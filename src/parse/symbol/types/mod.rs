@@ -21,7 +21,7 @@ impl<T: Tokenizer> PrefixParser<TypeExpression, T> for NamedTypeParser {
              -> ParseResult<TypeExpression> {
         debug_assert!(token.get_type() == TokenType::Ident,
             "NamedTypeParser called with non-name token {:?}", token);
-        trace!("Parsing named type {}", token.get_text());
+        trace!("Parsing named type {}", token.text());
         Ok(TypeExpression::Named(NamedTypeExpression::new(
             Identifier::new(token)
         )))

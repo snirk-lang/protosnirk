@@ -18,9 +18,9 @@ pub struct NamedTypeParser;
 
 impl<T: Tokenizer> PrefixParser<TypeExpression, T> for NamedTypeParser {
     fn parse(&self, parser: &mut Parser<T>, token: Token) -> ParseResult<TypeExpression> {
-        debug_assert!(token.get_type() == TokenType::Identifier,
+        debug_assert!(token.type() == TokenType::Identifier,
             "NamedTypeParser called with non-name token {:?}", token);
-        trace!("Parsing named type {}", token.get_text());
+        trace!("Parsing named type {}", token.text());
         let ident = Identifier::new(token);
         if parser.next_type() == TokenType::LeftAngle {
             // TODO this should be split into its own parser.
@@ -33,7 +33,7 @@ impl<T: Tokenizer> PrefixParser<TypeExpression, T> for NamedTypeParser {
             let mut expect_comma = false;
             loop {
                 let next = parser.consume();
-                match next.get_type() {
+                match next.type() {
                     TokenType::RightAngle => {
                         if params.is_empty() {
                             return Err(ParseError::LazyString("No params specified".into()))

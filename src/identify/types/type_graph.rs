@@ -79,7 +79,7 @@ impl TypeGraph {
         self.types.get(ty).cloned()
     }
 
-    pub fn get_variable(&self, var: &ScopedId) -> Option<NodeIndex> {
+    pub fn variable(&self, var: &ScopedId) -> Option<NodeIndex> {
         self.variables.get(var).cloned()
     }
 

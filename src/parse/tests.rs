@@ -25,9 +25,9 @@ pub fn eof_parser() -> Parser<IterTokenizer<Chars<'static>>> {
 
 /// Check that two tokens are equal, without looking at locatoin
 pub fn token_eq(expected: Token, got: Token) {
-    assert_eq!(expected.get_data(), got.get_data(),
+    assert_eq!(expected.data(), got.data(),
         "token_eq: {:?} != {:?}", expected, got);
-    assert_eq!(expected.get_text(), got.get_text(),
+    assert_eq!(expected.text(), got.text(),
         "token_eq: {:?} != {:?}", expected, got);
 }
 
@@ -37,56 +37,56 @@ pub fn token_eq(expected: Token, got: Token) {
 pub fn expression_match(expected: &Expression, got: &Expression) {
     match (expected, got) {
         (&Expression::Literal(ref lit), &Expression::Literal(ref lit2)) => {
-            assert_eq!(lit.get_value(), lit2.get_value(),
+            assert_eq!(lit.value(), lit2.value(),
                 "Expression mismatch in literals: expected {:?}, got {:?}",
-                lit.get_value(), lit2.get_value());
+                lit.value(), lit2.value());
         },
         (&Expression::VariableRef(ref var), &Expression::VariableRef(ref var2)) => {
-            assert_eq!(var.get_name(), var2.get_name(),
+            assert_eq!(var.name(), var2.name(),
                 "Variable reference mismatch: expected {:?}, got {:?}",
-                var.get_name(), var2.get_name());
+                var.name(), var2.name());
         },
         (&Expression::BinaryOp(ref bin), &Expression::BinaryOp(ref bin2)) => {
-            assert_eq!(bin.get_operator(), bin2.get_operator(),
+            assert_eq!(bin.operator(), bin2.operator(),
                 "Binary expression mismatch:\nExpected {:#?}\nGot: {:#?}",
                 bin, bin2);
-            println!("Checking {:?} lhs equality", bin.get_operator());
-            expression_match(bin.get_left(), bin2.get_left());
-            println!("Checking {:?} rhs equality", bin.get_operator());
-            expression_match(bin.get_right(), bin2.get_right());
+            println!("Checking {:?} lhs equality", bin.operator());
+            expression_match(bin.left(), bin2.left());
+            println!("Checking {:?} rhs equality", bin.operator());
+            expression_match(bin.right(), bin2.right());
         },
         (&Expression::UnaryOp(ref un), &Expression::UnaryOp(ref un2)) => {
-            assert_eq!(un.get_operator(), un2.get_operator(),
+            assert_eq!(un.operator(), un2.operator(),
                 "Unary expression mismatch:\nExpected {:#?}\nGot: {:#?}",
                 un, un2);
-            println!("Checking {:?} equality", un.get_operator());
-            expression_match(un.get_inner(), un2.get_inner());
+            println!("Checking {:?} equality", un.operator());
+            expression_match(un.inner(), un2.inner());
         },
         (&Expression::IfExpression(ref left), &Expression::IfExpression(ref right)) => {
             println!("Checking ifexpr equality");
-            expression_match(left.get_condition(), right.get_condition());
-            expression_match(left.get_true_expr(), right.get_true_expr());
-            expression_match(left.get_true_expr(), right.get_true_expr());
+            expression_match(left.condition(), right.condition());
+            expression_match(left.true_expr(), right.true_expr());
+            expression_match(left.true_expr(), right.true_expr());
         },
         (&Expression::FnCall(ref left), &Expression::FnCall(ref right)) => {
-            assert_eq!(left.get_text(), right.get_text(),
+            assert_eq!(left.text(), right.text(),
                 "Fn call mismatch:\nExpected: {:#?}\nGot: {:#?}",
                 left, right);
             // TODO match on args
         }
         (&Expression::Assignment(ref assign), &Expression::Assignment(ref assign2)) => {
-            assert_eq!(assign.get_lvalue(), assign2.get_lvalue(),
+            assert_eq!(assign.lvalue(), assign2.lvalue(),
                 "Assignment mismatch:\nExpected: {:#?}\nGot: {:#?}",
-                assign.get_lvalue(), assign2.get_lvalue());
-            println!("Checking assignment to {}", assign.get_lvalue().get_name());
-            expression_match(assign.get_rvalue(), assign2.get_rvalue());
+                assign.lvalue(), assign2.lvalue());
+            println!("Checking assignment to {}", assign.lvalue().name());
+            expression_match(assign.rvalue(), assign2.rvalue());
         },
         (&Expression::Declaration(ref dec), &Expression::Declaration(ref dec2)) => {
-            assert!(dec.get_name() == dec2.get_name() && dec.is_mut() == dec2.is_mut(),
+            assert!(dec.name() == dec2.name() && dec.is_mut() == dec2.is_mut(),
                 "Declaration mismatch:\nExpected: {:#?}\nGot: {:#?}",
                 dec, dec2);
-            println!("Checking declaration of {}", dec.get_name());
-            expression_match(dec.get_value(), dec2.get_value());
+            println!("Checking declaration of {}", dec.name());
+            expression_match(dec.value(), dec2.value());
         },
         (ref other, ref other2) => {
             panic!("Expressions did not match:\nExpected {:#?}\nGot {:#?}",
@@ -102,7 +102,7 @@ pub fn statement_match(expected: &Statement, got: &Statement) {
         },
         (&Statement::Return(ref left), &Statement::Return(ref right)) => {
             println!("Checking return stmts");
-            match (left.get_value(), right.get_value()) {
+            match (left.value(), right.value()) {
                 (Some(ref left_val), Some(ref right_val)) => {
                     expression_match(left_val, right_val);
                 },
@@ -115,22 +115,22 @@ pub fn statement_match(expected: &Statement, got: &Statement) {
         },
         (&Statement::DoBlock(ref left), &Statement::DoBlock(ref right)) => {
             println!("Checking do block match");
-            block_match(left.get_block(), right.get_block());
+            block_match(left.block(), right.block());
         },
         (&Statement::IfBlock(ref left), &Statement::IfBlock(ref right)) => {
             println!("Checking if blocks");
-            let left_conditionals = left.get_conditionals();
-            let right_conditionals = right.get_conditionals();
+            let left_conditionals = left.conditionals();
+            let right_conditionals = right.conditionals();
             assert_eq!(left_conditionals.len(), right_conditionals.len(),
                 "If block conditional length mismatch:\nExpected {:#?}\nGot: {:#?}",
                 left, right);
             for (left_cond, right_cond) in
                         left_conditionals.iter().zip(right_conditionals.iter()) {
                 println!("Checking if block conditional");
-                expression_match(left_cond.get_condition(), right_cond.get_condition());
-                block_match(left_cond.get_block(), right_cond.get_block());
+                expression_match(left_cond.condition(), right_cond.condition());
+                block_match(left_cond.block(), right_cond.block());
             }
-            match (left.get_else(), right.get_else()) {
+            match (left.else_block(), right.else_block()) {
                 (Some(&(_, ref left)), Some(&(_, ref right))) => {
                     println!("Checking else blocks");
                     block_match(left, right);
@@ -149,11 +149,11 @@ pub fn statement_match(expected: &Statement, got: &Statement) {
     }
 
     fn block_match(expected: &Block, got: &Block) {
-        assert_eq!(expected.get_stmts().len(), got.get_stmts().len(),
+        assert_eq!(expected.stmts().len(), got.stmts().len(),
             "Blocks had differing stmt counts:\nExpected: {:#?}\nGot: {:#?}",
             expected, got);
         for (ref left, ref right) in
-                    expected.get_stmts().iter().zip(got.get_stmts().iter()) {
+                    expected.stmts().iter().zip(got.stmts().iter()) {
             statement_match(left, right);
         }
     }

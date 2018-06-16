@@ -32,11 +32,11 @@
 //!
 //! # Invariants from this pass
 //!
-//! - Calling `.get_id()` on an `Identifier` in the `AST` should yield a valid
+//! - Calling `.id()` on an `Identifier` in the `AST` should yield a valid
 //! (non-default) `ScopedId` if the `Identifier` is being used in valid code.
 //! This applies to identifiers used for variables in expressions _and_ for
 //! identifiers used in type expressions.
-//! - Getting a default `ScopedId` from a call to `get_id()` is an indication of
+//! - Getting a default `ScopedId` from a call to `id()` is an indication of
 //! a variable or type not being defined or possibly being defined twice.
 //!
 //! In the future errors will be held in a `ScopeErrorMap` structure.

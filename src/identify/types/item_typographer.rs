@@ -35,21 +35,21 @@ impl<'builder, 'err, 'graph> ItemVisitor
     for ItemTypographer<'builder, 'err, 'graph> {
 
     fn visit_block_fn_decl(&mut self, block_fn: &BlockFnDeclaration) {
-        trace!("Visiting block fn {}", block_fn.get_name());
-        let fn_scope_id = block_fn.get_ident().get_id();
+        trace!("Visiting block fn {}", block_fn.name());
+        let fn_scope_id = block_fn.ident().id();
         if fn_scope_id.is_default() {
-            debug!("Ignoring unnamed fn {}", block_fn.get_name());
+            debug!("Ignoring unnamed fn {}", block_fn.name());
             return
         }
 
         match self.builder.get_type(&fn_scope_id) {
             Some(_ty) => {
                 trace!("Adding type of fn {} to graph",
-                    block_fn.get_name());
+                    block_fn.name());
                 self.graph.add_type(fn_scope_id.clone())
             }
             None => {
-                debug!("Ignoring unknown type fn {}", block_fn.get_name());
+                debug!("Ignoring unknown type fn {}", block_fn.name());
                 return
             }
         };
@@ -66,35 +66,35 @@ impl<'builder, 'err, 'graph> ItemVisitor
         // This check is done during this phase because the identify phase
         // does not have the type graph.
 
-        for &(ref param_ident, ref param_ty_expr) in block_fn.get_params() {
+        for &(ref param_ident, ref param_ty_expr) in block_fn.params() {
             trace!("Checking fn {} param {}",
-                block_fn.get_name(), param_ident.get_name());
+                block_fn.name(), param_ident.name());
             // t_param = t_param_expr
 
-            let param_ty_id = param_ty_expr.get_id();
+            let param_ty_id = param_ty_expr.id();
             // Stop if identify phase did not identify parameter type
             if param_ty_id.is_default() {
                 debug!("Ignoring fn {}, unknown type of param {}",
-                    block_fn.get_name(), param_ident.get_name());
+                    block_fn.name(), param_ident.name());
                 return
             }
 
-            let param_var_id = param_ident.get_id();
+            let param_var_id = param_ident.id();
             if param_var_id.is_default() {
                 debug!("Ignoring fn {}, unknown param {}",
-                    block_fn.get_name(), param_ident.get_name());
+                    block_fn.name(), param_ident.name());
                 return
             }
 
             let param_ty_ix = match self.builder.get_type(&param_ty_id) {
                 Some(_ty) => {
                     trace!("Ensuring type of fn {} param {} in graph",
-                        block_fn.get_name(), param_ident.get_name());
+                        block_fn.name(), param_ident.name());
                     self.graph.add_type(param_ty_id.clone())
                 },
                 None => {
                     debug!("Ignoring fn {}, unknown type of param {}",
-                        block_fn.get_name(), param_ident.get_name());
+                        block_fn.name(), param_ident.name());
                     return
                 }
             };
@@ -102,7 +102,7 @@ impl<'builder, 'err, 'graph> ItemVisitor
             let param_var_ix = self.graph.add_variable(param_var_id.clone());
 
             self.graph.add_inference(param_var_ix, param_ty_ix,
-                InferenceSource::FnParameter(block_fn.get_ident().clone()));
+                InferenceSource::FnParameter(block_fn.ident().clone()));
         }
 
         // Don't need to explicitly add the return type to the graph.

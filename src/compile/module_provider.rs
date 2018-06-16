@@ -1,8 +1,8 @@
 use llvm::{Module, FunctionPassManager};
 
 pub trait ModuleProvider<'ctx> {
-    fn get_module(&self) -> &Module<'ctx>;
-    fn get_pass_manager(&mut self) -> &FunctionPassManager;
+    fn module(&self) -> &Module<'ctx>;
+    fn pass_manager(&mut self) -> &FunctionPassManager;
 }
 
 pub struct SimpleModuleProvider<'ctx> {
@@ -28,10 +28,10 @@ impl<'ctx> SimpleModuleProvider<'ctx> {
 }
 
 impl<'ctx> ModuleProvider<'ctx> for SimpleModuleProvider<'ctx> {
-    fn get_module(&self) -> &Module<'ctx> {
+    fn module(&self) -> &Module<'ctx> {
         &self.module
     }
-    fn get_pass_manager(&mut self) -> &FunctionPassManager {
+    fn pass_manager(&mut self) -> &FunctionPassManager {
         &mut self.fn_pass_manager
     }
 }

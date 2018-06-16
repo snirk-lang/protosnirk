@@ -95,7 +95,7 @@ impl<T: Debug + Hash + Eq> ScopeBuilder<T> {
     }
 
     /// Get a variable defined in local scopeh
-    pub fn get_local<K: Borrow<T> + Debug>(&self, key: &K)
+    pub fn local<K: Borrow<T> + Debug>(&self, key: &K)
                                            -> Option<&ScopedId> {
         debug_assert!(!self.scopes.is_empty(),
             "Attempted to get local var {:?} with no scopes", key);
@@ -104,7 +104,7 @@ impl<T: Debug + Hash + Eq> ScopeBuilder<T> {
     }
 
     /// Get a variable, starting from the given scope
-    pub fn get_in_scope<K>(&self, key: &K, scope_level: usize)
+    pub fn in_scope<K>(&self, key: &K, scope_level: usize)
                            -> Option<&ScopedId> where K: Borrow<T> + Debug {
         debug_assert!(self.scopes.len() >= scope_level,
             "Do not have {} scopes to search, only have {}",

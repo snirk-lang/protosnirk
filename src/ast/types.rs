@@ -19,9 +19,9 @@ pub enum TypeExpression {
 }
 
 impl TypeExpression {
-    pub fn get_id(&self) -> Ref<ScopedId> {
+    pub fn id(&self) -> Ref<ScopedId> {
         match self {
-            &TypeExpression::Named(ref named) => named.get_id()
+            &TypeExpression::Named(ref named) => named.id()
         }
     }
 }
@@ -43,16 +43,16 @@ impl NamedTypeExpression {
     }
 
     /// Gets the identifier of this type.
-    pub fn get_ident(&self) -> &Identifier {
+    pub fn ident(&self) -> &Identifier {
         &self.ident
     }
 
-    pub fn get_name(&self) -> &str {
-        self.ident.get_name()
+    pub fn name(&self) -> &str {
+        self.ident.name()
     }
 
-    pub fn get_id<'a>(&'a self) -> Ref<'a, ScopedId> {
-        self.ident.get_id()
+    pub fn id<'a>(&'a self) -> Ref<'a, ScopedId> {
+        self.ident.id()
     }
 
     pub fn set_id<'a>(&'a self, id: ScopedId) {
