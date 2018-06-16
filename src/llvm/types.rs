@@ -99,7 +99,6 @@ impl<'ctx> Type<'ctx> {
         let params_ptrs = unsafe {
             mem::transmute::<&mut [Type<'ctx>], &mut [LLVMTypeRef]>(params_ref)
         };
-        trace!("Param_ptrs: {:?}", params_ptrs);
         unsafe {
             Type::from_ref(LLVMFunctionType(ret.ptr(),
                              params_ptrs.as_mut_ptr(),
