@@ -381,42 +381,42 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
                 token_string.pop();
                 let parsed: f64 = token_string.parse()
                     .expect("Couldn't parse float");
-                return Token {
-                    location: location,
-                    text: Cow::Owned(token_string),
-                    data: TokenData::NumberLiteral(parsed)
-                }
+                return Token::new(
+                    Cow::Owned(token_string),
+                    location,
+                    TokenData::NumberLiteral(parsed)
+                )
             }
             self.take_while(char::is_number, &mut token_string);
         }
         if self.iter.peek().unwrap_or(' ').to_lowercase().collect::<String>() != "e" {
             let parsed: f64 = token_string.parse()
                 .expect("Couldn't parse float");
-            return Token {
-                location: location,
-                text: Cow::Owned(token_string),
-                data: TokenData::NumberLiteral(parsed)
-            }
+            return Token::new(
+                Cow::Owned(token_string),
+                location,
+                TokenData::NumberLiteral(parsed)
+            )
         }
         token_string.push(self.iter.next().expect("Checked expect"));
         // Need numbers after the E
         if !self.iter.peek().unwrap_or(' ').is_number() {
             let parsed: f64 = token_string.parse()
                 .expect("Couldn't parse float");
-            return Token {
-                location: location,
-                text: Cow::Owned(token_string),
-                data: TokenData::NumberLiteral(parsed)
-            }
+            return Token::new(
+                Cow::Owned(token_string),
+                location,
+                TokenData::NumberLiteral(parsed)
+            )
         }
         self.take_while(char::is_number, &mut token_string);
         let parsed: f64 = token_string.parse()
             .expect("Couldn't parse float");
-        return Token {
-            location: location,
-            text: Cow::Owned(token_string),
-            data: TokenData::NumberLiteral(parsed)
-        }
+        return Token::new(
+            Cow::Owned(token_string),
+            location,
+            TokenData::NumberLiteral(parsed)
+        )
     }
 
     /// Continue taking characters while a condition is met

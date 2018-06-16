@@ -20,7 +20,7 @@ use parse::symbol::PrefixParser;
 pub struct DoBlockParser { }
 impl<T: Tokenizer> PrefixParser<Statement, T> for DoBlockParser {
     fn parse(&self, parser: &mut Parser<T>, token: Token) -> ParseResult<Statement> {
-        debug_assert!(token.text == "do",
+        debug_assert!(token.get_text() == "do",
             "Invalid token {:?} in DoBlockParser", token);
         if parser.next_type() == TokenType::BeginBlock {
             parser.consume();

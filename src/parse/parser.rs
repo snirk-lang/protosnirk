@@ -59,7 +59,7 @@ impl<T: Tokenizer> Parser<T> {
     // line
     pub fn peek_is_newline(&mut self, current: &Token) -> bool {
         let (indent, peeked) = self.peek_indented();
-        indent || peeked.location.line > current.location.line
+        indent || peeked.get_location().line > current.get_location().line
     }
 
     /// Consumes the next token from the tokenizer.
@@ -166,7 +166,7 @@ impl<T: Tokenizer> Parser<T> {
             -> Result<Token, ParseError> {
         trace!("Consuming name {}", expected_name);
         let token = try!(self.consume_type(expected_type));
-        if token.text != expected_name {
+        if token.get_text() != expected_name {
             Err(ParseError::ExpectedToken {
                 expected: expected_type,
                 got: token.into()
@@ -248,7 +248,8 @@ impl<T: Tokenizer> Parser<T> {
             _ => { /* We don't need to return early. */ }
         }
         if let Some(found_parser) = self.expr_prefix_parsers.get(&token_type) {
-            trace!("Found a parser to parse ({:?}, {:?})", token.get_type(), token.text);
+            trace!("Found a parser to parse ({:?}, {:?})",
+                token.get_type(), token.get_text());
             prefix = found_parser.clone();
         }
         else {
@@ -344,12 +345,16 @@ impl<T: Tokenizer> Parser<T> {
     }
 
     /// Gets the operator registered for the given token.
-    pub fn operator(&self, token_type: TokenType, text: &CowStr) -> Result<Operator, ParseError> {
+    pub fn operator(&self, token_type: TokenType) -> Result<Operator, ParseError> {
         use std::ops::Deref;
+        use std::borrow::Cow;
         if let Some(op) = self.token_operators.get(&token_type) {
             Ok(*op)
         } else {
-            Err(ParseError::UnknownOperator { text: text.clone(), token_type: token_type })
+            Err(ParseError::UnknownOperator {
+                text: Cow::from(format!("{:?}", token_type)),
+                token_type
+            })
         }
     }
 

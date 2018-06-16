@@ -21,7 +21,7 @@ pub struct IfExpressionParser { }
 impl<T: Tokenizer> PrefixParser<Expression, T> for IfExpressionParser {
     fn parse(&self, parser: &mut Parser<T>, token: Token)
             -> ParseResult<Expression> {
-        debug_assert!(token.text == "if",
+        debug_assert!(token.get_text() == "if",
             "Invlaid token {:?} in IfExpressionParser", token);
         trace!("Parsing conditional of if expression");
         let condition = try!(parser.expression(Precedence::Min));
