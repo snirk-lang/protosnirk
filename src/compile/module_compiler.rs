@@ -389,17 +389,19 @@ impl<'ctx, 'b, M> ExpressionVisitor for ModuleCompiler<'ctx, 'b, M>
     }
 
     fn visit_unary_op(&mut self, unary_op: &UnaryOperation) {
-        debug_assert!(unary_op.operator() == Operator::Subtraction,
+        debug_assert!(unary_op.operator() == UnaryOperator::Negation,
             "Invalid unary operator {:?}", unary_op.operator());
         self.visit_expression(unary_op.inner());
         let inner_value = self.ir_code.pop()
             .expect("Did not generate value inside unary op");
         let builder = self.builder;
         let (value, type_) = match unary_op.operator() {
-            Operator::Subtraction =>
+            UnaryOperator::Negation =>
                 (builder.build_neg(&inner_value, "negate"),
                 Type::double(&self.context)),
-            other => panic!("Invalid unary operator {:?}", other)
+            // The unary + operator is always a no-op.
+            UnaryOperator::Addition =>
+                (inner_value, self.current_type.clone())
         };
         self.current_type = type_;
         self.ir_code.push(value);
@@ -419,27 +421,27 @@ impl<'ctx, 'b, M> ExpressionVisitor for ModuleCompiler<'ctx, 'b, M>
         trace!("Appending binary operation");
         use llvm_sys::LLVMRealPredicate::*;
         let (bin_op_value, bin_op_type) = match binary_op.operator() {
-            Operator::Addition => {
+            BinaryOperator::Addition => {
                 (builder.build_fadd(&left_register, &right_register, "add"),
                 Type::double(&self.context))
             },
-            Operator::Subtraction => {
+            BinaryOperator::Subtraction => {
                 (builder.build_fsub(&left_register, &right_register, "sub"),
                 Type::double(&self.context))
             },
-            Operator::Multiplication => {
+            BinaryOperator::Multiplication => {
                 (builder.build_fmul(&left_register, &right_register, "mul"),
                 Type::double(&self.context))
             },
-            Operator::Division => {
+            BinaryOperator::Division => {
                 (builder.build_fdiv(&left_register, &right_register, "div"),
                 Type::double(&self.context))
             },
-            Operator::Modulus => {
+            BinaryOperator::Modulus => {
                 (builder.build_frem(&left_register, &right_register, "rem"),
                 Type::double(&self.context))
             },
-            Operator::Equality => {
+            BinaryOperator::Equality => {
                 let eq_type_kind = left_register.get_type().get_kind();
 
                 (if eq_type_kind == LLVMTypeKind::LLVMDoubleTypeKind {
@@ -456,27 +458,26 @@ impl<'ctx, 'b, M> ExpressionVisitor for ModuleCompiler<'ctx, 'b, M>
                 },
                 Type::int1(&self.context))
             },
-            Operator::NonEquality => {
+           BinaryOperator::NonEquality => {
                 (builder.build_fcmp(LLVMRealONE, &left_register, &right_register, "neqtmp"),
                 Type::int1(&self.context))
             },
-            Operator::LessThan => {
+           BinaryOperator::LessThan => {
                 (builder.build_fcmp(LLVMRealOLT, &left_register, &right_register, "lttmp"),
                 Type::int1(&self.context))
             },
-            Operator::LessThanEquals => {
+           BinaryOperator::LessThanEquals => {
                 (builder.build_fcmp(LLVMRealOLE, &left_register, &right_register, "letmp"),
                 Type::int1(&self.context))
             },
-            Operator::GreaterThan => {
+           BinaryOperator::GreaterThan => {
                 (builder.build_fcmp(LLVMRealOGT, &left_register, &right_register, "gttmp"),
                 Type::int1(&self.context))
             },
-            Operator::GreaterThanEquals => {
+           BinaryOperator::GreaterThanEquals => {
                 (builder.build_fcmp(LLVMRealOGE, &left_register, &right_register, "getmp"),
                 Type::int1(&self.context))
             }
-            Operator::Custom => panic!("Cannot handle custom operator")
         };
         self.current_type = bin_op_type;
         self.ir_code.push(bin_op_value);

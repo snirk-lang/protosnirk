@@ -324,7 +324,7 @@ impl<'err, 'builder, 'graph> ExpressionVisitor
         let float_type = self.primitive_type_ix("float");
         // Require a numeric value for `-expr`
         match unary_op.operator() {
-            Operator::Subtraction | Operator::Addition => {
+            UnaryOperator::Negation | UnaryOperator::Addition => {
                 self.visit_expression(unary_op.inner());
                 // t_expr = tint
                 self.graph.add_inference(self.current_type, float_type,
@@ -333,16 +333,11 @@ impl<'err, 'builder, 'graph> ExpressionVisitor
                 self.graph.add_inference(unary_op_expr_ty, float_type,
                     InferenceSource::NumericOperator);
             },
-            // This match should be exhaustive.
-            // https://github.com/immington-industries/protosnirk/issues/29
-            _ => {
-                unreachable!("Unexpected unary operation {:?}", unary_op);
-            }
         }
     }
 
     fn visit_binary_op(&mut self, bin_op: &BinaryOperation) {
-        use ast::Operator::*;
+        use ast::BinaryOperator::*;
         // Depending on the binary operation, we can infer types of each side.
         // Get the left and right TypeIds.
         self.visit_expression(bin_op.left());
@@ -392,9 +387,6 @@ impl<'err, 'builder, 'graph> ExpressionVisitor
                 self.graph.add_inference(binop_type, float_type,
                     InferenceSource::NumericOperator);
             },
-            Custom => {
-                unreachable!("Unexpected binary operation {:?}", bin_op)
-            }
         }
         self.current_type = binop_type;
     }
