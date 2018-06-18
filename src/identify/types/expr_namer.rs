@@ -39,7 +39,7 @@ impl<'err, 'builder> ItemVisitor for ExprTypeIdentifier<'err, 'builder> {
         self.visit_block(block_fn.block());
     }
 
-    fn visit_type_alias_decl(&mut self, _typedef: &TypeAliasDeclaration) {
+    fn visit_typedef(&mut self, _typedef: &Typedef) {
         // skip, only visiting expressions
     }
 }

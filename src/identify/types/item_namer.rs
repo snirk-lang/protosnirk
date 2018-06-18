@@ -71,7 +71,7 @@ impl<'err, 'builder> ItemVisitor for ItemTypeIdentifier<'err, 'builder> {
         self.builder.add_type(fn_decl.id().clone(), fn_concrete);
     }
 
-    fn visit_type_alias_decl(&mut self, typedef: &TypeAliasDeclaration) {
+    fn visit_typedef(&mut self, typedef: &Typedef) {
         trace!("Visiting typedef {}", typedef.name());
         if typedef.id().is_default() {
             debug!("Skipping typedef {} with default id", typedef.name());

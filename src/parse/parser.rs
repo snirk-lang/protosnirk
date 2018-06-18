@@ -430,7 +430,7 @@ impl<T: Tokenizer> Parser<T> {
         let item_prefix_map: HashMap<TokenType, Rc<PrefixParser<Item, T> + 'static>> =
         hashmap![
             Fn => Rc::new(FnDeclarationParser { }) as Rc<PrefixParser<Item, T>>,
-            Typedef => Rc::new(TypeAliasDeclarationParser { }) as Rc<PrefixParser<Item, T>>,
+            Typedef => Rc::new(TypedefParser { }) as Rc<PrefixParser<Item, T>>,
         ];
 
         Parser {

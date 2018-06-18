@@ -13,8 +13,8 @@ use parse::symbol::{PrefixParser, Precedence};
 /// ^take   ^ident ^take ^type_expr
 /// ```
 #[derive(Debug, PartialEq, Clone)]
-pub struct TypeAliasDeclarationParser { }
-impl<T: Tokenizer> PrefixParser<Item, T> for TypeAliasDeclarationParser {
+pub struct TypedefParser { }
+impl<T: Tokenizer> PrefixParser<Item, T> for TypedefParser {
     fn parse(&self, parser: &mut Parser<T>, token: Token) -> ParseResult<Item> {
         debug_assert!(token.get_type() == TokenType::Typedef,
             "Unexpected token {:?} to type alias parser", token);
@@ -25,7 +25,7 @@ impl<T: Tokenizer> PrefixParser<Item, T> for TypeAliasDeclarationParser {
 
         let type_ = try!(parser.type_expr());
 
-        Ok(Item::TypeAliasDeclaration(TypeAliasDeclaration::new(
+        Ok(Item::Typedef(Typedef::new(
             token, name, type_
         )))
     }

@@ -1,5 +1,5 @@
 mod function;
-mod type_alias;
+mod typedef;
 
 pub use self::function::FnDeclarationParser;
-pub use self::type_alias::TypeAliasDeclarationParser;
+pub use self::typedef::TypedefParser;

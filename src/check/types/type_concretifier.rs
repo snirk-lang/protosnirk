@@ -120,7 +120,7 @@ impl<'err, 'builder, 'graph> ItemVisitor
         self.visit_block(block_fn.block());
     }
 
-    fn visit_type_alias_decl(&mut self, typedef: &TypeAliasDeclaration) {
+    fn visit_typedef(&mut self, typedef: &Typedef) {
         trace!("Visiting typedef {}", typedef.name());
         self.infer_var(&typedef.id(), typedef.token(),
             format!("typedef {}", typedef.name()));

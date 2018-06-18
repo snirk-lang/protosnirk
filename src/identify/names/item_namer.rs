@@ -109,7 +109,7 @@ impl<'err, 'builder> ItemVisitor for ItemVarIdentifier<'err, 'builder> {
         self.current_id.increment();
     }
 
-    fn visit_type_alias_decl(&mut self, typedef: &TypeAliasDeclaration) {
+    fn visit_typedef(&mut self, typedef: &Typedef) {
         trace!("Visiting type alias {}", typedef.name());
         // We name type aliases in a pass before checking their contents.
         // This allows reverse lookup:

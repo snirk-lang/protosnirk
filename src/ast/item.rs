@@ -30,7 +30,7 @@ pub enum Item {
     /// Declaraion of a function
     BlockFnDeclaration(BlockFnDeclaration),
     /// Declaration of a type alias
-    TypeAliasDeclaration(TypeAliasDeclaration)
+    Typedef(Typedef)
 }
 
 /// Declaration of a function
@@ -92,18 +92,18 @@ impl BlockFnDeclaration {
 
 /// Declaration of a type alias
 #[derive(Debug, Clone, PartialEq)]
-pub struct TypeAliasDeclaration {
+pub struct Typedef {
     typedef_token: Token,
     alias_ident: Identifier,
     type_expr: TypeExpression
 }
 
-impl TypeAliasDeclaration {
+impl Typedef {
     pub fn new(typedef_token: Token,
                alias_ident: Identifier,
                type_expr: TypeExpression)
-               -> TypeAliasDeclaration {
-        TypeAliasDeclaration { typedef_token, alias_ident, type_expr }
+               -> Typedef {
+        Typedef { typedef_token, alias_ident, type_expr }
     }
 
     pub fn token(&self) -> &Token {

@@ -108,7 +108,7 @@ impl<'builder, 'err, 'graph> ItemVisitor
         // Don't need to explicitly add the return type to the graph.
     }
 
-    fn visit_type_alias_decl(&mut self, typedef: &TypeAliasDeclaration) {
+    fn visit_typedef(&mut self, typedef: &Typedef) {
         trace!("Visiting typedef {}", typedef.name());
         if typedef.id().is_default() {
             trace!("Skipping typedef {} with default ID", typedef.name());
