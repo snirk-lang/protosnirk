@@ -20,13 +20,6 @@ git:
 language: rust
 rust:
   - stable
-  - beta
-
-matrix:
-  allow_failures:
-    - rust:
-        - beta
-  fast_finish: true
 
 cache:
   - cargo
@@ -52,4 +45,4 @@ script:
   - find /usr/bin -name "*llvm*" | sort
   - llvm-config --version
   - cargo check --verbose
-  - cargo test --verbose
+  - cargo test --all --verbose
