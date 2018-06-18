@@ -1,31 +1,36 @@
 //! Operators are used to indicate whether the parser has encountered
 //! a standard operator or a custom one.
 
-/// Standard set of operators + custom
+/// Binary operators
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Operator {
-    /// Addition
+pub enum BinaryOperator {
+    /// Numeric addition
     Addition,
-    /// Subtraction **and** negation
+    /// Numeric subtraction
     Subtraction,
-    /// Multiplication
+    /// Numeric multiplication
     Multiplication,
-    /// Division
+    /// Numeric division
     Division,
-    /// Modulus
+    /// Numeric modulus
     Modulus,
     /// Equality test
     Equality,
     /// Non-equality test
     NonEquality,
-    // Less than test
+    // Numeric less than test
     LessThan,
-    /// Greater than test
+    /// Numeric reater than test
     GreaterThan,
-    /// Less than equals test
+    /// Numeric less than equals test
     LessThanEquals,
-    /// Greater than equals test
+    /// Numeric greater than equals test
     GreaterThanEquals,
-    /// Custom operator
-    Custom
+}
+
+/// Unary operators
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum UnaryOperator {
+    /// Negation
+    Negation,
 }
