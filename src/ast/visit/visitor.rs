@@ -19,11 +19,15 @@ pub trait ItemVisitor {
         match *item {
             Item::BlockFnDeclaration(ref block_fn_decl) => {
                 self.visit_block_fn_decl(block_fn_decl);
+            },
+            Item::TypeAliasDeclaration(ref type_alias_decl) => {
+                self.visit_type_alias_decl(type_alias_decl);
             }
         }
     }
 
     fn visit_block_fn_decl(&mut self, block_fn_decl: &BlockFnDeclaration);
+    fn visit_type_alias_decl(&mut self, type_alias_decl: &TypeAliasDeclaration);
 }
 
 /// A visitor which can visit type expressions in code.
