@@ -27,8 +27,3 @@ impl<T: Tokenizer> PrefixParser<Expression, T> for ParensParser {
         Ok(inner)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    // TODO test basic parens, unmatching, indentation
-}

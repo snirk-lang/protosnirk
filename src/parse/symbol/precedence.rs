@@ -2,7 +2,6 @@
 
 use std::mem;
 
-#[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Precedence {
     /// Extra value on the end
@@ -29,16 +28,4 @@ pub enum Precedence {
     Paren,
     /// Extra value on the end
     Max
-}
-
-#[cfg(test)]
-mod test {
-    use std::mem;
-    use super::*;
-
-    #[test]
-    fn it_has_derived_ord() {
-        assert!(Precedence::Max > Precedence::Min);
-        assert!(Precedence::MulDiv > Precedence::AddSub);
-    }
 }
