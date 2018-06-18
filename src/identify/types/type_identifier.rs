@@ -12,7 +12,7 @@ use identify::TypeScopeBuilder;
 #[derive(Debug)]
 pub struct TypeIdentifier<'err, 'builder> {
     errors: &'err mut ErrorCollector,
-    /// New types cannot be defined yet.
+    /// New types cannot be defined within type expressions.
     builder: &'builder TypeScopeBuilder,
 }
 
@@ -26,12 +26,14 @@ impl<'err, 'builder> TypeIdentifier<'err, 'builder> {
 
 impl<'err, 'builder> TypeVisitor for TypeIdentifier<'err, 'builder> {
     fn visit_named_type_expr(&mut self, named_ty: &NamedTypeExpression) {
+        trace!("Identifying named type {}", named_ty.name());
         if let Some(type_id) =
             self.builder.named_type_id(named_ty.name()) {
             // Found the already defined type.
             named_ty.set_id(type_id.clone());
         }
         else {
+            debug!("Did not have type_id for named type {}", named_ty.name());
             self.errors.add_error(CheckerError::new(
                 named_ty.ident().token().clone(),
                 vec![],

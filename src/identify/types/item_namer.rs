@@ -45,6 +45,8 @@ impl<'err, 'builder> ItemVisitor for ItemTypeIdentifier<'err, 'builder> {
                            .visit_type_expr(param_ty_expr);
             // Stop if we can't idenify a parameter type.
             if param_ty_expr.id().is_default() {
+                debug!("Unable to identify type of {} param {}",
+                    fn_decl.name(), param_ident.name());
                 return
             }
             let param_ty = self.builder.get_type(&param_ty_expr.id())
@@ -56,7 +58,10 @@ impl<'err, 'builder> ItemVisitor for ItemTypeIdentifier<'err, 'builder> {
         TypeIdentifier::new(self.errors, self.builder)
                        .visit_type_expr(return_ty);
 
-        if return_ty.id().is_default() { return }
+        if return_ty.id().is_default() {
+            debug!("Unable to identify return type of {}", fn_decl.name());
+            return
+        }
         let ret_ty = self.builder.get_type(&return_ty.id())
             .expect("TypeIdentifier did not update param's type ID")
             .clone();
@@ -64,5 +69,45 @@ impl<'err, 'builder> ItemVisitor for ItemTypeIdentifier<'err, 'builder> {
         let fn_concrete = ConcreteType::Function(
             FnType::new(arg_types, ret_ty));
         self.builder.add_type(fn_decl.id().clone(), fn_concrete);
+    }
+
+    fn visit_type_alias_decl(&mut self, typedef: &TypeAliasDeclaration) {
+        trace!("Visiting typedef {}", typedef.name());
+        if typedef.id().is_default() {
+            debug!("Skipping typedef {} with default id", typedef.name());
+            return
+        }
+        // Ensure the `ScopedId` of the alias's type_epxr  is set.
+        TypeIdentifier::new(self.errors, self.builder)
+            .visit_type_expr(typedef.type_expr());
+        let type_expr_id = typedef.type_expr().id();
+
+        if type_expr_id.is_default() {
+            debug!("Unable to identify type of typedef {}", typedef.name());
+            return
+        }
+        else if *type_expr_id == *typedef.id() {
+            debug!("Found circular definition of typedef {}", typedef.name());
+            // Won't catch indirection:
+            // typedef Foo = Bar
+            // typedef Bar = Foo
+            // But we can do this in the type graph.
+            // I'd rather catch this one faster, it's also way less likely.
+            self.errors.add_error(CheckerError::new(
+                typedef.token().clone(),
+                vec![],
+                format!("Circular definiton of typedef {}", typedef.name())
+            ));
+        }
+
+        let typedef_ty = self.builder.get_type(&typedef.type_expr().id())
+            .expect("TypeIdentifier did not update typedef's type ID")
+            .clone();
+
+        // Add the type at the builder level.
+
+        self.builder.add_named_type(typedef.name().into(),
+                                    typedef.id().clone(),
+                                    typedef_ty);
     }
 }

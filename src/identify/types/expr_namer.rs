@@ -31,11 +31,16 @@ impl<'err, 'builder> UnitVisitor for ExprTypeIdentifier<'err, 'builder> {
 
 impl<'err, 'builder> ItemVisitor for ExprTypeIdentifier<'err, 'builder> {
     fn visit_block_fn_decl(&mut self, block_fn: &BlockFnDeclaration) {
+        trace!("Visiting declaration of fn {}", block_fn.name());
         if block_fn.id().is_default() {
             trace!("Skipping unidentified block fn {}", block_fn.name());
             return
         }
         self.visit_block(block_fn.block());
+    }
+
+    fn visit_type_alias_decl(&mut self, _typedef: &TypeAliasDeclaration) {
+        // skip, only visiting expressions
     }
 }
 

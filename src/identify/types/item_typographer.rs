@@ -107,4 +107,30 @@ impl<'builder, 'err, 'graph> ItemVisitor
 
         // Don't need to explicitly add the return type to the graph.
     }
+
+    fn visit_type_alias_decl(&mut self, typedef: &TypeAliasDeclaration) {
+        trace!("Visiting typedef {}", typedef.name());
+        if typedef.id().is_default() {
+            trace!("Skipping typedef {} with default ID", typedef.name());
+            return
+        }
+
+        let type_expr_ix = match self.builder.get_type(&typedef.type_expr().id()) {
+            Some(_ty) => {
+                trace!("Ensuring type of typedef {} in graph", typedef.name());
+                self.graph.add_type(typedef.type_expr().id().clone())
+            },
+            None => {
+                debug!("Ignoring typedef {} which aliases unknown type",
+                    typedef.name());
+                return
+            }
+        };
+
+        let typedef_ix = self.graph.add_variable(typedef.id().clone());
+
+        // t_typedef = t_expr
+        self.graph.add_inference(typedef_ix, type_expr_ix,
+            InferenceSource::Typedef(typedef.ident().clone()));
+    }
 }

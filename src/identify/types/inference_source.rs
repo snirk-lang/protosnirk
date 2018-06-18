@@ -16,6 +16,8 @@ pub enum InferenceSource {
     FnReturnType(Identifier),
     /// Inference source is the parameter of a function.
     FnParameter(Identifier),
+    /// Inference source is a typedef alias.
+    Typedef(Identifier),
     /// Inference source is the call argument of a function.
     CallArgument(Identifier),
     /// Inference source is the return type of a call.
@@ -60,6 +62,9 @@ impl fmt::Debug for InferenceSource {
             FnParameter(ref id) => f.debug_tuple("FnParam")
                                  .field(&id.name())
                                  .finish(),
+            Typedef(ref id) => f.debug_tuple("Typedef")
+                                .field(&id.name())
+                                .finish(),
             CallArgument(ref id) => f.debug_tuple("CallArg")
                                   .field(&id.name())
                                   .finish(),

@@ -76,7 +76,9 @@ impl TypeGraph {
     }
 
     pub fn get_type(&self, ty: &ScopedId) -> Option<NodeIndex> {
-        self.types.get(ty).cloned()
+        self.types.get(ty)
+            .cloned()
+            .or_else(|| self.variables.get(ty).cloned())
     }
 
     pub fn variable(&self, var: &ScopedId) -> Option<NodeIndex> {
@@ -84,9 +86,10 @@ impl TypeGraph {
     }
 
     pub fn add_type(&mut self, ty: ScopedId) -> NodeIndex {
-        if let Some(found_ix) = self.types.get(&ty) {
-            return *found_ix
+        if let Some(found_ix) = self.get_type(&ty) {
+            return found_ix
         }
+        trace!("Adding new type {:?}", ty);
         let new_ix = self.graph.add_node(TypeNode::ConcreteType(ty.clone()));
         self.types.insert(ty, new_ix);
         new_ix
@@ -135,7 +138,7 @@ impl TypeGraph {
 
     pub fn infer_type_of_var(&mut self, var: &ScopedId)
                                         -> Result<(NodeIndex, ScopedId),
-                                                   Vec<NodeIndex>> {
+                                                   Vec<ScopedId>> {
         trace!("Inferring type of {:?}", var);
         let var_ix = self.variables.get(var);
         if var_ix.is_none() {
@@ -159,11 +162,19 @@ impl TypeGraph {
                 &TypeNode::ConcreteType(ref id) => {
                     return Ok((found_ix, id.clone()))
                 }
-                _ => unreachable!("Did not add non concrete types to search")
+                _ => unreachable!("Did not add non concrete types to found")
             }
         }
         else {
-            Err(found)
+            let found_with_info = found.iter().map(|found_ix| {
+                match &self.graph[*found_ix] {
+                    &TypeNode::ConcreteType(ref id) => {
+                        id.clone()
+                    },
+                    _ => unreachable!("Did not add non-concrete types to found")
+                }
+            }).collect::<Vec<ScopedId>>();
+            Err(found_with_info)
         }
     }
 
@@ -212,7 +223,7 @@ mod tests {
     #[test]
     fn create_type_graph() {
         let (.., graph)
-            = identify_tests::identify(parse_tests::BLOCKS_IN_BLOCKS);
+            = identify_tests::identify(parse_tests::FLOAT_TYPE_ALIAS);
         graph.write_svg("/tmp/type-graph.svg");
     }
 
