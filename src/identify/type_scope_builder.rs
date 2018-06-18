@@ -1,6 +1,6 @@
 //!
 
-use ast::ScopedId;
+use ast::{ScopedId, Identifier};
 use identify::{ConcreteType, NamedType};
 
 use std::collections::HashMap;
@@ -54,10 +54,12 @@ impl TypeScopeBuilder {
     }
 
     /// Add a new concrete type with the given ID to the type scope.
-    ///
-    /// This is used for adding function types, which are not tracked by name
-    /// but instead by ID, as they are first identified for expressions.
     pub fn add_type(&mut self, id: ScopedId, ty: ConcreteType) {
+        self.types.insert(id, ty);
+    }
+
+    pub fn add_named_type(&mut self, name: String, id: ScopedId, ty: ConcreteType) {
+        self.names.insert(name.clone(), id.clone());
         self.types.insert(id, ty);
     }
 }
