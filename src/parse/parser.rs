@@ -352,8 +352,11 @@ impl<T: Tokenizer> Parser<T> {
             Minus => Ok(BinaryOperator::Subtraction),
             Star => Ok(BinaryOperator::Multiplication),
             Slash => Ok(BinaryOperator::Division),
+            Percent => Ok(BinaryOperator::Modulus),
             DoubleEquals => Ok(BinaryOperator::Equality),
             NotEquals => Ok(BinaryOperator::NonEquality),
+            LeftAngle => Ok(BinaryOperator::LessThan),
+            RightAngle => Ok(BinaryOperator::GreaterThan),
             LessThanEquals => Ok(BinaryOperator::LessThanEquals),
             GreaterThanEquals => Ok(BinaryOperator::GreaterThanEquals),
             _ => Err(ParseError::UnknownOperator {
