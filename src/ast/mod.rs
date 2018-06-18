@@ -22,7 +22,7 @@ pub use self::index::*;
 pub use self::expression::*;
 pub use self::item::*;
 pub use self::stmt::*;
-pub use self::operator::Operator;
+pub use self::operator::*;
 pub use self::types::*;
 
 use std::cell::{Cell, RefCell, Ref};

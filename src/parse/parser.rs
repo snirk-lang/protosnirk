@@ -28,8 +28,6 @@ pub struct Parser<T: Tokenizer> {
     expr_prefix_parsers: HashMap<TokenType, Rc<PrefixParser<Expression, T> + 'static>>,
     /// Parses for parsing program items (struct/enum/fn declarations, etc.)
     item_parsers: HashMap<TokenType, Rc<PrefixParser<Item, T> + 'static>>,
-    /// Mapping of tokens to applied operators
-    token_operators: HashMap<TokenType, Operator>,
     /// Allows the parser to skip over unneeded indentation
     indent_rules: Vec<IndentationRule>,
 }
@@ -344,17 +342,40 @@ impl<T: Tokenizer> Parser<T> {
         }
     }
 
-    /// Gets the operator registered for the given token.
-    pub fn operator(&self, token_type: TokenType) -> Result<Operator, ParseError> {
-        use std::ops::Deref;
-        use std::borrow::Cow;
-        if let Some(op) = self.token_operators.get(&token_type) {
-            Ok(*op)
-        } else {
-            Err(ParseError::UnknownOperator {
-                text: Cow::from(format!("{:?}", token_type)),
-                token_type
-            })
+    /// Gets the binary operator used for the given token.
+    pub fn binary_operator(&self,
+                           token_type: TokenType)
+                           -> Result<BinaryOperator, ParseError> {
+        use lex::TokenType::*;
+        match token_type {
+            Plus => Ok(BinaryOperator::Addition),
+            Minus => Ok(BinaryOperator::Subtraction),
+            Star => Ok(BinaryOperator::Multiplication),
+            Slash => Ok(BinaryOperator::Division),
+            Percent => Ok(BinaryOperator::Modulus),
+            DoubleEquals => Ok(BinaryOperator::Equality),
+            NotEquals => Ok(BinaryOperator::NonEquality),
+            LeftAngle => Ok(BinaryOperator::LessThan),
+            RightAngle => Ok(BinaryOperator::GreaterThan),
+            LessThanEquals => Ok(BinaryOperator::LessThanEquals),
+            GreaterThanEquals => Ok(BinaryOperator::GreaterThanEquals),
+            _ => Err(ParseError::UnknownOperator {
+                    text: Cow::from(format!("{:?}", token_type)),
+                    token_type
+                })
+        }
+    }
+
+    pub fn unary_operator(&self,
+                          token_type: TokenType)
+                          -> Result<UnaryOperator, ParseError> {
+        use lex::TokenType::*;
+        match token_type {
+            Minus => Ok(UnaryOperator::Negation),
+            _ => Err(ParseError::UnknownOperator {
+                    text: Cow::from(format!("{:?}", token_type)),
+                    token_type
+                })
         }
     }
 
@@ -410,24 +431,6 @@ impl<T: Tokenizer> Parser<T> {
         hashmap![
             Fn => Rc::new(FnDeclarationParser { }) as Rc<PrefixParser<Item, T>>,
         ];
-        let operator_map: HashMap<TokenType, Operator> = hashmap![
-            Plus => Operator::Addition,
-            PlusEquals => Operator::Addition,
-            Minus => Operator::Subtraction,
-            MinusEquals => Operator::Subtraction,
-            Star => Operator::Multiplication,
-            StarEquals => Operator::Multiplication,
-            Slash => Operator::Division,
-            SlashEquals => Operator::Division,
-            Percent => Operator::Modulus,
-            PercentEquals => Operator::Modulus,
-            LeftAngle => Operator::LessThan,
-            LessThanEquals => Operator::LessThanEquals,
-            RightAngle => Operator::GreaterThan,
-            GreaterThanEquals => Operator::GreaterThan,
-            DoubleEquals => Operator::Equality,
-            NotEquals => Operator::NonEquality
-        ];
 
         Parser {
             tokenizer: tokenizer,
@@ -436,7 +439,6 @@ impl<T: Tokenizer> Parser<T> {
             stmt_prefix_parsers: stmt_prefix_map,
             expr_prefix_parsers: expr_prefix_map,
             expr_infix_parsers: expr_infix_map,
-            token_operators: operator_map,
             indent_rules: Vec::new(),
         }
     }
