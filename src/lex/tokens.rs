@@ -125,6 +125,7 @@ declare_tokens! {
 
         LeftParen: "("; Complete,
         RightParen: ")"; Complete,
+        // https://github.com/immington-industries/protosnirk/issues/64
         GitMergeBegin: "<<<<<<<"; Complete,
         InlineArrow: "=>"; Complete,
         Arrow: "->"; Complete,
@@ -147,6 +148,7 @@ declare_tokens! {
         If: "if",
         Else: "else",
         Fn: "fn",
+        Typedef: "typedef",
     }
     tynames {
         Int: "float",
