@@ -156,6 +156,10 @@ impl<'ctx, 'b, M> ItemVisitor for ModuleCompiler<'ctx, 'b, M>
             self.module_provider.pass_manager().run(&fn_ref);
         }
     }
+
+    fn visit_type_alias_decl(&mut self, _typedef: &TypeAliasDeclaration) {
+        // skip, typedef is not compiled.
+    }
 }
 
 impl<'ctx, 'b, M> BlockVisitor for ModuleCompiler<'ctx, 'b, M>
