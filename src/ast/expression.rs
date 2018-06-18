@@ -3,9 +3,7 @@
 //! Expression values are used in the `Expression` and `Statement` contexts.
 //! They are usually emitted as asm instructions operating on variables.
 
-use ast::{Statement, Identifier, Operator, Block, ScopedId};
-use ast::types::TypeExpression;
-
+use ast::*;
 use lex::{Token, TokenType, TokenData};
 use parse::{ParseResult, ParseError, ExpectedNextType};
 
@@ -148,13 +146,13 @@ impl Literal {
 /// Maths style binary operations (may be split up later)
 #[derive(Debug, PartialEq, Clone)]
 pub struct BinaryOperation {
-    operator: Operator,
+    operator: BinaryOperator,
     op_token: Token,
     left: Box<Expression>,
     right: Box<Expression>
 }
 impl BinaryOperation {
-    pub fn new(operator: Operator, op_token: Token,
+    pub fn new(operator: BinaryOperator, op_token: Token,
         left: Box<Expression>, right: Box<Expression>) -> BinaryOperation {
         BinaryOperation {
             operator: operator,
@@ -163,7 +161,7 @@ impl BinaryOperation {
             right: right
         }
     }
-    pub fn operator(&self) -> Operator {
+    pub fn operator(&self) -> BinaryOperator {
         self.operator
     }
     pub fn left(&self) -> &Expression {
@@ -177,13 +175,13 @@ impl BinaryOperation {
 /// Unary operation
 #[derive(Debug, PartialEq, Clone)]
 pub struct UnaryOperation {
-    operator: Operator,
+    operator: UnaryOperator,
     op_token: Token,
     expression: Box<Expression>
 }
 impl UnaryOperation {
     /// Creates a new unary operation
-    pub fn new(operator: Operator,
+    pub fn new(operator: UnaryOperator,
                op_token: Token,
                expression: Box<Expression>) -> UnaryOperation {
         UnaryOperation {
@@ -192,7 +190,7 @@ impl UnaryOperation {
             expression: expression
         }
     }
-    pub fn operator(&self) -> Operator {
+    pub fn operator(&self) -> UnaryOperator {
         self.operator
     }
     pub fn inner(&self) -> &Expression {

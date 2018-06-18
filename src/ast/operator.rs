@@ -33,4 +33,6 @@ pub enum BinaryOperator {
 pub enum UnaryOperator {
     /// Negation
     Negation,
+    /// No-op
+    Addition,
 }
