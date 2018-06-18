@@ -28,7 +28,9 @@ impl Unit {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Item {
     /// Declaraion of a function
-    BlockFnDeclaration(BlockFnDeclaration)
+    BlockFnDeclaration(BlockFnDeclaration),
+    /// Declaration of a type alias
+    TypeAliasDeclaration(TypeAliasDeclaration)
 }
 
 /// Declaration of a function
@@ -41,6 +43,7 @@ pub struct BlockFnDeclaration {
     explicit_ret_ty: bool,
     block: Block,
 }
+
 impl BlockFnDeclaration {
     /// Create a new FnDeclaration
     pub fn new(fn_token: Token,
@@ -64,7 +67,7 @@ impl BlockFnDeclaration {
     }
     pub fn params(&self) -> &[(Identifier, TypeExpression)] {
         &self.params
-    } 
+    }
     pub fn return_type(&self) -> &TypeExpression {
         &self.ret_ty
     }
@@ -84,5 +87,46 @@ impl BlockFnDeclaration {
     /// Get the block inside the function
     pub fn block(&self) -> &Block {
         &self.block
+    }
+}
+
+/// Declaration of a type alias
+#[derive(Debug, Clone, PartialEq)]
+pub struct TypeAliasDeclaration {
+    typedef_token: Token,
+    alias_ident: Identifier,
+    type_expr: TypeExpression
+}
+
+impl TypeAliasDeclaration {
+    pub fn new(typedef_token: Token,
+               alias_ident: Identifier,
+               type_expr: TypeExpression)
+               -> TypeAliasDeclaration {
+        TypeAliasDeclaration { typedef_token, alias_ident, type_expr }
+    }
+
+    pub fn token(&self) -> &Token {
+        &self.typedef_token
+    }
+
+    pub fn ident(&self) -> &Identifier {
+        &self.alias_ident
+    }
+
+    pub fn id<'a>(&'a self) -> Ref<'a, ScopedId> {
+        self.alias_ident.id()
+    }
+
+    pub fn set_id(&self, id: ScopedId) {
+        self.alias_ident.set_id(id)
+    }
+
+    pub fn name(&self) -> &str {
+        self.alias_ident.name()
+    }
+
+    pub fn type_expr(&self) -> &TypeExpression {
+        &self.type_expr
     }
 }
