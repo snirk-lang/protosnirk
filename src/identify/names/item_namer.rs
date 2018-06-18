@@ -108,4 +108,30 @@ impl<'err, 'builder> ItemVisitor for ItemVarIdentifier<'err, 'builder> {
         self.current_id.pop();
         self.current_id.increment();
     }
+
+    fn visit_type_alias_decl(&mut self, typedef: &TypeAliasDeclaration) {
+        trace!("Visiting type alias {}", typedef.name());
+        // We name type aliases in a pass before checking their contents.
+        // This allows reverse lookup:
+        // typedef MyFloat = MyOtherFloat
+        // typedef MyOtherFloat = float
+        if let Some(_previous_def_id) = self.builder.get(typedef.name()) {
+            // fn has been previously defined
+            debug!("Emitting error: typedef {} already declared",
+                typedef.name());
+            self.errors.add_error(CheckerError::new(
+                typedef.token().clone(),
+                vec![],
+                format!("Type alias {} is already declared", typedef.name())
+            ));
+            return
+        }
+        trace!("Creating id {:?} for typedef {}",
+            self.current_id, typedef.name());
+        typedef.set_id(self.current_id.clone());
+        self.builder.define_global(
+            typedef.name().to_string(), self.current_id.clone());
+
+        self.current_id.increment();
+    }
 }

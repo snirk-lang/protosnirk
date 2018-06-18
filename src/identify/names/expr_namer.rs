@@ -97,6 +97,10 @@ impl<'err, 'builder> ItemVisitor for ExpressionVarIdentifier<'err, 'builder> {
 
         // pushing handled by `visit_block`, we reset current_id on next item.
     }
+
+    fn visit_type_alias_decl(&mut self, _typedef: &TypeAliasDeclaration) {
+        // skip, only visiting expressions
+    }
 }
 
 impl<'err, 'builder> BlockVisitor for ExpressionVarIdentifier<'err, 'builder> {
