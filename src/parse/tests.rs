@@ -186,10 +186,18 @@ fn blocksInBlocks(x: float) -> float
                 x + 1
 "#;
 
+pub const FLOAT_TYPE_ALIAS: &str =
+r#"
+typedef MyFloat = float
+
+fn foo(x: MyFloat) -> float
+    x
+"#;
+
 #[ignore]
 #[test]
 fn parse_example() {
-    let inputs = &[FACT_AND_HELPER];
+    let inputs = &[FLOAT_TYPE_ALIAS];
     ::env_logger::Builder::new()
         .parse("TRACE")
         .init();

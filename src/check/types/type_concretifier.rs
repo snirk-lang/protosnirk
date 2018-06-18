@@ -119,6 +119,12 @@ impl<'err, 'builder, 'graph> ItemVisitor
         // they're not kept in the global scope:
         self.visit_block(block_fn.block());
     }
+
+    fn visit_typedef(&mut self, typedef: &Typedef) {
+        trace!("Visiting typedef {}", typedef.name());
+        self.infer_var(&typedef.id(), typedef.token(),
+            format!("typedef {}", typedef.name()));
+    }
 }
 
 impl<'err, 'builder, 'graph> BlockVisitor

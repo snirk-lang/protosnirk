@@ -126,6 +126,11 @@ impl<'err, 'builder, 'graph> ItemVisitor
                 InferenceSource::FnReturnType(block_fn.ident().clone()));
         }
     }
+
+    fn visit_typedef(&mut self, _typedef: &Typedef) {
+        // Only looking at expressions
+    }
+
 }
 
 impl<'err, 'builder, 'graph> BlockVisitor
