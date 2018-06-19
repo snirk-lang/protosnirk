@@ -62,16 +62,9 @@
 //!
 //! See `compile::ModuleCompiler`.
 //!
-//! ## `Run`
+//! ## `Pipeline`
 //!
-//! This is an in-progess interface to LLVM JIT. In the future, `const` code
-//! will be run during compilation when possible.
-//!
-//!
-//! ## `Test` (TBD)
-//!
-//! In addition to each pass supplying test harnasses and frameworks,
-//! a full-scale test library will be added to run automated tests.
+//! Orchastrate the compilation process.
 
 #![allow(dead_code, unused_imports)]
 
@@ -95,6 +88,7 @@ pub mod identify;
 pub mod check;
 pub mod lint;
 pub mod compile;
+pub mod pipeline;
 
 #[cfg(test)]
 mod tests;
