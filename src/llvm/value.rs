@@ -22,6 +22,8 @@ pub struct Value<'ctx> {
     _lt: ::std::marker::PhantomData<&'ctx ()>
 }
 
+impl_llvm_ptr_fmt!(<'ctx> Value);
+
 impl<'ctx> Value<'ctx> {
     llvm_methods! { Value<'ctx> => LLVMValueRef }
 

@@ -13,6 +13,8 @@ pub struct BasicBlock<'ctx> {
     _lt: PhantomData<&'ctx ()>
 }
 
+impl_llvm_ptr_fmt!(<'ctx> BasicBlock);
+
 impl<'ctx> BasicBlock<'ctx> {
     llvm_methods! { BasicBlock<'ctx> => LLVMBasicBlockRef }
 

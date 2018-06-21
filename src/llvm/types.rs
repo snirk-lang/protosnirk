@@ -19,6 +19,8 @@ pub struct Type<'ctx> {
     _lt: PhantomData<&'ctx ()>
 }
 
+impl_llvm_ptr_fmt!(<'ctx> Type);
+
 impl<'ctx> Type<'ctx> {
     llvm_methods!{ Type<'ctx> => LLVMTypeRef }
 
