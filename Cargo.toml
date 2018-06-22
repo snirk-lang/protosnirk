@@ -20,3 +20,6 @@ petgraph = "^0.4"
 
 [dev-dependencies]
 lazy_static = "1"
+colored = "1"
+workerpool = "1"
+num_cpus = "1"
