@@ -35,14 +35,8 @@ impl ErrorCollector {
         &self.lints
     }
 
-    pub fn errors_mut(&mut self) -> &mut [CheckerError] {
-        &mut self.errors
+    pub fn decompose(self)
+                -> (Vec<CheckerError>, Vec<CheckerError>, Vec<CheckerError>) {
+        (self.errors, self.warnings, self.lints)
     }
-    pub fn warnings_mut(&mut self) -> &mut [CheckerError] {
-        &mut self.warnings
-    }
-    pub fn lints_mut(&mut self) -> &mut [CheckerError] {
-        &mut self.errors
-    }
-
 }

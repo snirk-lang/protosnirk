@@ -44,7 +44,7 @@
 mod names;
 mod concrete_type;
 mod types;
-pub use self::types::{TypeGraph, InferenceSource};
+pub use self::types::{TypeGraph, InferenceSource, ASTTypeChecker};
 mod scope_builder;
 mod type_scope_builder;
 pub use self::scope_builder::{ScopeBuilder, NameScopeBuilder};

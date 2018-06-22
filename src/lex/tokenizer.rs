@@ -49,6 +49,7 @@ enum TokenizerState {
 }
 
 /// Hacky implementation of a tokenizer.
+#[derive(Debug)]
 pub struct IterTokenizer<I> where I: Iterator<Item=char> {
     /// Keywords registered with the tokenizer
     keywords: HashSet<CowStr>,
