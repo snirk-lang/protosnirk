@@ -13,6 +13,8 @@ pub struct Context {
     ptr: LLVMContextRef
 }
 
+impl_llvm_ptr_fmt!(Context);
+
 impl Drop for Context {
     fn drop(&mut self) {
         unsafe {

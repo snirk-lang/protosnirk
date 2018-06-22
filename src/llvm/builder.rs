@@ -26,6 +26,8 @@ impl<'ctx> Drop for Builder<'ctx> {
     }
 }
 
+impl_llvm_ptr_fmt!(<'ctx> Builder);
+
 impl<'ctx> Builder<'ctx> {
     llvm_methods! { Builder<'ctx> => LLVMBuilderRef }
 

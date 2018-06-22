@@ -23,6 +23,24 @@ macro_rules! llvm_methods {
     }
 }
 
+/// Implement fmt::Pointer for the wrapped LLVM value
+macro_rules! impl_llvm_ptr_fmt {
+    ($name:ident) => {
+        impl ::std::fmt::Pointer for $name {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+                write!(f, "{:p}", self.ptr)
+            }
+        }
+    };
+    (<$lt:tt> $name:ident) => {
+        impl<$lt> ::std::fmt::Pointer for $name<$lt> {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+                write!(f, "{:p}", self.ptr)
+            }
+        }
+    }
+}
+
 macro_rules! llvm_passthrough {
     ($(#[$attr:meta])* pub fn $fn_name:ident( $($arg_name:ident : $arg_ty:ty),* ) => $wrapped_name:ident; $($rest:tt)*) => {
         $(#[$attr])*

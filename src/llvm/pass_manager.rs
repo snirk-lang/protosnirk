@@ -10,6 +10,8 @@ pub struct PassManager {
     ptr: LLVMPassManagerRef
 }
 
+impl_llvm_ptr_fmt!(PassManager);
+
 impl Drop for PassManager {
     fn drop(&mut self) {
         unsafe {
@@ -57,6 +59,8 @@ macro_rules! pass_methods {
 pub struct FunctionPassManager {
     ptr: LLVMPassManagerRef,
 }
+
+impl_llvm_ptr_fmt!(FunctionPassManager);
 
 impl Drop for FunctionPassManager {
     fn drop(&mut self) {

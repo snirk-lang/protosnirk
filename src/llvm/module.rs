@@ -19,6 +19,8 @@ pub struct Module<'ctx> {
     _lt: PhantomData<&'ctx ()>
 }
 
+impl_llvm_ptr_fmt!(<'ctx> Module);
+
 impl<'ctx> Drop for Module<'ctx> {
     fn drop(&mut self) {
         unsafe {
