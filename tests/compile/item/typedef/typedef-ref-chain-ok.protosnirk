@@ -1,0 +1,11 @@
+// A typdef may refer to another typedef, even one written before it.
+
+typedef A = float
+typedef B = A
+
+typedef C = D
+typedef D = float
+
+typedef E = F
+typedef F = G
+typedef G = float

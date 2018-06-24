@@ -14,7 +14,7 @@ use std::path::{Path, PathBuf};
 use colored::Colorize;
 use workerpool::{Pool, thunk::{Thunk, ThunkWorker}};
 
-use protosnirk::llvm::{Context, Module, Builder};
+use protosnirk::llvm::{Context};
 use protosnirk::pipeline::{Runner, CompileRunner};
 
 /// Represents an object which can run Snirk tests.
@@ -85,7 +85,7 @@ impl Tester {
         for test in tests {
             let thunk_tx = tx.clone();
             pool.execute(Thunk::of(move || {
-                let name = test.test_name().to_string();
+                let name = test.name().to_string();
                 let result = runner(test);
                 thunk_tx.send((name, result)).unwrap();
             }));
@@ -118,17 +118,38 @@ impl Tester {
     }
 }
 
+/// Flags for which parts of the compile pipeline tests must go through.
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum TestMode {
-    Pass,
-    Fail
+    /// Test must parse okay
+    ParseOk,
+    /// Test must compile and check properly
+    CompileOk,
+    /// Test must fail to parse
+    ParseFail,
+    /// Test must fail checking or compiling
+    CompileFail
+}
+
+impl TestMode {
+    pub fn is_ok(&self) -> bool {
+        use TestMode::*;
+        match self {
+            ParseOk | CompileOk => true,
+            ParseFail | CompileFail => false
+        }
+    }
+    pub fn is_err(&self) -> bool {
+        !self.is_ok()
+    }
 }
 
 #[derive(Debug)]
 pub struct Test {
-    test_name: String,
-    file_ext: String,
-    content: String
+    name: String,
+    path: String,
+    content: String,
+    mode: TestMode
 }
 
 impl Test {
@@ -136,13 +157,29 @@ impl Test {
         let name = file_name.file_stem()
             .expect("Bad file name given to Test::new")
             .to_string_lossy().to_string();
-        let extension = file_name.extension()
-            .expect("Bad file name given to Test::new")
-            .to_string_lossy().into();
+
+        let mode =
+            if name.ends_with("parse-ok") {
+                TestMode::ParseOk
+            }
+            else if name.ends_with("parse-fail") {
+                TestMode::ParseFail
+            }
+            else if name.ends_with("-ok") {
+                TestMode::CompileOk
+            }
+            else if name.ends_with("-bad") {
+                TestMode::CompileFail
+            }
+            else {
+                panic!("Invalid test name {}", file_name.display())
+            };
+
         Test {
-            test_name: name,
-            file_ext: extension,
-            content
+            name,
+            path: file_name.to_string_lossy().into(),
+            content,
+            mode
         }
     }
 
@@ -150,63 +187,54 @@ impl Test {
         &self.content
     }
 
-    pub fn test_name(&self) -> &str {
-        &self.test_name
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
-    pub fn file_name(&self) -> String {
-        format!("{}.{}", self.test_name, self.file_ext)
+    pub fn path(&self) -> &str {
+        &self.path
     }
 
     pub fn mode(&self) -> TestMode {
-        if self.test_name.ends_with("ok") {
-            TestMode::Pass
-        }
-        else {
-            TestMode::Fail
-        }
+        self.mode
     }
 }
 
 type TestResult = Result<(), String>;
 
-fn parse_runner(test: Test) -> TestResult {
-    let result  = Runner::from_string(test.content(), test.file_name())
-        .parse();
-
-    let result_matches = (test.mode() == TestMode::Pass) == result.is_ok();
-
-    if result_matches {
-        Ok(())
-    }
-    else if result.is_err() {
-        Err(format!("{:?}", result.expect_err("Checked expect")))
-    }
-    else {
-        Err("Test which was expected not to parse did parse".into())
-    }
-}
-
 fn compile_runner(test: Test) -> TestResult {
-    let context = Context::new();
-    let result = Runner::from_string(test.content(), test.file_name())
-        .parse()
-        .and_then(|parsed| parsed.identify())
-        .and_then(|identified| identified.check())
-        .map(|checked| CompileRunner::new(&context)
-            .compile(checked, false));
+    let parse_result = Runner::from_string(
+            test.content(), test.name().to_string())
+            .parse();
 
-    let result_matches = (test.mode() == TestMode::Pass) == result.is_ok();
+    if parse_result.is_err() {
+        if test.mode() != TestMode::ParseFail {
+            return Err(format!(
+                "Failed to parse {}: {:?} ",
+                test.path(), parse_result.expect_err("Checked")))
+        }
+    }
+    let compile_result = parse_result.expect("Checked expect")
+        .identify()
+        .and_then(|identified| identified.check());
 
-    if result_matches {
-        Ok(())
+    if compile_result.is_err() {
+        if test.mode() != TestMode::CompileFail {
+            return Err(format!(
+                "Failed to compile {}: {:?}",
+                test.path(), compile_result.expect_err("Checked expect")
+            ))
+        }
     }
-    else if result.is_err() {
-        Err(format!("{:?}", result.expect_err("Checked expect")))
+
+    let checked = compile_result.expect("Checked expect");
+
+    {
+        let context = Context::new();
+        let mut compiler = CompileRunner::new(&context);
+        let _module = compiler.compile(checked, false);
     }
-    else {
-        Err("Test which was expected not to parse did parse".into())
-    }
+    Ok(())
 }
 
 fn lint_runner(test: Test) -> TestResult {
@@ -214,7 +242,6 @@ fn lint_runner(test: Test) -> TestResult {
 }
 
 const INTEGRATION_TEST_DIRS: &[(&str, fn(Test) -> TestResult)] = &[
-    ("parse", parse_runner),
     ("compile", compile_runner),
     //("lint", lint_runner),
     //("run", lint_runner)

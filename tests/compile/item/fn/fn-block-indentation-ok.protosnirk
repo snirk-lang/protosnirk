@@ -1,4 +1,4 @@
 // `fn`s have block indentation.
 
 fn foo()
-    bar()
+    let x = 0

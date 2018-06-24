@@ -6,7 +6,7 @@ fn foo(x: float,
        -> float
     x + y + z
 
-fn foo(
+fn foo2(
         x: float,
         y: float,
         z: float)
