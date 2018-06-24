@@ -69,7 +69,7 @@ impl Tester {
             &self,
             tests: Vec<Test>,
             runner: &'static (Fn(Test) -> TestResult + Send + Sync))
-            -> Result<(), ()> {
+            -> Result<(), usize> {
         let name = self.root_path.file_stem()
             .expect("Checked expect")
             .to_string_lossy();
@@ -92,7 +92,7 @@ impl Tester {
         }
         drop(tx);
 
-        let mut pass_count = 0;
+        let mut pass_count: usize = 0;
 
         while let Ok((tested, result)) = rx.recv() {
             if result.is_ok() {
@@ -114,7 +114,12 @@ impl Tester {
             "\nintegration tests: ok. {} passed; {} failed; 0 ignored;",
             pass_count, total_tests - pass_count);
 
-        Ok(())
+        if total_tests - pass_count > 0 {
+            Err(total_tests - pass_count)
+        }
+        else {
+            Ok(())
+        }
     }
 }
 
@@ -249,11 +254,21 @@ const INTEGRATION_TEST_DIRS: &[(&str, fn(Test) -> TestResult)] = &[
 
 #[test]
 fn integration_tests() {
+    let mut fail_count = 0;
     for (stage, runner) in INTEGRATION_TEST_DIRS {
         let tester = Tester::new(stage);
         let files = tester.create_tests()
             .expect("Unable to find test files");
-        tester.test_all(files, runner).expect("lex tests failed");
+        match tester.test_all(files, runner) {
+            Ok(()) => {},
+            Err(failed) => {
+                fail_count += failed;
+            }
+        }
     }
     write!(io::stderr(), "\n").ok();
+
+    if fail_count > 0 {
+        panic!("{} total integration tests failed", fail_count);
+    }
 }
