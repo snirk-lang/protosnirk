@@ -1,0 +1,8 @@
+// Beginning an item indented is not allowed.
+
+
+fn foo() -> float // okay, not indented
+    2
+
+    fn bar() -> float
+        4

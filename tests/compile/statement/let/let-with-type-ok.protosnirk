@@ -1,0 +1,6 @@
+// `let` may specify the type of the binding
+
+fn main()
+    let foo: float = 0
+    let bar: bool = true
+    let mut baz: MyTypedef = 0

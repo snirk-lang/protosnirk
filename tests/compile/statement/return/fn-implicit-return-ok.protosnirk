@@ -1,0 +1,10 @@
+// Functions may be implicitly returned from
+// Block implicit return is checked later
+
+fn main()
+    let x = 0
+    // implicitly return void
+
+fn foo() -> float
+    let y = 1
+    y + 2

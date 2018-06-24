@@ -1,0 +1,14 @@
+// The return type arrow may also be indented
+
+fn foo(x: float,
+       y: float,
+       z: float)
+       -> float
+    x + y + z
+
+fn foo(
+        x: float,
+        y: float,
+        z: float)
+        -> float
+    x - y - z

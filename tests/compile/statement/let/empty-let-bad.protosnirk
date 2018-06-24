@@ -1,0 +1,4 @@
+// RHS is needed in `let`
+
+fn main()
+    let bar =

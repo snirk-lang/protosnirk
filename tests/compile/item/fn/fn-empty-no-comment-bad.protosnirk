@@ -1,0 +1,6 @@
+// Empty blocks (in fn) may only be parsed with a comment.
+
+fn foo()
+
+fn bar()
+    // empty

@@ -1,0 +1,12 @@
+// Parameters to a function may be indented.
+
+fn foo(x: float,
+       y: float,
+       z: float)
+    // empty
+
+fn bar(
+        x: float,
+        y: float,
+        z: float)
+    // also empty

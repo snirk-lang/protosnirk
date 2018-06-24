@@ -1,0 +1,4 @@
+// An empty fn is okay with a comment.
+
+fn foo()
+    // doesn't do much.

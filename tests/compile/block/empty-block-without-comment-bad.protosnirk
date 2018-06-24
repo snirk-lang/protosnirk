@@ -1,0 +1,3 @@
+// A block without a comment or statement within cannot be parsed.
+
+fn main() // should have a block

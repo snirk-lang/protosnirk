@@ -1,0 +1,24 @@
+// Defines the if block, a block form of conditionals
+
+fn main()
+    let foo = true
+    let baz = false
+    if foo
+        //empty
+
+    if foo
+        let bar = foo
+    else if baz
+        //empty
+
+    if foo
+        let bar = foo
+    else
+        // empty
+
+    if foo
+        let bar = 1
+    else if baz
+        let bar = 2
+    else
+        let bar = 3
