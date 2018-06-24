@@ -5,6 +5,9 @@ extern crate num_cpus;
 extern crate protosnirk;
 extern crate workerpool;
 
+#[macro_use]
+extern crate derive_integration_tests;
+
 use std::env;
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
@@ -215,7 +218,7 @@ fn compile_runner(test: Test) -> TestResult {
     if parse_result.is_err() {
         if test.mode() != TestMode::ParseFail {
             return Err(format!(
-                "Failed to parse {}: {:?} ",
+                "Failed to parse {}: {:#?} ",
                 test.path(), parse_result.expect_err("Checked for bad parse result")))
         }
         else {
@@ -233,7 +236,7 @@ fn compile_runner(test: Test) -> TestResult {
     if compile_result.is_err() {
         if test.mode() != TestMode::CompileFail {
             return Err(format!(
-                "Failed to compile {}: {:?}",
+                "Failed to compile {}: {:#?}",
                 test.path(), compile_result.expect_err("Checked for bad compile result")
             ))
         }
@@ -265,7 +268,6 @@ const INTEGRATION_TEST_DIRS: &[(&str, fn(Test) -> TestResult)] = &[
     //("run", lint_runner)
 ];
 
-#[test]
 fn integration_tests() {
     let mut fail_count = 0;
     for (stage, runner) in INTEGRATION_TEST_DIRS {
@@ -285,3 +287,6 @@ fn integration_tests() {
         panic!("{} total integration tests failed", fail_count);
     }
 }
+
+#[derive(IntegrationTests)]
+struct Placeholder;

@@ -23,3 +23,4 @@ lazy_static = "1"
 colored = "1"
 workerpool = "1"
 num_cpus = "1"
+derive_integration_tests = { path = "derive_integration_tests" }
