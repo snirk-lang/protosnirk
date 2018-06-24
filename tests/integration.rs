@@ -1,8 +1,9 @@
 //! Test runner for protosnirk tests
 
 extern crate colored;
-extern crate workerpool;
 extern crate num_cpus;
+extern crate protosnirk;
+extern crate workerpool;
 
 use std::env;
 use std::fs::{self, File};
@@ -12,6 +13,9 @@ use std::path::{Path, PathBuf};
 
 use colored::Colorize;
 use workerpool::{Pool, thunk::{Thunk, ThunkWorker}};
+
+use protosnirk::llvm::{Context, Module, Builder};
+use protosnirk::pipeline::{Runner, CompileRunner};
 
 /// Represents an object which can run Snirk tests.
 #[derive(Debug)]
@@ -64,7 +68,7 @@ impl Tester {
     pub fn test_all(
             &self,
             tests: Vec<Test>,
-            runner: &'static (Fn(Test) + Send + Sync))
+            runner: &'static (Fn(Test) -> TestResult + Send + Sync))
             -> Result<(), ()> {
         let name = self.root_path.file_stem()
             .expect("Checked expect")
@@ -82,30 +86,39 @@ impl Tester {
             let thunk_tx = tx.clone();
             pool.execute(Thunk::of(move || {
                 let name = test.test_name().to_string();
-                runner(test);
-                thunk_tx.send(name).unwrap();
+                let result = runner(test);
+                thunk_tx.send((name, result)).unwrap();
             }));
         }
         drop(tx);
 
-        let mut tested_count = 0;
+        let mut pass_count = 0;
 
-        while let Ok(tested) = rx.recv() {
-            tested_count += 1;
+        while let Ok((tested, result)) = rx.recv() {
+            if result.is_ok() {
+                pass_count += 1;
+                writeln!(io::stderr(), "file {} ... {}",
+                    tested, "ok".green());
+            }
+            else {
+                writeln!(io::stderr(), "file {} ... {}",
+                    tested, "fail".red());
 
-            writeln!(io::stderr(), "file {} ... {}",
-                tested, "ok".green());
+                writeln!(io::stderr(), "> {}",
+                    result.expect_err("Checked expect"));
+            }
+
         }
 
         writeln!(io::stderr(),
             "\nintegration tests: ok. {} passed; {} failed; 0 ignored;",
-            tested_count, total_tests - tested_count);
+            pass_count, total_tests - pass_count);
 
         Ok(())
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum TestMode {
     Pass,
     Fail
@@ -133,6 +146,10 @@ impl Test {
         }
     }
 
+    pub fn content(&self) -> &str {
+        &self.content
+    }
+
     pub fn test_name(&self) -> &str {
         &self.test_name
     }
@@ -151,28 +168,56 @@ impl Test {
     }
 }
 
-fn lex_runner(test: Test) {
+type TestResult = Result<(), String>;
 
+fn parse_runner(test: Test) -> TestResult {
+    let result  = Runner::from_string(test.content(), test.file_name())
+        .parse();
+
+    let result_matches = (test.mode() == TestMode::Pass) == result.is_ok();
+
+    if result_matches {
+        Ok(())
+    }
+    else if result.is_err() {
+        Err(format!("{:?}", result.expect_err("Checked expect")))
+    }
+    else {
+        Err("Test which was expected not to parse did parse".into())
+    }
 }
 
-fn parse_runner(test: Test) {
+fn compile_runner(test: Test) -> TestResult {
+    let context = Context::new();
+    let result  = Runner::from_string(test.content(), test.file_name())
+        .parse()
+        .and_then(|parsed| parsed.identify())
+        .and_then(|identified| identified.check())
+        .map(|checked| CompileRunner::new(&context)
+            .compile(checked, false));
 
+    let result_matches = (test.mode() == TestMode::Pass) == result.is_ok();
+
+    if result_matches {
+        Ok(())
+    }
+    else if result.is_err() {
+        Err(format!("{:?}", result.expect_err("Checked expect")))
+    }
+    else {
+        Err("Test which was expected not to parse did parse".into())
+    }
 }
 
-fn compile_runner(test: Test) {
-
+fn lint_runner(test: Test) -> TestResult {
+    Ok(())
 }
 
-fn lint_runner(test: Test) {
-
-}
-
-const INTEGRATION_TEST_DIRS: &[(&str, fn(Test))] = &[
-    ("lex", lex_runner),
+const INTEGRATION_TEST_DIRS: &[(&str, fn(Test) -> TestResult)] = &[
     ("parse", parse_runner),
     ("compile", compile_runner),
-    ("lint", lint_runner),
-    ("run", lint_runner)
+    //("lint", lint_runner),
+    //("run", lint_runner)
 ];
 
 #[test]
