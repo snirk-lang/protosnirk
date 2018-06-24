@@ -189,7 +189,7 @@ fn parse_runner(test: Test) -> TestResult {
 
 fn compile_runner(test: Test) -> TestResult {
     let context = Context::new();
-    let result  = Runner::from_string(test.content(), test.file_name())
+    let result = Runner::from_string(test.content(), test.file_name())
         .parse()
         .and_then(|parsed| parsed.identify())
         .and_then(|identified| identified.check())
@@ -228,5 +228,5 @@ fn integration_tests() {
             .expect("Unable to find test files");
         tester.test_all(files, runner).expect("lex tests failed");
     }
-
+    write!(io::stderr(), "\n").ok();
 }

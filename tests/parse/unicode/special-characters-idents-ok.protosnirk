@@ -1,8 +1,7 @@
 // Non-ASCII characters may be used as identifiers.
 
-fn main():
+fn main()
     let ÊÉÈËĒĔĖĘ = 1
     let Ω = 2
-    let 㕦 = 4
-    let 꾇꽺 = 5
-    let m̞͉̮y̛̛͟Ȅ̐ͫd̺̊͡gͩ͞ͅy᷂᷆᷆V̴ͮ̚ȁ̖᷂r̉ͦ͜ = 6
+    let 㕦 = 3
+    let 꾇꽺 = 4
