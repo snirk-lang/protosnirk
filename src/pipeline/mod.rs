@@ -15,6 +15,12 @@ use std::path::Path;
 use std::str::Chars;
 use std::io::{self, Read, Write};
 
+#[derive(Debug, PartialEq, Clone)]
+pub enum CompilationError {
+    ParseError(ParseError),
+    CheckerError(Vec<CheckerError>)
+}
+
 #[derive(Debug)]
 pub struct Runner<'input> {
     iter: IterTokenizer<Chars<'input>>,
@@ -36,9 +42,10 @@ impl<'input> Runner<'input> {
         Ok(Runner::from_string(buffer, name))
     }
 
-    pub fn parse(self) -> Result<IdentifyRunner, ParseError> {
+    pub fn parse(self) -> Result<IdentifyRunner, CompilationError> {
         let mut parser = Parser::new(self.iter);
-        let unit = try!(parser.parse_unit());
+        let unit = try!(parser.parse_unit()
+            .map_err(CompilationError::ParseError));
         Ok(IdentifyRunner::new(unit, self.name))
     }
 }
@@ -64,14 +71,14 @@ impl IdentifyRunner {
         }
     }
 
-    pub fn identify(mut self) -> Result<CheckRunner, Vec<CheckerError>> {
+    pub fn identify(mut self) -> Result<CheckRunner, CompilationError> {
         ASTIdentifier::new(&mut self.name_builder,
                           &mut self.type_builder,
                           &mut self.errors)
             .visit_unit(&self.unit);
         if !self.errors.errors().is_empty() {
             let (errors, _warns, _lints) = self.errors.decompose();
-            Err(errors)
+            Err(CompilationError::CheckerError(errors))
         }
         else {
             Ok(CheckRunner::new(self))
@@ -101,7 +108,7 @@ impl CheckRunner {
         }
     }
 
-    pub fn check(mut self) -> Result<CheckedUnit, Vec<CheckerError>> {
+    pub fn check(mut self) -> Result<CheckedUnit, CompilationError> {
         let results = {
             let mut tc = TypeConcretifier::new(&self.type_builder,
                                                &mut self.errors,
@@ -111,7 +118,7 @@ impl CheckRunner {
         };
         if !self.errors.errors().is_empty() {
             let (errors, _warns, _lints) = self.errors.decompose();
-            Err(errors)
+            Err(CompilationError::CheckerError(errors))
         }
         else {
             Ok(CheckedUnit::new(self.unit, self.name, results))
