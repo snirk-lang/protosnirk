@@ -1,5 +1,7 @@
 use llvm::{Module, FunctionPassManager};
 
+use std::fmt;
+
 pub trait ModuleProvider<'ctx> {
     fn module(&self) -> &Module<'ctx>;
     fn pass_manager(&mut self) -> &FunctionPassManager;
@@ -33,5 +35,11 @@ impl<'ctx> ModuleProvider<'ctx> for SimpleModuleProvider<'ctx> {
     }
     fn pass_manager(&mut self) -> &FunctionPassManager {
         &mut self.fn_pass_manager
+    }
+}
+
+impl<'ctx> fmt::Debug for SimpleModuleProvider<'ctx> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "SimpleModuleProvider()")
     }
 }
