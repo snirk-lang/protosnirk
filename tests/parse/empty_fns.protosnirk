@@ -1,6 +1,0 @@
-// TODO dangling whitespace is totally fine by the parser.
-// This should be a linter warning/error
-fn foo()
-    
-fn bar()
-    // empty - the comment here forces the creation of a block

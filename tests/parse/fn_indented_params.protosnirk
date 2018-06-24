@@ -1,4 +1,0 @@
-// item
-fn manyParams(x: X, y: Y, longParamName: LongParamType,
-              otherLongParam: Ty)
-    stmt()
