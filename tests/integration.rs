@@ -216,10 +216,17 @@ fn compile_runner(test: Test) -> TestResult {
         if test.mode() != TestMode::ParseFail {
             return Err(format!(
                 "Failed to parse {}: {:?} ",
-                test.path(), parse_result.expect_err("Checked")))
+                test.path(), parse_result.expect_err("Checked for bad parse result")))
+        }
+        else {
+            return Ok(())// Test successful
         }
     }
-    let compile_result = parse_result.expect("Checked expect")
+    else if test.mode() == TestMode::ParseFail {
+        return Err(format!("Test {} parsed unexpectedly", test.path()))
+    }
+
+    let compile_result = parse_result.expect("Checked for bad parse result")
         .identify()
         .and_then(|identified| identified.check());
 
@@ -227,12 +234,18 @@ fn compile_runner(test: Test) -> TestResult {
         if test.mode() != TestMode::CompileFail {
             return Err(format!(
                 "Failed to compile {}: {:?}",
-                test.path(), compile_result.expect_err("Checked expect")
+                test.path(), compile_result.expect_err("Checked for bad compile result")
             ))
         }
+        else {
+            return Ok(())
+        }
+    }
+    else if test.mode() == TestMode::CompileFail {
+        return Err(format!("Test {} compiled unexpectedly", test.path()))
     }
 
-    let checked = compile_result.expect("Checked expect");
+    let checked = compile_result.expect("Checked for bad compile result");
 
     {
         let context = Context::new();
