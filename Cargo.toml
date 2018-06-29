@@ -9,14 +9,14 @@ authors = ["Snirk Immington <snirk.immington@gmail.com>"]
 license = "MIT"
 
 [dependencies]
-maplit = "1"
-unicode_categories = "0.1"
+maplit = "^1"
+unicode_categories = "^0.1"
 llvm-sys = "^60"
-log = "0.4"
-env_logger = "0.5"
-libc = "0.2"
-smallvec = "0.6"
-petgraph = "0.4"
+log = "^0.4"
+env_logger = "^0.5"
+libc = "^0.2"
+smallvec = "^0.6"
+petgraph = "^0.4"
 
 [dev-dependencies]
 lazy_static = "1"
