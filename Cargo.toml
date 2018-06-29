@@ -9,7 +9,7 @@ authors = ["Snirk Immington <snirk.immington@gmail.com>"]
 license = "MIT"
 
 [dependencies]
-maplit = "*"
+maplit = "1"
 unicode_categories = "0.1"
 llvm-sys = "^60"
 log = "0.4"
