@@ -8,6 +8,8 @@ use petgraph::graph::{Graph, NodeIndex, EdgeIndex};
 use petgraph::visit::Dfs;
 
 use std::collections::HashMap;
+#[cfg(test)]
+use std::path::Path;
 
 /// Represents a node in the type inference graph, or
 /// an rvalue in a type equation solver.
