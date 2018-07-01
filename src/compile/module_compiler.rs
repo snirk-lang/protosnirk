@@ -105,6 +105,11 @@ impl<'ctx, 'b, M> ItemVisitor for ModuleCompiler<'ctx, 'b, M>
         trace!("Checking declaration of {}", block_fn.name());
 
         let fn_type = self.llvm_type_of(&block_fn.id());
+        let fn_ret_type_kind = fn_type.return_type()
+            .expect("Block fn's LLVM type did not have a return type")
+            .get_kind();
+        let fn_returns_void =
+            fn_ret_type_kind == LLVMTypeKind::LLVMVoidTypeKind;
         let fn_ref = self.current_module().add_function(
             block_fn.name(), &fn_type);
 
@@ -144,9 +149,19 @@ impl<'ctx, 'b, M> ItemVisitor for ModuleCompiler<'ctx, 'b, M>
         // Compile the function
         self.visit_block(&block_fn.block());
 
-        if let Some(remaining_expr) = self.ir_code.pop() {
-            trace!("Found final expression, appending a return");
-            self.builder.build_ret(&remaining_expr);
+        if !fn_returns_void {
+            if let Some(remaining_expr) = self.ir_code.pop() {
+                trace!("Found final expression, appending a return");
+                self.builder.build_ret(&remaining_expr);
+            }
+            else {
+                trace!(
+                    "No IR code remaining, assuming the last stmt was return");
+            }
+        }
+        else {
+            trace!("block fn returns void, appending ret void");
+            self.builder.build_ret_void();
         }
 
         assert!(fn_ref.verify(
