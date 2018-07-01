@@ -40,6 +40,11 @@ pub fn compile<'ctx>(input: &'static str,
     }
 }
 
+pub const COMPILE_EXAMPLE: &str = r#"
+fn foo(x: float, y: float) // returns void
+    x + y // statement
+"#;
+
 #[ignore]
 #[test]
 fn compile_example() {
@@ -48,8 +53,8 @@ fn compile_example() {
     {
         let context = Context::new();
         let module_provider = compile(
-                parse_tests::BLOCKS_IN_BLOCKS,
-                "FACT_HELPER",
+                COMPILE_EXAMPLE,
+                "COMPILE_EXAMPLE",
                 &context);
 
         module_provider.module().dump();
