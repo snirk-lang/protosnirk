@@ -18,7 +18,7 @@ pub use self::fn_call::FnCallParser;
 
 use std::rc::Rc;
 
-use lex::{Token, TokenType, Tokenizer};
+use lex::{Token, Tokenizer};
 use parse::{Parser, ParseResult};
 use ast::*;
 use parse::symbol::{Precedence, InfixParser, PrefixParser};

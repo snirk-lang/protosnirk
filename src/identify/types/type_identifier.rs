@@ -1,7 +1,7 @@
 //! Visitor which walks through a TypeExpression to assign its
 //! `ScopedId`.
 
-use ast::{ScopedId, visit::*};
+use ast::visit::*;
 use ast::types::*;
 use check::{CheckerError, ErrorCollector};
 use identify::TypeScopeBuilder;

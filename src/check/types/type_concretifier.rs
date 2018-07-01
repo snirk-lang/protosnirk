@@ -4,7 +4,7 @@
 use lex::Token;
 use ast::{*, visit::*};
 use check::{CheckerError, ErrorCollector};
-use identify::{ConcreteType, FnType, TypeGraph, TypeScopeBuilder};
+use identify::{ConcreteType, TypeGraph, TypeScopeBuilder};
 
 use std::collections::HashMap;
 
@@ -84,7 +84,7 @@ impl<'err, 'builder, 'graph> TypeConcretifier<'err, 'builder, 'graph> {
         }
     }
 
-    fn infer_type(&mut self, _id: &ScopedId) -> bool {
+    fn _infer_type(&mut self, _id: &ScopedId) -> bool {
         unimplemented!("Type expression and function types are known during
             identification and need no further resolution");
     }

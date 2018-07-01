@@ -2,7 +2,7 @@
 //! within items.
 
 use ast::{*, visit::*};
-use check::{CheckerError, ErrorCollector};
+use check::ErrorCollector;
 use identify::TypeScopeBuilder;
 use identify::types::TypeIdentifier;
 
@@ -11,14 +11,13 @@ use identify::types::TypeIdentifier;
 pub struct ExprTypeIdentifier<'err, 'builder> {
     errors: &'err mut ErrorCollector,
     builder: &'builder mut TypeScopeBuilder,
-    current_id: ScopedId
 }
 
 impl<'err, 'builder> ExprTypeIdentifier<'err, 'builder> {
     pub fn new(errors: &'err mut ErrorCollector,
                builder: &'builder mut TypeScopeBuilder)
                -> ExprTypeIdentifier<'err, 'builder> {
-        ExprTypeIdentifier { errors, builder, current_id: ScopedId::default() }
+        ExprTypeIdentifier { errors, builder }
     }
 }
 

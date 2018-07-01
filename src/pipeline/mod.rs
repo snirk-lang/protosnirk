@@ -1,19 +1,19 @@
 //! Runner for compiling projects.
 
-use lex::{Tokenizer, IterTokenizer};
+use lex::IterTokenizer;
 use parse::{Parser, ParseError};
-use ast::{Unit, ScopedId, visit::UnitVisitor};
+use ast::{Unit, visit::UnitVisitor};
 use identify::{NameScopeBuilder, TypeScopeBuilder, ASTIdentifier};
-use identify::{ASTTypeChecker, TypeGraph};
+use identify::TypeGraph;
 use check::{CheckerError, ErrorCollector, TypeConcretifier, TypeMapping};
-use compile::{ModuleProvider, ModuleCompiler, SimpleModuleProvider};
-use llvm::{Context, Module, Builder, Value};
+use compile::{ModuleCompiler, SimpleModuleProvider};
+use llvm::{Context, Builder};
 
 use std::collections::HashMap;
 use std::fs::File;
 use std::path::Path;
 use std::str::Chars;
-use std::io::{self, Read, Write};
+use std::io::{self, Read};
 
 #[derive(Debug)]
 pub struct Runner<'input> {

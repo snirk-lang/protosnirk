@@ -2,10 +2,10 @@
 //!
 //! An `Item` is a declaration made in the root context of a program
 //! -- namely declarations such as `class`, `enum`, `struct`.
-use std::cell::{Cell, Ref};
+use std::cell::Ref;
 
-use lex::{Token};
-use ast::{Identifier, Block, Expression, TypeExpression, ScopedId};
+use lex::Token;
+use ast::{Identifier, Block, TypeExpression, ScopedId};
 
 /// A single "unit" of parsed code.
 #[derive(Debug, PartialEq, Clone)]

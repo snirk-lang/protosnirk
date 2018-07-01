@@ -1,7 +1,10 @@
 //! LLVM utilities, mostly for strings.
 
-use std::ffi::{CStr, CString};
-use std::fmt::{self, Formatter};
+#![allow(dead_code)]
+// Code here should be cleaned up and used.
+// https://github.com/immington-industries/protosnirk/issues/77
+
+use std::ffi::CStr;
 
 use libc::{c_char};
 

@@ -66,8 +66,6 @@
 //!
 //! Orchastrate the compilation process.
 
-#![allow(dead_code, unused_imports)]
-
 #[macro_use]
 extern crate log;
 extern crate env_logger;

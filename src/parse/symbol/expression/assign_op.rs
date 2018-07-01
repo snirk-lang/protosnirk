@@ -1,8 +1,8 @@
 //! Assign operator parser.
 
-use lex::{Token, Tokenizer, TokenType, TokenData};
+use lex::{Token, Tokenizer};
 use ast::*;
-use parse::{Parser, ParseResult, ParseError};
+use parse::{Parser, ParseResult};
 use parse::symbol::{InfixParser, Precedence};
 
 /// Parses expresisons using the expr/assign style operators.

@@ -1,7 +1,7 @@
 //! LLVM Type object.
 
 use std::mem;
-use std::ffi::{CStr, CString};
+use std::ffi::CStr;
 use std::iter::IntoIterator;
 use std::marker::PhantomData;
 

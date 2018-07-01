@@ -1,7 +1,5 @@
 //! Symbol definitions for Pratt parsing
 
-use std::mem;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Precedence {
     /// Extra value on the end

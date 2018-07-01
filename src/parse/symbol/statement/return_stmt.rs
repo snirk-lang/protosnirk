@@ -2,7 +2,7 @@
 
 use lex::{tokens, Token, Tokenizer, TokenType};
 use ast::*;
-use parse::{Parser, ParseResult, ParseError};
+use parse::{Parser, ParseResult};
 use parse::symbol::{PrefixParser, Precedence};
 
 /// Parses return statements
@@ -30,32 +30,5 @@ impl<T: Tokenizer> PrefixParser<Statement, T> for ReturnParser {
         let inner_expr = try!(parser.expression(Precedence::Return));
         let inner = try!(inner_expr.expect_value());
         Ok(Statement::Return(Return::new(token, Box::new(inner))))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    // TODO test
-    // - return <expr>
-    // - return // no expr
-    // - return // expr next line
-
-    #[test]
-    fn it_parses_empty_return_followed_by_statement() {
-
-    }
-
-    fn it_parses_empty_return_followed_by_endblock() {
-
-    }
-
-    #[test]
-    fn it_parses_return_expression() {
-
-    }
-
-    #[test]
-    fn it_denies_return_statement() {
-
     }
 }

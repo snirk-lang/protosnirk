@@ -1,13 +1,12 @@
 //! Represent an LLVM builder
 
 use std::mem;
-use std::ffi::{CStr, CString};
+use std::ffi::CString;
 use std::iter::IntoIterator;
 
-use libc::{c_char, c_int, c_uint};
+use libc::{c_char, c_uint};
 
 use llvm::{BasicBlock, Context, Value, Type};
-use llvm::util;
 
 use llvm_sys::*;
 use llvm_sys::prelude::*;

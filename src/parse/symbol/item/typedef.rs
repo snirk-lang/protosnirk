@@ -1,9 +1,9 @@
 //! Parser for type alias declarations
 
-use lex::{Token, Tokenizer, TokenType, TokenData};
+use lex::{Token, Tokenizer, TokenType};
 use ast::*;
-use parse::{Parser, ParseResult, ParseError};
-use parse::symbol::{PrefixParser, Precedence};
+use parse::{Parser, ParseResult};
+use parse::symbol::{PrefixParser};
 
 /// Parses type alias declarations.
 ///

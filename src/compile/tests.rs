@@ -1,7 +1,8 @@
-use ast::{ScopedId, visit::UnitVisitor};
-use parse::tests::parser;
+#![allow(unused_imports)]
+
+use ast::visit::UnitVisitor;
 use compile::{ModuleProvider, ModuleCompiler, SimpleModuleProvider};
-use llvm::{Context, Module, Builder, Value};
+use llvm::{Context, Builder};
 
 use parse::tests as parse_tests;
 use check::tests as check_tests;
