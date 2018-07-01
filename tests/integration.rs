@@ -1,15 +1,15 @@
 //! Test runner for protosnirk tests
 
+#![allow(unused_imports)] // Some imports needed for generated code
+
 extern crate protosnirk;
 
 #[macro_use]
 extern crate derive_integration_tests;
 
-use std::env;
-use std::fs::{self, File};
-use std::io::{self, Read, Write};
-use std::sync::mpsc::channel;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use std::fs::File;
+use std::io::{Read, Write};
 
 use protosnirk::llvm::{Context};
 use protosnirk::pipeline::{Runner, CompileRunner};
@@ -100,15 +100,16 @@ impl Test {
 type TestResult = Result<(), String>;
 
 fn compile_runner(test: Test) -> TestResult {
-    let parse_result = Runner::from_string(
-            test.content(), test.name().to_string())
-            .parse();
+    let parse_result = Runner::from_string(test.content(),
+                                           test.name().to_string())
+        .parse();
 
     if parse_result.is_err() {
         if test.mode() != TestMode::ParseFail {
             return Err(format!(
-                "Failed to parse {}: {:#?} ",
-                test.path(), parse_result.expect_err("Checked for bad parse result")))
+                "Failed to parse {}: {:#?}",
+                test.path(),
+                parse_result.expect_err("Checked for bad parse result")))
         }
         else {
             return Ok(())// Test successful
@@ -118,6 +119,8 @@ fn compile_runner(test: Test) -> TestResult {
         return Err(format!("Test {} parsed unexpectedly", test.path()))
     }
 
+    println!("Code parsed successfuly");
+
     let compile_result = parse_result.expect("Checked for bad parse result")
         .identify()
         .and_then(|identified| identified.check());
@@ -126,7 +129,8 @@ fn compile_runner(test: Test) -> TestResult {
         if test.mode() != TestMode::CompileFail {
             return Err(format!(
                 "Failed to compile {}: {:#?}",
-                test.path(), compile_result.expect_err("Checked for bad compile result")
+                test.path(),
+                compile_result.expect_err("Checked for bad compile result")
             ))
         }
         else {

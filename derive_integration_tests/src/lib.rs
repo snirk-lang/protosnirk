@@ -1,6 +1,7 @@
 #![recursion_limit="126"]
 extern crate proc_macro;
 extern crate proc_macro2;
+#[macro_use]
 extern crate syn;
 #[macro_use]
 extern crate quote;
@@ -13,15 +14,28 @@ use std::env;
 use std::fs::{self, File};
 use std::io::{self, prelude::*};
 use std::path::Path;
+use std::str::FromStr;
+
+fn is_rust_kw(text: &AsRef<str>) -> bool {
+    let tokens = TokenStream::from_str(text.as_ref());
+    if tokens.is_err() { return false }
+
+    // If we can't parse an ident out of this name then it's a keyword.
+    match syn::parse::<Ident>(tokens.expect("Checked expect")) {
+        Ok(_) => false,
+        Err(_) => true
+    }
+}
 
 fn make_ident(path: &AsRef<Path>) -> Ident {
-    let mut string = path.as_ref().to_string_lossy()
-        .to_string();
-    string.push('_');
-    string = string
-        .replace("-", "_")
-        .replace(".", "_");
-    Ident::new(&string, Span::call_site())
+    let mut path_string = path.as_ref().to_string_lossy()
+        .replace("-", "_");
+
+    if is_rust_kw(&path_string) {
+        path_string.push('_');
+    }
+
+    Ident::new(&path_string, Span::call_site())
 }
 
 fn create_tests(path: &Path, mut path_name: Ident) -> quote::__rt::TokenStream {
@@ -35,9 +49,14 @@ fn create_tests(path: &Path, mut path_name: Ident) -> quote::__rt::TokenStream {
         if child_path.is_dir() {
             let child_name = make_ident(&child_path.strip_prefix(path)
                 .expect("Child path was not a suffix of parent path"));
-            tests.push(create_tests(&child_path, child_name))
+            tests.push(create_tests(&child_path, child_name));
         }
         else {
+            if child_path.extension().map_or(true, |ex| &*ex != "protosnirk") {
+                // Skip files that don't end in .protosnirk
+                continue
+            }
+
             let test_name = make_ident(&child_path.file_stem()
                 .expect(&format!("No file stem on {}", child_path.display())));
             let child_path_string = child_path.to_string_lossy().to_string();
@@ -52,12 +71,13 @@ fn create_tests(path: &Path, mut path_name: Ident) -> quote::__rt::TokenStream {
                         .expect(&format!("Unable to read {}",
                             #child_path_string));
                     let test = Test::new(&#child_path_string, buffer);
+                    println!("Running code:\n{}", test.content());
                     match compile_runner(test) {
                         Ok(_) => {},
                         Err(reason) => panic!(reason)
                     }
                 }
-            })
+            });
         }
     }
     quote! {
@@ -71,10 +91,13 @@ fn create_tests(path: &Path, mut path_name: Ident) -> quote::__rt::TokenStream {
 pub fn create_integration_tests(input: TokenStream) -> TokenStream {
     let _ast: DeriveInput = syn::parse(input).unwrap();
 
-    let full_path = env::current_dir().expect("Can't `pwd`")
+    let full_path = env::current_dir()
+        .expect("Can't `pwd`")
         .join("tests");
 
-    let stream = create_tests(&full_path, make_ident(&Path::new("tests"))).into();
+    let stream = create_tests(&full_path,
+                              make_ident(&Path::new("tests")))
+        .into();
 
     stream
 }
