@@ -1,3 +1,4 @@
+#![recursion_limit="126"]
 extern crate proc_macro;
 extern crate proc_macro2;
 extern crate syn;
@@ -13,19 +14,17 @@ use std::fs::{self, File};
 use std::io::{self, prelude::*};
 use std::path::Path;
 
-fn make_ident(path: &AsRef<Path>) -> String {
-    path.as_ref().to_string_lossy()
-        .to_string()
+fn make_ident(path: &AsRef<Path>) -> Ident {
+    let mut string = path.as_ref().to_string_lossy()
+        .to_string();
+    string.push('_');
+    string = string
         .replace("-", "_")
-        .replace(".", "_")
-        .replace("/", "_SLASH_")
-        .replace("\\", "_BACKSLASH_")
-        .to_lowercase()
+        .replace(".", "_");
+    Ident::new(&string, Span::call_site())
 }
 
-fn create_tests(path: &Path, mut path_name: String) -> quote::__rt::TokenStream {
-    path_name.push('_');
-    let module_name = Ident::new(&path_name, Span::call_site());
+fn create_tests(path: &Path, mut path_name: Ident) -> quote::__rt::TokenStream {
     let children = fs::read_dir(path)
         .expect(&format!("Unable to read from {}", path.display()));
     let mut tests = Vec::new();
@@ -41,11 +40,10 @@ fn create_tests(path: &Path, mut path_name: String) -> quote::__rt::TokenStream 
         else {
             let test_name = make_ident(&child_path.file_stem()
                 .expect(&format!("No file stem on {}", child_path.display())));
-            let test_ident = Ident::new(&test_name, Span::call_site());
             let child_path_string = child_path.to_string_lossy().to_string();
             tests.push(quote! {
                 #[test]
-                fn #test_ident() {
+                fn #test_name() {
                     let mut buffer = String::new();
                     let mut file = File::open(#child_path_string)
                         .expect(&format!("Unable to open {}",
@@ -53,12 +51,17 @@ fn create_tests(path: &Path, mut path_name: String) -> quote::__rt::TokenStream 
                     file.read_to_string(&mut buffer)
                         .expect(&format!("Unable to read {}",
                             #child_path_string));
+                    let test = Test::new(&#child_path_string, buffer);
+                    match compile_runner(test) {
+                        Ok(_) => {},
+                        Err(reason) => panic!(reason)
+                    }
                 }
             })
         }
     }
     quote! {
-        mod #module_name {
+        mod #path_name {
             #(#tests)*
         }
     }
@@ -71,7 +74,7 @@ pub fn create_integration_tests(input: TokenStream) -> TokenStream {
     let full_path = env::current_dir().expect("Can't `pwd`")
         .join("tests");
 
-    let stream = create_tests(&full_path, "tests".to_string()).into();
+    let stream = create_tests(&full_path, make_ident(&Path::new("tests"))).into();
 
     stream
 }

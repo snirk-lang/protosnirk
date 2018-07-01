@@ -61,7 +61,7 @@ impl Tester {
                     let mut buffer = String::new();
                     let mut file = try!(File::open(entry.path()));
                     try!(file.read_to_string(&mut buffer));
-                    tests.push(Test::new(entry.path().as_path(), buffer));
+                    //tests.push(Test::new(entry.path().as_path(), buffer));
                 }
             }
         }
@@ -161,7 +161,8 @@ pub struct Test {
 }
 
 impl Test {
-    pub fn new(file_name: &Path, content: String) -> Test {
+    pub fn new(file_name: &AsRef<Path>, content: String) -> Test {
+        let file_name = file_name.as_ref();
         let name = file_name.file_stem()
             .expect("Bad file name given to Test::new")
             .to_string_lossy().to_string();
@@ -289,4 +290,4 @@ fn integration_tests() {
 }
 
 #[derive(IntegrationTests)]
-struct Placeholder;
+struct _Placeholder;
