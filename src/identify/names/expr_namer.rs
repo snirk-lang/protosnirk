@@ -105,6 +105,7 @@ impl<'err, 'builder> ItemVisitor for ExpressionVarIdentifier<'err, 'builder> {
 
 impl<'err, 'builder> BlockVisitor for ExpressionVarIdentifier<'err, 'builder> {
     fn visit_block(&mut self, block: &Block) {
+        trace!("Visiting a block");
         // Give blocks scoped IDs in line with the current block
         block.set_id(self.current_id.clone());
 
@@ -169,7 +170,7 @@ impl<'err, 'builder> StatementVisitor
 
     fn visit_do_block(&mut self, do_block: &DoBlock) {
         trace!("Visiting do block");
-        visit::walk_block(self, do_block.block());
+        visit::walk_do_block(self, do_block);
     }
 
     fn visit_if_block(&mut self, if_block: &IfBlock) {
