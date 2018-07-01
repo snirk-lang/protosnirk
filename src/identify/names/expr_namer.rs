@@ -5,8 +5,6 @@ use ast::{*, visit::*};
 use identify::{NameScopeBuilder, OriginManager};
 use check::{CheckerError, ErrorCollector};
 
-use std::mem;
-
 /// Identifies variables in blocks.
 #[derive(Debug)]
 pub struct ExpressionVarIdentifier<'err, 'builder> {

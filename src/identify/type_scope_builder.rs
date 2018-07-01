@@ -1,6 +1,6 @@
 //!
 
-use ast::{ScopedId, Identifier};
+use ast::ScopedId;
 use identify::{ConcreteType, NamedType};
 
 use std::collections::HashMap;

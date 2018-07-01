@@ -1,13 +1,12 @@
 //! Builds the `TypeGraph` using code within functions
 
 use ast::{*, visit::*};
-use identify::{ConcreteType, FnType, TypeScopeBuilder, OriginManager};
+use identify::TypeScopeBuilder;
 use identify::types::{TypeGraph, InferenceSource};
 use check::{CheckerError, ErrorCollector};
 
 use petgraph::graph::NodeIndex;
 
-use std::collections::HashMap;
 use std::ops::Deref;
 
 /// Creates type equations for functions.
@@ -457,8 +456,6 @@ impl<'err, 'builder, 'graph> ExpressionVisitor
     }
 
     fn visit_fn_call(&mut self, fn_call: &FnCall) {
-        use ast::CallArgument;
-
         trace!("Visting a call to {}", fn_call.text());
 
         // fn foo() => ...

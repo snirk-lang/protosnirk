@@ -25,7 +25,7 @@ pub use self::stmt::*;
 pub use self::operator::*;
 pub use self::types::*;
 
-use std::cell::{Cell, RefCell, Ref};
+use std::cell::{RefCell, Ref};
 
 use lex::Token;
 

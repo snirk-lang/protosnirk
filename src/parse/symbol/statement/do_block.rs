@@ -1,8 +1,8 @@
 //! Block literal `do` statement.
 
-use lex::{Token, Tokenizer, TokenType, TokenData};
+use lex::{Token, Tokenizer, TokenType};
 use ast::*;
-use parse::{Parser, ParseError, ParseResult};
+use parse::{Parser, ParseResult};
 use parse::symbol::PrefixParser;
 
 /// Parses a block statement using the prefix symol `do`.

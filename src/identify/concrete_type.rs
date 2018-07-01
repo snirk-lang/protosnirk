@@ -1,9 +1,5 @@
 //! Concrete type definitions.
 
-use ast::{Identifier, ScopedId};
-
-use std::cell::{RefCell, Cell, Ref};
-
 /// A fully qualified type.
 ///
 /// These are first identified in `identify/types`,

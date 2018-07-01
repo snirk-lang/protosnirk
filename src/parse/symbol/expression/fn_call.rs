@@ -1,6 +1,6 @@
 //! Function call - inline `(`
 
-use lex::{Token, Tokenizer, TokenType, TokenData};
+use lex::{Token, Tokenizer, TokenType};
 use ast::*;
 use parse::{Parser, ParseResult, ParseError, IndentationRule};
 use parse::symbol::{InfixParser, Precedence};

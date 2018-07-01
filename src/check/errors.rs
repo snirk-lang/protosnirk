@@ -1,7 +1,6 @@
 //! Result types for Verification
 
 use lex::{Token};
-use ast::Unit;
 
 /// Compiler error returned by an expression verifier.
 ///

@@ -1,8 +1,6 @@
 //! A graph of type inferences.
 
-use lex::Token;
-use ast::{ScopedId, CallArgument};
-use identify::ConcreteType;
+use ast::ScopedId;
 use identify::types::InferenceSource;
 
 use petgraph::Directed;
@@ -10,7 +8,6 @@ use petgraph::graph::{Graph, NodeIndex, EdgeIndex};
 use petgraph::visit::Dfs;
 
 use std::collections::HashMap;
-use std::path::Path;
 
 /// Represents a node in the type inference graph, or
 /// an rvalue in a type equation solver.
@@ -48,7 +45,7 @@ type DirectedTypeGraph = Graph<TypeNode, InferenceSource, Directed, u32>;
 #[derive(Debug, Default)]
 pub struct TypeGraph {
     /// Graph of types upon which to run unification/type inference
-    graph: Graph<TypeNode, InferenceSource, Directed, u32>,
+    graph: DirectedTypeGraph,
     /// TypeId -> NodeIndex
     types: HashMap<ScopedId, NodeIndex>,
     /// ScopedId -> NodeIndex

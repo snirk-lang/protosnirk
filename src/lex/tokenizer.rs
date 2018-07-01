@@ -4,15 +4,12 @@
 
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
-use std::hash::{Hash, Hasher};
-use std::iter::Peekable;
-use std::str::Chars;
 
 use unicode_categories::UnicodeCategories;
 
 use lex::{tokens, TextLocation,
           TokenizerSymbolRule, CowStr,
-          Token, TokenData, TokenType,
+          Token, TokenData,
           TextIter, PeekTextIter};
 
 /// Trait for a tokenizer which can iterate over tokens.
@@ -469,10 +466,5 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
             }
             self.iter.next();
         }
-    }
-
-    /// Grab the next charcter
-    fn next_char(&mut self) -> Option<char> {
-        self.iter.next()
     }
 }

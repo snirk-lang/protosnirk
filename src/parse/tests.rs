@@ -1,11 +1,9 @@
-use std::borrow::Cow;
 use std::str::Chars;
 
-use lex::{Token, TokenData, TextLocation, Tokenizer, IterTokenizer};
+use lex::{Token, IterTokenizer};
 use lex::tests::make_tokenizer;
 use ast::*;
 use parse::{Parser};
-use parse::symbol::{self, Precedence};
 
 pub fn expect_eq<T: ::std::fmt::Debug + PartialEq>(got: T, expected: T) {
     assert!(got == expected,

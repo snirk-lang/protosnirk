@@ -2,15 +2,14 @@
 
 use std::ffi::{CStr, CString};
 use std::marker::PhantomData;
-use std::ops::{Deref, DerefMut};
 
-use libc::{c_char};
+use libc::c_char;
 
 use llvm_sys::core::*;
 use llvm_sys::prelude::*;
 use llvm_sys::analysis::{LLVMVerifierFailureAction, LLVMVerifyModule};
 
-use llvm::{Context, Type, Value};
+use llvm::{Type, Value};
 
 /// Handle to an LLVM Module. Owned by an LLVM Context.
 #[derive(Debug, Clone)]

@@ -3,9 +3,9 @@
 // This will become more complex with tuple declarations
 // and other pattern declaration types.
 
-use lex::{Token, Tokenizer, TokenType, TokenData};
+use lex::{Token, Tokenizer, TokenType};
 use ast::*;
-use parse::{Parser, ParseResult, ParseError};
+use parse::{Parser, ParseResult};
 use parse::symbol::{PrefixParser, Precedence};
 
 ///

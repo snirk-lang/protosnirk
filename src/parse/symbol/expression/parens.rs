@@ -3,8 +3,8 @@
 // This parser will be one of the first to be heavily
 // overloaded (tuple parsing vs expression recedence in expr prefix).
 
-use lex::{Token, Tokenizer, TokenType, TokenData};
-use parse::{Parser, ParseResult, ParseError};
+use lex::{Token, Tokenizer, TokenType};
+use parse::{Parser, ParseResult};
 use ast::*;
 use parse::symbol::{PrefixParser, Precedence};
 

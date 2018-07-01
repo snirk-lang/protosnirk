@@ -4,11 +4,10 @@
 /// such as loop constructs. They are usually not accepted in as many places as
 /// `Expression`s are because of their ability to use indentation.
 
-use lex::{CowStr, Token, TokenData, TokenType};
-use ast::{Expression, Block, Identifier, ScopedId};
+use lex::Token;
+use ast::{Expression, Block, ScopedId};
 
-use std::cell::{Cell, RefCell, Ref};
-use std::ops::Deref;
+use std::cell::{RefCell, Ref};
 
 /// Statement representation
 #[derive(Debug, PartialEq, Clone)]

@@ -10,11 +10,8 @@ pub use self::item::*;
 pub use self::types::*;
 pub use self::precedence::Precedence;
 
-use std::rc::Rc;
-
-use lex::{Token, TokenType, Tokenizer};
-use ast::{Expression, UnaryOperation, BinaryOperation};
-use parse::{Parser, ParseError, ParseResult};
+use lex::{Token, Tokenizer};
+use parse::{Parser, ParseResult};
 
 // # Note
 // The generic type `T: Tokenizer` is present so parsers can be made into objects

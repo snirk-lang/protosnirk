@@ -23,10 +23,6 @@ impl<'err, 'builder> ItemVarIdentifier<'err, 'builder> {
             current_id
         }
     }
-
-    pub fn into_last_id(self) -> ScopedId {
-        self.current_id
-    }
 }
 
 impl<'err, 'builder> UnitVisitor for ItemVarIdentifier<'err, 'builder> {

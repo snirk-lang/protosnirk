@@ -3,15 +3,13 @@
 //! The parser is a configurable object which parses a stream of tokens into a
 //! source tree.
 
-use std::borrow::{Cow, BorrowMut};
+use std::borrow::Cow;
 use std::collections::{HashMap, VecDeque};
 use std::rc::Rc;
-use std::cell::Cell;
 
-use lex::{CowStr, Token, TokenType, TokenData, Tokenizer};
-use parse::{ParseError, ParseResult};
+use lex::{CowStr, Token, TokenType, Tokenizer};
+use parse::ParseError;
 use ast::*;
-use ast::types::*;
 use parse::symbol::*;
 
 /// Parser object which parses things
@@ -459,8 +457,7 @@ impl<T: Tokenizer> Parser<T> {
 
     /// Get the current precedence
     fn current_precedence(&mut self) -> Precedence {
-        use std::ops::Deref;
-            let looked_ahead = self.look_ahead(1).get_type();
+        let looked_ahead = self.look_ahead(1).get_type();
         if let Some(infix_parser) = self.expr_infix_parsers.get(&looked_ahead).cloned() {
             infix_parser.precedence()
         } else {
