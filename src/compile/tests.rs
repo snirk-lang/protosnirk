@@ -41,8 +41,9 @@ pub fn compile<'ctx>(input: &'static str,
 }
 
 pub const COMPILE_EXAMPLE: &str = r#"
-fn foo(x: float, y: float) // returns void
-    x + y // statement
+fn foo() -> float
+    do
+        1
 "#;
 
 #[ignore]
