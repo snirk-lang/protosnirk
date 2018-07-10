@@ -1,10 +1,13 @@
 // Functions may be implicitly returned from
 // Block implicit return is checked later
 
-fn main()
+fn stmtRetVoid()
     let x = 0
     // implicitly return void
 
-fn foo() -> float
+fn exprRetVoid(x: float)
+    x + 1
+
+fn exprRetExpr() -> float
     let y = 1
     y + 2

@@ -2,4 +2,4 @@
 
 fn main()
     let foo: float = 0
-    let bar: bool = true
+    let mut bar: bool = true

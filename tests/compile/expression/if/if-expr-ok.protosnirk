@@ -1,0 +1,4 @@
+// If expressions work
+
+fn foo(x: float) -> float
+    if x == 0 => x + 1 else x * 2
