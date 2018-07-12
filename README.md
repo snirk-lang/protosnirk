@@ -7,7 +7,7 @@ The beginnings of a programming language.
 This repository contains the protosnirk compiler, which is written in Rust.
 If you're interested in compilers (or Rust?) maybe check it out.
 The language itself, as the name suggests, is rather sparse right now, but
-you can check out the [test][protosnirk-tests] folder to see what 
+you can check out the [tests][protosnirk-tests] folder to see what 
 it can do.
 
 ## What is the status? What is proto?
@@ -19,9 +19,9 @@ Then we can really get to business and figure out how things should work.
 
 ## Why is this special? Why make another programming language?
 
-I want to empower programmers to understand and express the constraints and
-promises of their APIs - if it's going to cause undefined behavior, why not
-express it in your API instead of in your docs?
+I'm tired of seeing errors pop up during runtime which could have been avoided if a
+programmer could write a more clear API or if the compiler could check a few things
+before compiling code.
 
 There's not much more I can say right now, this is still "proto" after all.
 
@@ -29,23 +29,20 @@ There's not much more I can say right now, this is still "proto" after all.
 
 There are many types of names for programming languages, such as
 - "Improvement upon" names like C, C++, D, C#, ObjectiveC
-- Cool people like Ada or Haskell
-- Features like Clojure, OCaml, Smalltalk
-- Cool things like Rust, Lua, Elm, Boo
-- Marketing like JavaScript, Swift, NoSQL, or Go
+- Cool people names like Ada or Haskell
+- Features names like Clojure, OCaml, Scala, or Smalltalk
+- Cool things/fun words names like Rust, Lua, Elm, Crystal, or Boo
+- Marketing names like JavaScript, Swift, NoSQL, or Go
 
 Snirk was chosen as a kind of "fun word" category - you can't confuse it
 with anything else yet and there's no need to add "lang" to the name to
 avoid confusion (unless you are using [Hungarian notation][wiki-hungarian-notation]).
 
-This means we can name source code `.snirk`, libraries `.snirklib`,
+This means we will name source code `.snirk`, libraries `.snirklib`,
 and the compiler `snirkc`.
 
 `snirk` is ["a treasured and carefully-guarded point"][xkcd-about] in the space of
 five-character strings.
-
-My handle is currently Snirk Immington - I'm certainly willing to change this
-in the future if it seems like I'm naming the language after myself.
 
 ## Why is this special?
 
@@ -58,20 +55,21 @@ that are worth checking out.
 
 - I think the syntax looks nice
 - Expression-based language
-- Immutable-by-default variables
+- Immutable-by-default variables (excitingly, are broken on `master`)
 - Named-parameter calling conventions
 
 ## What are some of the planned features?
 
-- Strong static typing (no casts, coersions, or `null`s)
-- Objects, traits, sum types
-- Garbage collection
-- Ownership model to understand the liftimes of data
+- Imperative, object oriented, multi-paradigm, etc. (the apple doesn't fall too far from the C)
+- Strong static typing (no casts, coersions, or `null`s) which also enforces immutability
+- Traits, sum types
+- Opt-in garbage collection
+- Ownership model to understand the lifetimes of data
 - Freedom from data races
 - Asynchronous-first I/O without red/blue functions
-- Object capability system to fully understand what
-resources your code is using
+- Object capability system to fully understand what resources your code is using
 - Compile to binary or run in interpreter
+- First-class `const` data
 
 [wiki-hungarian-notation]: https://en.wikipedia.org/wiki/Hungarian_notation
 [wiki-earlang]: https://en.wikipedia.org/wiki/Erlang_(programming_language)#History
