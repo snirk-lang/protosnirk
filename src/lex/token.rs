@@ -2,10 +2,8 @@
 /// Each token has a `TokenType` indicating what it is and its data.
 
 use std::borrow::Cow;
-use std::collections::HashSet;
 use std::fmt::{Display, Formatter};
 use std::fmt::Result as FmtResult;
-use std::ops::Range;
 
 use lex::{TextLocation, CowStr};
 

@@ -1,8 +1,6 @@
 //! Source of type inferences.
 
-use lex::Token;
-use ast::{Identifier, Literal, ScopedId};
-use ast::types::TypeExpression;
+use ast::{Identifier, Literal};
 
 use std::fmt::{self, Formatter};
 

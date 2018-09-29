@@ -1,13 +1,12 @@
 //! Bindings to LLVM context objects
 
-use std::rc::Rc;
 use std::ffi::CString;
 use libc::{c_char};
 
 use llvm_sys::core::*;
 use llvm_sys::prelude::*;
 
-use llvm::{Value, Type, Module, BasicBlock, Builder};
+use llvm::{Value, Module, BasicBlock, Builder};
 
 pub struct Context {
     ptr: LLVMContextRef

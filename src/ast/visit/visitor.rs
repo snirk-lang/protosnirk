@@ -1,10 +1,6 @@
 //! Visitor traits for walking the AST.
 
-use std::collections::HashMap;
-
-use lex::Token;
 use ast::*;
-use ast::Expression as BaseExpression;
 
 /// A visitor which can visit a unit of code.
 pub trait UnitVisitor {

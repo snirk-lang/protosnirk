@@ -1,8 +1,8 @@
 //! If expression parser.
 
-use lex::{Token, Tokenizer, TokenType, TokenData};
+use lex::{Token, Tokenizer, TokenType};
 use ast::*;
-use parse::{Parser, ParseError, ParseResult};
+use parse::{Parser, ParseResult};
 use parse::symbol::{PrefixParser, Precedence};
 
 /// Parses block and inline forms of prefix expr/block `if`.

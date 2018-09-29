@@ -6,10 +6,9 @@
 // let anonStruct: struct(x: int, y: int) // anonymous named structs
 // let tuple4: (array: [int], sizedArray: [int: 6] sizedArraySlice: &[int: 5], slice: &[int])
 
-use std::cell::{RefCell, Ref};
+use std::cell::Ref;
 
-use lex::{Token, TokenType, TokenData};
-use ast::{ScopedId, Literal, Identifier};
+use ast::{ScopedId, Identifier};
 
 /// Represents type expressions in protosnirk.
 #[derive(Debug, PartialEq, Eq, Clone)]

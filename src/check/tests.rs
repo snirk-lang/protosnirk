@@ -37,9 +37,6 @@ fn fib(n: float) -> float
 #[ignore]
 #[test]
 fn check_example() {
-    use identify::*;
-    use check::ErrorCollector;
-
     ::env_logger::Builder::new().parse("TRACE").init();
     info!("Running checker");
     let (.., graph, results) = check(parse_tests::FACT_AND_HELPER);

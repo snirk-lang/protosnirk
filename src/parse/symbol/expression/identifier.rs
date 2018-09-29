@@ -2,7 +2,7 @@
 
 // This is gonna be merged with lvalue parsers
 
-use lex::{Token, Tokenizer, TokenType};
+use lex::{Token, Tokenizer};
 use parse::{Parser, ParseResult};
 use ast::*;
 use parse::symbol::PrefixParser;
@@ -25,7 +25,7 @@ impl<T: Tokenizer> PrefixParser<Expression, T> for IdentifierParser {
 #[cfg(test)]
 mod tests {
     use std::borrow::Cow;
-    use lex::{Token, TokenData, TokenType, TextLocation};
+    use lex::{Token, TokenData, TextLocation};
     use ast::{Expression, Identifier};
     use parse::symbol::{PrefixParser, IdentifierParser};
     use parse::tests as parse_tests;

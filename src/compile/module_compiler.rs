@@ -1,14 +1,14 @@
-use std::collections::{HashMap, BTreeMap};
+use std::collections::HashMap;
 
 use ast::{*, visit::*};
-use identify::{ConcreteType, OriginManager};
+use identify::ConcreteType;
 use check::TypeMapping;
 use compile::ModuleProvider;
 
-use llvm_sys::{LLVMIntPredicate, LLVMRealPredicate, LLVMOpcode, LLVMTypeKind};
+use llvm_sys::{LLVMIntPredicate, LLVMRealPredicate, LLVMTypeKind};
 use llvm_sys::analysis::LLVMVerifierFailureAction;
 
-use llvm::{Module, Value, Type, BasicBlock, Builder, Context};
+use llvm::{Module, Value, Type, Builder, Context};
 
 //#[derive(Debug)]
 // https://github.com/immington-industries/protosnirk/issues/52
@@ -22,7 +22,6 @@ pub struct ModuleCompiler<'ctx, 'b, M: ModuleProvider<'ctx>> where 'ctx: 'b {
     current_type: Type<'ctx>,
     types: TypeMapping,
     scope_manager: &'b mut HashMap<ScopedId, Value<'ctx>>,
-    origin_manager: OriginManager
 }
 
 impl<'ctx, 'b, M: ModuleProvider<'ctx>> ModuleCompiler<'ctx, 'b, M> {
@@ -42,7 +41,6 @@ impl<'ctx, 'b, M: ModuleProvider<'ctx>> ModuleCompiler<'ctx, 'b, M> {
             scope_manager,
             optimizations,
             current_type: Type::void(&context),
-            origin_manager: OriginManager::new()
         }
     }
     pub fn decompose(self) -> (M, TypeMapping) {
