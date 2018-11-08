@@ -3,6 +3,9 @@
 #![allow(unused_imports)] // Some imports needed for generated code
 
 extern crate protosnirk;
+#[macro_use]
+extern crate log;
+extern crate env_logger;
 
 #[macro_use]
 extern crate derive_integration_tests;
@@ -100,6 +103,15 @@ impl Test {
 type TestResult = Result<(), String>;
 
 fn compile_runner(test: Test) -> TestResult {
+    use env_logger::Target;
+    use log::LevelFilter;
+    println!("Attempting to initialize logger");
+    let result = env_logger::Builder::new()
+        .filter_level(LevelFilter::Debug)
+        .target(Target::Stdout)
+        .try_init();
+    println!("Init result: {:?}", result);
+
     let parse_result = Runner::from_string(test.content(),
                                            test.name().to_string())
         .parse();
@@ -112,7 +124,7 @@ fn compile_runner(test: Test) -> TestResult {
                 parse_result.expect_err("Checked for bad parse result")))
         }
         else {
-            return Ok(())// Test successful
+            return Ok(()) // Test successful
         }
     }
     else if test.mode() == TestMode::ParseFail {

@@ -3,8 +3,8 @@
 use lex::IterTokenizer;
 use parse::{Parser, ParseError};
 use ast::{Unit, visit::UnitVisitor};
-use identify::{NameScopeBuilder, TypeScopeBuilder, ASTIdentifier};
-use identify::TypeGraph;
+use identify::{
+    NameScopeBuilder, TypeScopeBuilder, ASTIdentifier, ASTTypeChecker, TypeGraph};
 use check::{CheckerError, ErrorCollector, TypeConcretifier, TypeMapping};
 use compile::{ModuleCompiler, SimpleModuleProvider};
 use llvm::{Context, Builder};
@@ -73,10 +73,20 @@ impl IdentifyRunner {
 
     pub fn identify(mut self) -> Result<CheckRunner, CompilationError> {
         ASTIdentifier::new(&mut self.name_builder,
-                          &mut self.type_builder,
-                          &mut self.errors)
+                           &mut self.type_builder,
+                           &mut self.errors)
             .visit_unit(&self.unit);
         if !self.errors.errors().is_empty() {
+            println!("IdentifyRunner: failed after ASTIdentifer");
+            let (errors, _warns, _lints) = self.errors.decompose();
+            return Err(CompilationError::CheckerError(errors))
+        }
+        ASTTypeChecker::new(&mut self.type_builder,
+            &mut self.graph,
+            &mut self.errors)
+            .visit_unit(&self.unit);
+        if !self.errors.errors().is_empty() {
+            println!("IdentifyRunner: failed after ASTTypeChecker");
             let (errors, _warns, _lints) = self.errors.decompose();
             Err(CompilationError::CheckerError(errors))
         }
