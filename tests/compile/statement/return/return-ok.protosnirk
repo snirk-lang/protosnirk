@@ -1,8 +1,0 @@
-// the return statement is used to return early from a function
-
-fn main()
-    let x = 0
-    return
-
-fn foo() -> float
-    return 2
