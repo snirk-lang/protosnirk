@@ -141,7 +141,9 @@ impl TypeGraph {
         trace!("Inferring type of {:?}", var);
         let var_ix = self.variables.get(var);
         if var_ix.is_none() {
-            panic!("type_graph: Asked to infer unknown var {:?}", var);
+            error!("type_graph:\n{:#?}", self);
+            panic!("type_graph: Asked to infer unknown var {:?}. Known: {:?}",
+                var, self.variables);
         }
         let var_ix = var_ix.expect("Checked expect");
         let mut dfs = Dfs::new(&self.graph, *var_ix);

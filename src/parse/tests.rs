@@ -198,6 +198,7 @@ fn parse_example() {
     let inputs = &[FLOAT_TYPE_ALIAS];
     ::env_logger::Builder::new()
         .parse("TRACE")
+        .target(::env_logger::Target::Stdout)
         .init();
     for input in inputs {
         let mut parser = parser(input);

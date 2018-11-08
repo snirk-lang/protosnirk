@@ -576,6 +576,7 @@ fn foo2 args
 
     env_logger::Builder::new()
         .parse("TRACE")
+        .target(env_logger::Target::Stdout)
         .format(format)
         .init();
 

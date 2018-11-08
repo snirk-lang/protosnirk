@@ -50,7 +50,7 @@ fn foo() -> float
 #[ignore]
 #[test]
 fn compile_example() {
-    ::env_logger::Builder::new().parse("TRACE").init();
+    ::env_logger::Builder::new().target(::env_logger::Target::Stdout).parse("TRACE").init();
 
     {
         let context = Context::new();

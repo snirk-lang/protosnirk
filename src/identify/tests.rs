@@ -24,7 +24,7 @@ pub fn identify(input: &'static str)
         panic!("Got errors running ASTIdentifier: {:?}", errors.errors());
     }
     debug!("Running ASTTypeChecker");
-    ASTTypeChecker::new(&mut type_builder, &mut errors, &mut graph)
+    ASTTypeChecker::new(&mut type_builder, &mut graph, &mut errors)
                    .visit_unit(&unit);
     if !errors.errors().is_empty() {
         panic!("Got errors running ASTTypeChecker: {:?}", errors.errors());
@@ -41,7 +41,7 @@ pub fn identify(input: &'static str)
 fn identify_example() {
     use std::fs::File;
     use std::io::Write;
-    ::env_logger::Builder::new().parse("TRACE").init();
+    ::env_logger::Builder::new().target(::env_logger::Target::Stdout).parse("TRACE").init();
 
     let (unit, _, _, _, _) = identify(parse_tests::BLOCKS_IN_BLOCKS);
 
