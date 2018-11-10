@@ -1,4 +1,5 @@
 #![recursion_limit="126"]
+
 extern crate proc_macro;
 extern crate proc_macro2;
 #[macro_use]
@@ -63,16 +64,17 @@ fn create_tests(path: &Path, mut path_name: Ident) -> quote::__rt::TokenStream {
             tests.push(quote! {
                 #[test]
                 fn #test_name() {
+                    use std::io::{Read, Write};
                     let mut buffer = String::new();
-                    let mut file = File::open(#child_path_string)
+                    let mut file = ::std::fs::File::open(#child_path_string)
                         .expect(&format!("Unable to open {}",
                             #child_path_string));
                     file.read_to_string(&mut buffer)
                         .expect(&format!("Unable to read {}",
                             #child_path_string));
-                    let test = Test::new(&#child_path_string, buffer);
+                    let test = crate::Test::new(&#child_path_string, buffer);
                     println!("Running code:\n{}", test.content());
-                    match compile_runner(test) {
+                    match crate::compile_runner(test) {
                         Ok(_) => {},
                         Err(reason) => panic!(reason)
                     }
