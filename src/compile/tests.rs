@@ -42,12 +42,10 @@ pub fn compile<'ctx>(input: &'static str,
 }
 
 pub const COMPILE_EXAMPLE: &str = r#"
-fn foo() -> float
-    do
-        1
+fn foo() -> bool
+    true
 "#;
 
-#[ignore]
 #[test]
 fn compile_example() {
     ::env_logger::Builder::new().parse("TRACE").init();
