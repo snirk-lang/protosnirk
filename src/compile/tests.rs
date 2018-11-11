@@ -42,8 +42,8 @@ pub fn compile<'ctx>(input: &'static str,
 }
 
 pub const COMPILE_EXAMPLE: &str = r#"
-fn foo() -> bool
-    true
+fn foo()
+    foo()
 "#;
 
 #[test]
