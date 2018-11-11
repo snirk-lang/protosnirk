@@ -72,7 +72,8 @@ impl Test {
                 TestMode::CompileFail
             }
             else {
-                panic!("Invalid test name {}", file_name.display())
+                panic!("Invalid test name {}: must end with test mode specifier",
+                    file_name.display())
             };
 
         Test {
@@ -103,14 +104,13 @@ impl Test {
 type TestResult = Result<(), String>;
 
 fn compile_runner(test: Test) -> TestResult {
-    use env_logger::Target;
+    use env_logger::{Builder, Target};
     use log::LevelFilter;
-    println!("Attempting to initialize logger");
-    let result = env_logger::Builder::new()
+    Builder::new();
         .filter_level(LevelFilter::Debug)
         .target(Target::Stdout)
+        .filter()
         .try_init();
-    println!("Init result: {:?}", result);
 
     let parse_result = Runner::from_string(test.content(),
                                            test.name().to_string())
