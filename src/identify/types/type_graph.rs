@@ -214,18 +214,3 @@ impl TypeGraph {
             .expect("Could not write file for svg");
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use parse::tests as parse_tests;
-    use identify::tests as identify_tests;
-
-    #[ignore]
-    #[test]
-    fn create_type_graph() {
-        let (.., graph)
-            = identify_tests::identify(parse_tests::FLOAT_TYPE_ALIAS);
-        graph.write_svg("/tmp/type-graph.svg");
-    }
-
-}
