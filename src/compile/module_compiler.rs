@@ -65,7 +65,7 @@ impl<'ctx, 'b, M: ModuleProvider<'ctx>> ModuleCompiler<'ctx, 'b, M> {
                     "()" => Type::void(&self.context),
                     "bool" => Type::int1(&self.context),
                     "float" => Type::double(&self.context),
-                    other => panic!("Unexpected type {}", other)
+                    other => panic!("Unexpected concrete type {}", other)
                 }
             },
             &ConcreteType::Function(ref fn_ty) => {
@@ -327,14 +327,10 @@ impl<'ctx, 'b, M> StatementVisitor for ModuleCompiler<'ctx, 'b, M>
             self.visit_expression(return_expr);
             let return_val = self.ir_code.pop()
                 .expect("Could not generate value of return");
-            let builder = self.builder;
-            builder.build_ret(&return_val);
+            self.builder.build_ret(&return_val);
         }
         else {
-            warn!("Empty return statement, appending ret void");
-            let builder = self.builder;
-            // Hopefully doesn't happen, protosnirk doesn't support void types
-            builder.build_ret_void();
+            self.builder.build_ret_void();
         }
         self.current_type = Type::void(&self.context);
     }
@@ -522,12 +518,21 @@ impl<'ctx, 'b, M> ExpressionVisitor for ModuleCompiler<'ctx, 'b, M>
             }
         }
 
-        let name = format!("call_{}", fn_call.text());
         let fn_ref = &self.scope_manager[&fn_call.id()];
+        let fn_return_type = self.llvm_type_of_concrete(fn_type.return_ty());
         trace!("Got a function ref to call");
-        let call = self.builder.build_call(fn_ref, arg_values, &name);
-        self.current_type = self.llvm_type_of_concrete(fn_type.return_ty());
-        self.ir_code.push(call);
+        if fn_return_type.get_kind() == LLVMTypeKind::LLVMVoidTypeKind {
+            trace!("Building call void {}", fn_call.text());
+            let call = self.builder.build_call(fn_ref, arg_values, "");
+            call.set_name("");
+        }
+        else {
+            let name = format!("call_{}", fn_call.text());
+            trace!("Building call {}", name);
+            let call = self.builder.build_call(fn_ref, arg_values, &name);
+            self.ir_code.push(call);
+        };
+        self.current_type = fn_return_type;
     }
 
     fn visit_if_expr(&mut self, if_expr: &IfExpression) {

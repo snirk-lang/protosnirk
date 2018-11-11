@@ -1,9 +1,8 @@
 //! Represent an LLVM builder
 
+use std::mem;
 use std::ffi::CString;
 use std::iter::IntoIterator;
-use std::mem;
-use std::ptr;
 
 use libc::{c_char, c_uint};
 
@@ -764,25 +763,6 @@ impl<'ctx> Builder<'ctx> {
         let name = CString::new(name).unwrap();
         unsafe {
             Value::from_ref(LLVMBuildPhi(self.ptr(), ty.ptr(), name.as_ptr() as *const c_char))
-        }
-    }
-
-    pub fn build_unnamed_call<I>(&self,
-                                 func: &Value<'ctx>,
-                                 args: I) -> Value<'ctx>
-                                 where I: IntoIterator<Item=Value<'ctx>> {
-        let mut args_vec: Vec<_> = args.into_iter().collect::<Vec<_>>();
-        let args_count = args_vec.len() as c_uint;
-        let args_ref = args_vec.as_mut_slice();
-        let args_ptrs = unsafe {
-            mem::transmute::<&mut [Value<'ctx>], &mut [LLVMValueRef]>(args_ref)
-        };
-        unsafe {
-            Value::from_ref(LLVMBuildCall(self.ptr(),
-                                          func.ptr(),
-                                          args_ptrs.as_mut_ptr(),
-                                          args_count,
-                                          ptr::null()))
         }
     }
 
