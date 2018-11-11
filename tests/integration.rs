@@ -106,11 +106,19 @@ type TestResult = Result<(), String>;
 fn compile_runner(test: Test) -> TestResult {
     use env_logger::{Builder, Target};
     use log::LevelFilter;
-    Builder::new();
+    Builder::new()
         .filter_level(LevelFilter::Debug)
         .target(Target::Stdout)
-        .filter()
-        .try_init();
+        .format(|buf, record|
+            writeln!(buf, "{} {}:{} {}",
+                     record.level(),
+                     record.file()
+                        .map(|path| path.split_at(4).1)
+                        .unwrap_or("<file>"),
+                     record.line().unwrap_or(0),
+                     record.args()))
+        .try_init()
+        .ok();
 
     let parse_result = Runner::from_string(test.content(),
                                            test.name().to_string())
