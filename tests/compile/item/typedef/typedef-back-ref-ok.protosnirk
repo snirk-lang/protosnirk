@@ -1,0 +1,5 @@
+// A typedef may reference another type declared after it
+
+//typedef A = B
+typedef B = C
+typedef C = float
