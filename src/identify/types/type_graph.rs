@@ -141,7 +141,7 @@ impl TypeGraph {
         trace!("Inferring type of {:?}", var);
         let var_ix = self.variables.get(var);
         if var_ix.is_none() {
-            error!("type_graph:\n{:#?}", self);
+            error!("type_graph:\n{:?}", self);
             panic!("type_graph: Asked to infer unknown var {:?}. Known: {:?}",
                 var, self.variables);
         }
