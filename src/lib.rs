@@ -87,6 +87,3 @@ pub mod check;
 pub mod lint;
 pub mod compile;
 pub mod pipeline;
-
-#[cfg(test)]
-mod tests;

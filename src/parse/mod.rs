@@ -10,8 +10,5 @@ mod parser;
 
 pub mod symbol;
 
-#[cfg(test)]
-pub mod tests;
-
 pub use self::errors::{ParseError, ParseResult, ExpectedNextType};
 pub use self::parser::{Parser, IndentationRule};
