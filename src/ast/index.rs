@@ -97,9 +97,7 @@ impl ScopedId {
 
 impl fmt::Debug for ScopedId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_tuple("ScopedId")
-         .field(&self.indices)
-         .finish()
+        write!(f, "Id{:?}", self.indices)
     }
 }
 
