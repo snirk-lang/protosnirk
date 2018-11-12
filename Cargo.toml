@@ -18,5 +18,5 @@ smallvec = "^0.6"
 petgraph = "^0.4"
 
 [dev-dependencies]
-env_logger = { version = "*", default-features = false, git = "https://github.com/sebasmagri/env_logger.git" }
+env_logger = { version = "^0.6", default-features = false }
 derive_integration_tests = { path = "derive_integration_tests" }
