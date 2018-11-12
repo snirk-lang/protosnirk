@@ -8,7 +8,6 @@ use petgraph::graph::{Graph, NodeIndex, EdgeIndex};
 use petgraph::visit::Dfs;
 
 use std::collections::HashMap;
-#[cfg(test)]
 use std::path::Path;
 
 /// Represents a node in the type inference graph, or
@@ -141,7 +140,14 @@ impl TypeGraph {
         trace!("Inferring type of {:?}", var);
         let var_ix = self.variables.get(var);
         if var_ix.is_none() {
-            error!("type_graph:\n{:?}", self);
+            if let Ok(file_path) = ::std::env::var("SNIRK_WRITE_GRAPH_FILE") {
+                use std::path::{Path};
+                let mut path = Path::new(&file_path)
+                    .join("panic-infer-type-of-var.svg");
+                info!("Writing graph to {}",
+                    path.to_str().unwrap_or("????"));
+                self.write_svg(path);
+            }
             panic!("type_graph: Asked to infer unknown var {:?}. Known: {:?}",
                 var, self.variables);
         }
@@ -180,7 +186,6 @@ impl TypeGraph {
     }
 
     /// Call `dot -Tsvg` on the given file
-    #[cfg(test)]
     pub fn write_svg<P: AsRef<Path>>(&self, path: P) {
         use std::io::Write;
         use std::process::{Command, Stdio};
