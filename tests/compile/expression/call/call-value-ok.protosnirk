@@ -1,0 +1,5 @@
+fn getABool() -> bool
+    true
+
+fn main()
+    let x: bool = getABool()

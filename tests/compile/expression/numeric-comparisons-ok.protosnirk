@@ -1,0 +1,5 @@
+fn main()
+    let a: bool = 1 < 2
+    let b: bool = 2 > 3
+    let c: bool = 3 <= 4
+    let d: bool = 4 >= 5

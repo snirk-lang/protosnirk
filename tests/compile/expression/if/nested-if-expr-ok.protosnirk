@@ -1,0 +1,4 @@
+// Nested if expressions work
+
+fn main()
+    let x: bool = if true => (if true => true else false) else false
