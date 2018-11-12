@@ -1,0 +1,5 @@
+// You can reference another variable in a let
+
+fn main()
+    let x = 0
+    let y = x

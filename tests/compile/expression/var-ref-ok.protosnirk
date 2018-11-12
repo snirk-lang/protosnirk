@@ -1,0 +1,5 @@
+// You can reference a variable
+
+fn main()
+    let x = 0
+    x + 1
