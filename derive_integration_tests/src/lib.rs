@@ -73,7 +73,6 @@ fn create_tests(path: &Path, mut path_name: Ident) -> quote::__rt::TokenStream {
                         .expect(&format!("Unable to read {}",
                             #child_path_string));
                     let test = crate::Test::new(&#child_path_string, buffer);
-                    println!("Running code:\n{}", test.content());
                     match crate::compile_runner(test) {
                         Ok(_) => {},
                         Err(reason) => panic!(reason)
