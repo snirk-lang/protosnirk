@@ -79,7 +79,6 @@ impl<T: Debug + Hash + Eq> ScopeBuilder<T> {
         debug_assert!(!self.scopes.is_empty(),
             "Attempted to search for a variable {:?} with no scopes", key);
         for scope in self.scopes.iter().rev() {
-            trace!("Checking for {:?} in scope {:?}", key, scope);
             if let Some(var_ref) = scope.get(key.borrow()) {
                 return Some(var_ref)
             }
