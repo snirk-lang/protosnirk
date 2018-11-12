@@ -308,6 +308,8 @@ impl<'err, 'builder> ExpressionVisitor
             ));
             return
         }
+        trace!("Checking rvalue");
+        self.visit_expression(declaration.value());
         let decl_id = self.current_id.clone();
         self.builder.define_local(declaration.name().into(), decl_id.clone());
         trace!("Created id {:?} for var {}", decl_id, lvalue.name());
