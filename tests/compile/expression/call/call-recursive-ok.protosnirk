@@ -1,5 +1,5 @@
-fn getZero(x: int) -> int
+fn getZero(x: float) -> float
     if x <= 0
-        return 0
+        0
     else
-        return getZero(x: x - 1)
+        getZero(x: x - 1)
