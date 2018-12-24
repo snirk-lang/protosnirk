@@ -42,7 +42,7 @@ impl<'err, 'builder, 'graph> ExprTypographer<'err, 'builder, 'graph> {
     fn primitive_type_ix(&self, name: &str) -> NodeIndex {
         self.builder.named_type_id(name)
             .and_then(|unary_id| self.graph.get_type(unary_id))
-            .expect("Primitive")
+            .expect(&format!("Did not have primitive {}", name))
     }
 }
 
@@ -225,6 +225,7 @@ impl<'err, 'builder, 'graph> StatementVisitor
     }
 
     fn visit_return_stmt(&mut self, return_: &Return) {
+        trace!("Visiting return type");
         // Expr matches block's return.
         // t_ret_expr = tfn
         self.current_type = self.primitive_type_ix("()");
@@ -241,7 +242,7 @@ impl<'err, 'builder, 'graph> StatementVisitor
         else {
             // Need to make sure this is a type error.
             // ty_fn : ty_()
-            let unary_type = self.primitive_type_ix("())");
+            let unary_type = self.primitive_type_ix("()");
             self.graph.add_inference(self.fn_ret_type, unary_type,
                 InferenceSource::ExplicitReturn);
         }
