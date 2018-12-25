@@ -1,9 +1,6 @@
 // Cannot define a typedef to a function type
 
-typedef Foo = main
-
 fn main(x: float) -> float
     x + 1
 
-fn bar()
-    let y = Foo(1)
+typedef Foo = main

@@ -1,0 +1,8 @@
+// A valued if can use `return` in both branches
+// See https://github.com/snirk-lang/snirk/issues/88/
+
+fn main() -> bool
+    if true
+        return true
+    else
+        return false

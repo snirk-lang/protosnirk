@@ -5,17 +5,14 @@ fn main()
     let baz = false
     if foo
         //empty
-
     if foo
         let bar = foo
     else if baz
         //empty
-
     if foo
         let bar = foo
     else
         // empty
-
     if foo
         let bar = 1
     else if baz
