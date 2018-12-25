@@ -32,7 +32,7 @@ impl<'err, 'builder> ItemVisitor for ItemTypeIdentifier<'err, 'builder> {
     fn visit_block_fn_decl(&mut self, fn_decl: &BlockFnDeclaration) {
         trace!("Visiting block fn declaration");
         if fn_decl.id().is_default() {
-            debug!("Skipping fn {} with default ID", fn_decl.name());
+            debug!("Skipping fn {} with default var ID", fn_decl.name());
             return
         }
 
@@ -83,7 +83,7 @@ impl<'err, 'builder> ItemVisitor for ItemTypeIdentifier<'err, 'builder> {
         let type_expr_id = typedef.type_expr().id();
 
         if type_expr_id.is_default() {
-            debug!("Unable to identify type of typedef {}", typedef.name());
+            debug!("Typedef {} rhs did not have an id", typedef.name());
             return
         }
         else if *type_expr_id == *typedef.id() {

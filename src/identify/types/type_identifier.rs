@@ -4,7 +4,7 @@
 use ast::visit::*;
 use ast::types::*;
 use check::{CheckerError, ErrorCollector};
-use identify::TypeScopeBuilder;
+use identify::{TypeScopeBuilder, ConcreteType, NamedType};
 
 /// Visitor which identifies TypeExpressions,
 /// by assigning their IDs to those found in
@@ -12,13 +12,13 @@ use identify::TypeScopeBuilder;
 #[derive(Debug)]
 pub struct TypeIdentifier<'err, 'builder> {
     errors: &'err mut ErrorCollector,
-    /// New types cannot be defined within type expressions.
-    builder: &'builder TypeScopeBuilder,
+    /// Not mutable: new types cannot be defined within type expressions.
+    builder: &'builder mut TypeScopeBuilder,
 }
 
 impl<'err, 'builder> TypeIdentifier<'err, 'builder> {
     pub fn new(errors: &'err mut ErrorCollector,
-               builder: &'builder TypeScopeBuilder)
+               builder: &'builder mut TypeScopeBuilder)
                -> TypeIdentifier<'err, 'builder> {
         TypeIdentifier { errors, builder }
     }
@@ -26,7 +26,15 @@ impl<'err, 'builder> TypeIdentifier<'err, 'builder> {
 
 impl<'err, 'builder> TypeVisitor for TypeIdentifier<'err, 'builder> {
     fn visit_named_type_expr(&mut self, named_ty: &NamedTypeExpression) {
-        trace!("Identifying named type {}", named_ty.name());
+        trace!("Identifying named type expression `{}`", named_ty.name());
+        if !named_ty.id().is_default() {
+            trace!("Named type has an id {:?}", named_ty.id());
+            self.builder.add_named_type(named_ty.name().into(), named_ty.id().clone(), ConcreteType::Named(NamedType::new(named_ty.name().into())));
+            return
+        }
+        else {
+            trace!("Named type {} did not have an id", named_ty.name());
+        }
         if let Some(type_id) =
             self.builder.named_type_id(named_ty.name()) {
             // Found the already defined type.

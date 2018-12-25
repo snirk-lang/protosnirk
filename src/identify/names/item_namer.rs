@@ -106,7 +106,7 @@ impl<'err, 'builder> ItemVisitor for ItemVarIdentifier<'err, 'builder> {
     }
 
     fn visit_typedef(&mut self, typedef: &Typedef) {
-        trace!("Visiting type alias {}", typedef.name());
+        trace!("Visiting typedef {}", typedef.name());
         // We name type aliases in a pass before checking their contents.
         // This allows reverse lookup:
         // typedef MyFloat = MyOtherFloat
