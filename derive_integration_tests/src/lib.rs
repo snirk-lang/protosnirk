@@ -58,11 +58,19 @@ fn create_tests(path: &Path, mut path_name: Ident) -> quote::__rt::TokenStream {
                 continue
             }
 
+            let ignore = if path.components().any(|c| &c.as_os_str() == &"known-issues") {
+                vec![quote! { #[ignore] }]
+            }
+            else {
+                vec![]
+            };
+
             let test_name = make_ident(&child_path.file_stem()
                 .expect(&format!("No file stem on {}", child_path.display())));
             let child_path_string = child_path.to_string_lossy().to_string();
             tests.push(quote! {
                 #[test]
+                #(#ignore)*
                 fn #test_name() {
                     use std::io::{Read, Write};
                     let mut buffer = String::new();
