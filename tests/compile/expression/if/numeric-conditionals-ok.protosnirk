@@ -1,4 +1,0 @@
-// Numeric operators on conditionals in ifs works
-
-fn main() -> bool
-    if 1 < 2 => true else false

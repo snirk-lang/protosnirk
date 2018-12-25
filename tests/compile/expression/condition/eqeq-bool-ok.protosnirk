@@ -1,0 +1,4 @@
+// The `==` operator produces a boolean value
+
+fn main()
+    let x: bool = 1 == 1

@@ -1,0 +1,4 @@
+fn main()
+    let b: bool = true
+    if b
+        let x = 0

@@ -3,3 +3,4 @@ fn main()
     let b: bool = 2 > 3
     let c: bool = 3 <= 4
     let d: bool = 4 >= 5
+    let e: bool = 6 == 6
