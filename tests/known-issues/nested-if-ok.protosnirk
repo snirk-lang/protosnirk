@@ -1,4 +1,5 @@
 // Nested if expressions work
+// See https://github.com/snirk-lang/protosnirk/issues/93, LLVM issue
 
 fn main()
     let x: bool = if true => (if true => true else false) else false
