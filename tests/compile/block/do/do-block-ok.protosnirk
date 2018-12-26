@@ -1,0 +1,8 @@
+// A `do` block may contain statements
+
+fn main()
+    do
+        // empty
+    do
+        let bar = 0
+        main()

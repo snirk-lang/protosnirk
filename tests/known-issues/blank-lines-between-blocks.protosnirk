@@ -1,0 +1,8 @@
+// Extra spacing after a block is treated as end of block
+// See https://github.com/snirk-lang/protosnirk/issues/71
+
+fn main()
+    statement()
+
+    // error, unexpected indentation for item
+    statement()

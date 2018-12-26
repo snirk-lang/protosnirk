@@ -1,0 +1,5 @@
+// A block can use a comment in order to parse the indent and outdent reequired
+
+fn main()
+    do
+        // empty

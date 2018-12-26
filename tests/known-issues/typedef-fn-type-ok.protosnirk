@@ -1,0 +1,6 @@
+// Cannot define a typedef to a function type
+
+fn main(x: float) -> float
+    x + 1
+
+typedef Foo = main

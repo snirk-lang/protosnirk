@@ -90,9 +90,15 @@ impl<'ctx, 'b, M> UnitVisitor for ModuleCompiler<'ctx, 'b, M>
         visit::walk_unit(self, unit);
 
         // The final ir_code value should be a reference to the function
-        self.current_module()
-            .verify(LLVMVerifierFailureAction::LLVMPrintMessageAction)
-            .unwrap();
+        match self.current_module()
+                .verify(LLVMVerifierFailureAction::LLVMPrintMessageAction) {
+
+            Ok(_) => (),
+            Err(_) => {
+                info!("Module:");
+                self.current_module().dump();
+            }
+        }
     }
 }
 
@@ -162,8 +168,13 @@ impl<'ctx, 'b, M> ItemVisitor for ModuleCompiler<'ctx, 'b, M>
             self.builder.build_ret_void();
         }
 
-        assert!(fn_ref.verify(
-            LLVMVerifierFailureAction::LLVMPrintMessageAction));
+
+        if !fn_ref.verify(LLVMVerifierFailureAction::LLVMPrintMessageAction) {
+            info!("Function IR:");
+            fn_ref.dump();
+            panic!("Validation error for {}", block_fn.name());
+        }
+        
         if self.optimizations {
             trace!("Running optimizations on fn {}", block_fn.name());
             self.module_provider.pass_manager().run(&fn_ref);

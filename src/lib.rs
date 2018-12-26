@@ -68,6 +68,7 @@
 
 #[macro_use]
 extern crate log;
+#[cfg(test)]
 extern crate env_logger;
 
 #[macro_use]
@@ -87,6 +88,3 @@ pub mod check;
 pub mod lint;
 pub mod compile;
 pub mod pipeline;
-
-#[cfg(test)]
-mod tests;

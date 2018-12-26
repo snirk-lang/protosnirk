@@ -1,9 +1,0 @@
-fn name1
-    block1 block2
-fn name2
-    block3
-
-fn name3
-
-fn name4 arg
-    block4

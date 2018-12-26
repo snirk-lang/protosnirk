@@ -1,0 +1,5 @@
+// typedefs cannot be just defined in a cycle.
+
+typedef A = B
+typedef B = C
+typedef C = A

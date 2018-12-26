@@ -1,0 +1,2 @@
+fn foo() -> float
+    return 2

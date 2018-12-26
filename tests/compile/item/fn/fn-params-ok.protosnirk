@@ -1,0 +1,10 @@
+// Functions with one or more parameters are parsed
+
+fn foo()
+    // empty
+
+fn bar(first: float)
+    // empty
+
+fn baz(first: float, second: float)
+    // empty

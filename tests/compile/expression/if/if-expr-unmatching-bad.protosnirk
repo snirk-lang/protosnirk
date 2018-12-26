@@ -1,0 +1,4 @@
+// An unvalued if block cannot be used as an expression
+
+fn foo(x: float) -> float
+    if x == 0 => true else x

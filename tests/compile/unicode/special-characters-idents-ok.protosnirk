@@ -1,0 +1,7 @@
+// Non-ASCII characters may be used as identifiers.
+
+fn main()
+    let ÊÉÈËĒĔĖĘ = 1
+    let Ω = 2
+    let 㕦 = 3
+    let 꾇꽺 = 4

@@ -1,0 +1,5 @@
+// Paren expressions work
+
+fn main()
+    let x = (1 + 2)
+    let y = (3 + x) - 1

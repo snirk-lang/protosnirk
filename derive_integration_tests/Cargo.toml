@@ -1,0 +1,12 @@
+[package]
+name = "derive_integration_tests"
+version = "0.1.0"
+authors = ["S. B. Immington <snirk.immington@gmail.com>"]
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = "0.14"
+quote = "0.6"
+proc-macro2 = "0.4"

@@ -70,6 +70,12 @@ impl<'ctx> Value<'ctx> {
         }
     }
 
+    pub fn dump(&self) {
+        unsafe {
+            LLVMDumpValue(self.ptr());
+        }
+    }
+
     // From Core / BasicBlock
 
     // methods on PhiNode

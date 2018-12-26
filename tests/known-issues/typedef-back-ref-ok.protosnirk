@@ -1,0 +1,6 @@
+// A typedef may reference another type declared after it
+// See https://github.com/snirk-lang/protosnirk/issues/73
+
+//typedef A = B
+typedef B = C
+typedef C = float

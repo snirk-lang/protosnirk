@@ -48,7 +48,7 @@ impl<'err, 'builder, 'graph> TypeConcretifier<'err, 'builder, 'graph> {
         match inferred {
             Ok((_ix, ty)) => {
                 if let Some(concrete) = self.builder.get_type(&ty) {
-                    debug!("Type of {} {:?} => {:?}",
+                    trace!("Type of {} {:?} => {:?}",
                         source.text(), id, ty);
                     self.results.insert(id.clone(), concrete.clone());
                     true

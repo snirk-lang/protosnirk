@@ -1,0 +1,10 @@
+// Blocks between if and else must not be empty
+
+fn main()
+    let foo = false
+    let bar = true
+    if foo
+        // empty
+    else if bar
+    else
+        // empty

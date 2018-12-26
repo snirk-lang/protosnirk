@@ -1,0 +1,4 @@
+// Basic typedefs can be parsed
+
+typedef Float = float
+typedef Float2 = Float

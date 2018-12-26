@@ -3,9 +3,9 @@
 use lex::IterTokenizer;
 use parse::{Parser, ParseError};
 use ast::{Unit, visit::UnitVisitor};
-use identify::{NameScopeBuilder, TypeScopeBuilder, ASTIdentifier};
-use identify::TypeGraph;
-use check::{CheckerError, ErrorCollector, TypeConcretifier, TypeMapping};
+use identify::{
+    NameScopeBuilder, TypeScopeBuilder, ASTIdentifier, ASTTypeChecker, TypeGraph};
+use check::{ErrorCollector, TypeConcretifier, TypeMapping};
 use compile::{ModuleCompiler, SimpleModuleProvider};
 use llvm::{Context, Builder};
 
@@ -14,6 +14,20 @@ use std::fs::File;
 use std::path::Path;
 use std::str::Chars;
 use std::io::{self, Read};
+
+#[derive(Debug)]
+pub enum CompilationError {
+    IdentificationError {
+        name_builder: NameScopeBuilder,
+        type_builder: TypeScopeBuilder,
+        errors: ErrorCollector
+    },
+    CheckingError {
+        type_builder: TypeScopeBuilder,
+        graph: TypeGraph,
+        errors: ErrorCollector
+    }
+}
 
 #[derive(Debug)]
 pub struct Runner<'input> {
@@ -64,14 +78,30 @@ impl IdentifyRunner {
         }
     }
 
-    pub fn identify(mut self) -> Result<CheckRunner, Vec<CheckerError>> {
+    pub fn identify(mut self) -> Result<CheckRunner, CompilationError> {
         ASTIdentifier::new(&mut self.name_builder,
-                          &mut self.type_builder,
-                          &mut self.errors)
+                           &mut self.type_builder,
+                           &mut self.errors)
             .visit_unit(&self.unit);
         if !self.errors.errors().is_empty() {
-            let (errors, _warns, _lints) = self.errors.decompose();
-            Err(errors)
+            error!("IdentifyRunner: failed ASTIdentifer");
+            return Err(CompilationError::IdentificationError {
+                name_builder: self.name_builder,
+                type_builder: self.type_builder,
+                errors: self.errors
+            })
+        }
+        ASTTypeChecker::new(&mut self.type_builder,
+            &mut self.graph,
+            &mut self.errors)
+            .visit_unit(&self.unit);
+        if !self.errors.errors().is_empty() {
+            error!("IdentifyRunner: failed ASTTypeChecker");
+            Err(CompilationError::CheckingError {
+                type_builder: self.type_builder,
+                graph: self.graph,
+                errors: self.errors
+            })
         }
         else {
             Ok(CheckRunner::new(self))
@@ -101,7 +131,7 @@ impl CheckRunner {
         }
     }
 
-    pub fn check(mut self) -> Result<CheckedUnit, Vec<CheckerError>> {
+    pub fn check(mut self) -> Result<CheckedUnit, CompilationError> {
         let results = {
             let mut tc = TypeConcretifier::new(&self.type_builder,
                                                &mut self.errors,
@@ -110,8 +140,12 @@ impl CheckRunner {
             tc.into_results()
         };
         if !self.errors.errors().is_empty() {
-            let (errors, _warns, _lints) = self.errors.decompose();
-            Err(errors)
+            error!("CheckRunner: failed to type concretify");
+            Err(CompilationError::CheckingError {
+                type_builder: self.type_builder,
+                graph: self.graph,
+                errors: self.errors
+            })
         }
         else {
             Ok(CheckedUnit::new(self.unit, self.name, results))

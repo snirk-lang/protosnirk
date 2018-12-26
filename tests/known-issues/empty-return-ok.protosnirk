@@ -1,0 +1,4 @@
+// See https://github.com/snirk-lang/protosnirk/issues/91
+
+fn main()
+    return

@@ -1,0 +1,5 @@
+fn getZero(x: float) -> float
+    if x <= 0
+        0
+    else
+        getZero(x: x - 1)

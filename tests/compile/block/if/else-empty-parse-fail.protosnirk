@@ -1,0 +1,8 @@
+// The else block should also require a block
+
+fn main()
+    let foo = true
+    if foo
+        // empty
+    else
+    let bar = false

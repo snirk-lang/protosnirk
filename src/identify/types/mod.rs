@@ -23,23 +23,23 @@ use check::ErrorCollector;
 
 /// Infers the types of data on the AST.
 #[derive(Debug)]
-pub struct ASTTypeChecker<'builder, 'err, 'graph> {
+pub struct ASTTypeChecker<'builder, 'graph, 'err> {
     builder: &'builder mut TypeScopeBuilder,
     graph: &'graph mut TypeGraph,
     errors: &'err mut ErrorCollector
 }
 
-impl<'builder, 'err, 'graph> ASTTypeChecker<'builder, 'err, 'graph> {
+impl<'builder, 'graph, 'err> ASTTypeChecker<'builder, 'graph, 'err> {
     pub fn new(builder: &'builder mut TypeScopeBuilder,
-               errors: &'err mut ErrorCollector,
-               graph: &'graph mut TypeGraph)
-               -> ASTTypeChecker<'builder, 'err, 'graph> {
-        ASTTypeChecker { builder, errors, graph }
+               graph: &'graph mut TypeGraph,
+               errors: &'err mut ErrorCollector)
+               -> ASTTypeChecker<'builder, 'graph, 'err> {
+        ASTTypeChecker { builder, graph, errors }
     }
 }
 
-impl<'builder, 'err, 'graph> UnitVisitor
-    for ASTTypeChecker<'builder, 'err, 'graph> {
+impl<'builder, 'graph, 'err> UnitVisitor
+    for ASTTypeChecker<'builder, 'graph, 'err> {
 
     fn visit_unit(&mut self, unit: &Unit) {
         trace!("Visting unit");

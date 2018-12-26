@@ -58,9 +58,6 @@ use check::ErrorCollector;
 use self::names::*;
 use self::types::*;
 
-#[cfg(test)]
-pub mod tests;
-
 /// Identifies `Ident`s in the AST.
 ///
 /// Each `Identifier`'s `ScopedId` is set based on whether

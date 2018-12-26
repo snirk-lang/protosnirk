@@ -8,7 +8,6 @@ use petgraph::graph::{Graph, NodeIndex, EdgeIndex};
 use petgraph::visit::Dfs;
 
 use std::collections::HashMap;
-#[cfg(test)]
 use std::path::Path;
 
 /// Represents a node in the type inference graph, or
@@ -141,7 +140,16 @@ impl TypeGraph {
         trace!("Inferring type of {:?}", var);
         let var_ix = self.variables.get(var);
         if var_ix.is_none() {
-            panic!("type_graph: Asked to infer unknown var {:?}", var);
+            if let Ok(file_path) = ::std::env::var("SNIRK_WRITE_GRAPH_FILE") {
+                use std::path::{Path};
+                let mut path = Path::new(&file_path)
+                    .join("panic-infer-type-of-var.svg");
+                info!("Writing graph to {}",
+                    path.to_str().unwrap_or("????"));
+                self.write_svg(path);
+            }
+            panic!("type_graph: Asked to infer unknown var {:?}. Known: {:?}",
+                var, self.variables);
         }
         let var_ix = var_ix.expect("Checked expect");
         let mut dfs = Dfs::new(&self.graph, *var_ix);
@@ -178,7 +186,6 @@ impl TypeGraph {
     }
 
     /// Call `dot -Tsvg` on the given file
-    #[cfg(test)]
     pub fn write_svg<P: AsRef<Path>>(&self, path: P) {
         use std::io::Write;
         use std::process::{Command, Stdio};
@@ -211,19 +218,4 @@ impl TypeGraph {
         output_file.write_all(&output.stdout)
             .expect("Could not write file for svg");
     }
-}
-
-#[cfg(test)]
-mod tests {
-    use parse::tests as parse_tests;
-    use identify::tests as identify_tests;
-
-    #[ignore]
-    #[test]
-    fn create_type_graph() {
-        let (.., graph)
-            = identify_tests::identify(parse_tests::FLOAT_TYPE_ALIAS);
-        graph.write_svg("/tmp/type-graph.svg");
-    }
-
 }

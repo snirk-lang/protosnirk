@@ -1,0 +1,4 @@
+// Indentation is required to define a block fn
+
+fn main()
+let x = 0

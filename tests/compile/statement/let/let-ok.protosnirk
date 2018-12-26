@@ -1,0 +1,5 @@
+// The `let` binding is used to declare variables
+
+fn main()
+    let foo = 0
+    let mut bar = true

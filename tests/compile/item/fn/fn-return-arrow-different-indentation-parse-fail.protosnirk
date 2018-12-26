@@ -1,0 +1,8 @@
+// The fn return arrow may not be placed at a different
+// indentation level as the arguments
+
+fn foo(x: float,
+       y: float,
+       z: float)
+         -> float
+    x + y + z
