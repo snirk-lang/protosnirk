@@ -557,7 +557,6 @@ impl<'ctx, 'b, M> ExpressionVisitor for ModuleCompiler<'ctx, 'b, M>
         let then_block = self.context.append_basic_block(&function, "ife_then");
         let else_block = self.context.append_basic_block(&function, "ife_else");
         let end_block = self.context.append_basic_block(&function, "ife_end");
-        // Branch off of the `== 0` comparison
         self.builder.build_cond_br(&condition_expr, &then_block, &else_block);
 
         // Emit the then code
