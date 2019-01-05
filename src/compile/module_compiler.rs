@@ -552,7 +552,7 @@ impl<'ctx, 'b, M> ExpressionVisitor for ModuleCompiler<'ctx, 'b, M>
         let condition_expr = self.ir_code.pop()
             .expect("Did not get value from if conditional");
         let bool_type = Type::int1(&self.context);
-        let const_false = bool_type.const_real(0f64);
+        let const_false = bool_type.const_int(0, false);
         // hack: compare it to 0, due to lack of booleans right now
         let condition = self.builder
             .build_icmp(LLVMIntPredicate::LLVMIntEQ,
