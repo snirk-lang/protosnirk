@@ -24,6 +24,7 @@ impl<'ctx> SimpleModuleProvider<'ctx> {
         }
         else if let Ok(layout) = layout {
             module.set_data_layout(&layout);
+            module.set_target_triple(&llvm::target::native_target_triple());
         }
 
         let pass_manager = FunctionPassManager::new(&module);

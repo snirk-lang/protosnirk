@@ -99,6 +99,13 @@ impl<'ctx> Module<'ctx> {
         }
     }
 
+    pub fn set_target_triple(&self, target_triple: &str) {
+        let c_name = CString::new(target_triple).unwrap();
+        unsafe {
+            LLVMSetTarget(self.ptr(), c_name.as_ptr());
+        }
+    }
+
     pub fn verify(&self,
                   action: LLVMVerifierFailureAction) -> Result<(), String> {
         let mut error = 0 as *mut c_char;
