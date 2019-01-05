@@ -1,6 +1,6 @@
 //! Bindings to LLVM value objects
 
-use std::ffi::CString;
+use std::ffi::{CString, CStr};
 use std::mem;
 
 use libc::{size_t, c_uint};
@@ -73,6 +73,16 @@ impl<'ctx> Value<'ctx> {
     pub fn dump(&self) {
         unsafe {
             LLVMDumpValue(self.ptr());
+        }
+    }
+
+    pub fn print_to_string(&self) -> String {
+        unsafe {
+            let buf = LLVMPrintValueToString(self.ptr());
+            let cstr_buf = CStr::from_ptr(buf);
+            let result = String::from_utf8_lossy(cstr_buf.to_bytes()).into_owned();
+            LLVMDisposeMessage(buf);
+            result
         }
     }
 

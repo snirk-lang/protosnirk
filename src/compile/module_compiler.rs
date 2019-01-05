@@ -170,11 +170,11 @@ impl<'ctx, 'b, M> ItemVisitor for ModuleCompiler<'ctx, 'b, M>
 
 
         if !fn_ref.verify(LLVMVerifierFailureAction::LLVMPrintMessageAction) {
-            info!("Function IR:");
-            fn_ref.dump();
+            error!("Failed to verify {}", block_fn.name());
+            error!("Current module IR:\n{}", self.current_module().print_to_string());
             panic!("Validation error for {}", block_fn.name());
         }
-        
+
         if self.optimizations {
             trace!("Running optimizations on fn {}", block_fn.name());
             self.module_provider.pass_manager().run(&fn_ref);
