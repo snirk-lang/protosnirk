@@ -8,8 +8,9 @@ use libc::c_char;
 use llvm_sys::core::*;
 use llvm_sys::prelude::*;
 use llvm_sys::analysis::{LLVMVerifierFailureAction, LLVMVerifyModule};
+use llvm_sys::target::{LLVMSetModuleDataLayout};
 
-use llvm::{Type, Value};
+use llvm::{Type, Value, TargetData};
 
 /// Handle to an LLVM Module. Owned by an LLVM Context.
 #[derive(Debug, Clone)]
@@ -92,6 +93,11 @@ impl<'ctx> Module<'ctx> {
         }
     }
 
+    pub fn set_data_layout(&self, target_data: &TargetData) {
+        unsafe {
+            LLVMSetModuleDataLayout(self.ptr(), target_data.ptr())
+        }
+    }
 
     pub fn verify(&self,
                   action: LLVMVerifierFailureAction) -> Result<(), String> {

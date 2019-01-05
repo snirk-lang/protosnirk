@@ -164,6 +164,19 @@ impl TargetData {
             )
         }
     }
+
+    pub fn from_machine(machine: &TargetMachine) -> TargetData {
+        unsafe {
+            TargetData::from_ref(LLVMCreateTargetDataLayout(machine.ptr()))
+        }
+    }
+
+    pub fn native(opt_level: LLVMCodeGenOptLevel,
+                  reloc_mode: LLVMRelocMode,
+                  code_model: LLVMCodeModel) -> Result<TargetData, String> {
+        let machine = try!(TargetMachine::native(opt_level, reloc_mode, code_model));
+        Ok(TargetData::from_machine(&machine))
+    }
 }
 
 pub struct TargetMachine {

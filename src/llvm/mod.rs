@@ -93,3 +93,6 @@ pub use self::types::Type;
 pub mod pass_manager;
 pub use self::pass_manager::{PassManager, FunctionPassManager};
 pub mod target;
+pub use self::target::{initialize_all_targets,
+                       initialize_native_target,
+                       Target, TargetData, TargetMachine};
