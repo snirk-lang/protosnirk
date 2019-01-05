@@ -28,7 +28,7 @@ notifications:
   email: false
 
 before_install:
-  - sudo sh -c 'echo "deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-7.0 main" >> /etc/apt/sources.list'
+  - sudo sh -c 'echo "deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-7 main" >> /etc/apt/sources.list'
   - wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
   - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
   - sudo apt-get update -q
@@ -36,10 +36,10 @@ before_install:
 install:
   - sudo apt-get remove -y llvm-*
   - sudo rm -rf /usr/local/*
-  - sudo apt-get install -y llvm-7.0 llvm-7.0-dev llvm-7.0-runtime libllvm7.0
+  - sudo apt-get install -y llvm-7 llvm-7-dev llvm-7-runtime libllvm7
   # llvm-sys wants to run `llvm-config`
   - ls /usr/bin/*7*
-  - sudo ln -s /usr/bin/llvm-config-7.0 /usr/bin/llvm-config
+  - sudo ln -s /usr/bin/llvm-config-7 /usr/bin/llvm-config
 
 script:
   - find /usr/bin -name "*llvm*" | sort
