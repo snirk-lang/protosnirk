@@ -551,22 +551,13 @@ impl<'ctx, 'b, M> ExpressionVisitor for ModuleCompiler<'ctx, 'b, M>
         self.visit_expression(if_expr.condition());
         let condition_expr = self.ir_code.pop()
             .expect("Did not get value from if conditional");
-        let bool_type = Type::int1(&self.context);
-        let const_false = bool_type.const_real(0f64);
-        // hack: compare it to 0, due to lack of booleans right now
-        let condition = self.builder
-            .build_icmp(LLVMIntPredicate::LLVMIntEQ,
-                        &condition_expr,
-                        &const_false,
-                        "ife_cond");
         // Create basic blocks in the function
         let function = self.builder.insert_block().get_parent()
             .expect("Just now inserted a block");
         let then_block = self.context.append_basic_block(&function, "ife_then");
         let else_block = self.context.append_basic_block(&function, "ife_else");
         let end_block = self.context.append_basic_block(&function, "ife_end");
-        // Branch off of the `== 0` comparison
-        self.builder.build_cond_br(&condition, &then_block, &else_block);
+        self.builder.build_cond_br(&condition_expr, &then_block, &else_block);
 
         // Emit the then code
         self.builder.position_at_end(&then_block);
