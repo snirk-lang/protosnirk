@@ -1,4 +1,5 @@
-use llvm::{Module, FunctionPassManager};
+use llvm::{self, Module, FunctionPassManager, TargetData};
+use llvm_sys::target_machine::{LLVMCodeGenOptLevel, LLVMRelocMode, LLVMCodeModel};
 
 use std::fmt;
 
@@ -13,6 +14,18 @@ pub struct SimpleModuleProvider<'ctx> {
 }
 impl<'ctx> SimpleModuleProvider<'ctx> {
     pub fn new(module: Module<'ctx>, optimizations: bool) -> SimpleModuleProvider<'ctx> {
+
+        llvm::initialize_native_target();
+        let layout = TargetData::native(LLVMCodeGenOptLevel::LLVMCodeGenLevelDefault,
+                                        LLVMRelocMode::LLVMRelocDefault,
+                                        LLVMCodeModel::LLVMCodeModelDefault);
+        if let Err(message) = layout {
+            panic!("Unable to initialize native target data: {}", message);
+        }
+        else if let Ok(layout) = layout {
+            module.set_data_layout(&layout);
+        }
+
         let pass_manager = FunctionPassManager::new(&module);
         if optimizations {
             pass_manager.add_basic_alias_analysis_pass();
