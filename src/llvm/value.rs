@@ -3,7 +3,7 @@
 use std::ffi::CString;
 use std::mem;
 
-use libc::{c_char, c_uint};
+use libc::{size_t, c_uint};
 
 use llvm_sys::core::*;
 use llvm_sys::prelude::*;
@@ -60,7 +60,7 @@ impl<'ctx> Value<'ctx> {
     pub fn set_name(&self, name: &str) {
         let c_name = CString::new(name).unwrap();
         unsafe {
-            LLVMSetValueName(self.ptr(), c_name.as_ptr() as *const c_char);
+            LLVMSetValueName2(self.ptr(), c_name.as_ptr(), name.len() as size_t);
         }
     }
 
