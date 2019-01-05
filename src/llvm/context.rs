@@ -23,8 +23,6 @@ impl Drop for Context {
 }
 
 impl Context {
-    // Can't use `llvm_methods` due to no lifetime needs :)
-
     pub unsafe fn from_ref(ptr: LLVMContextRef) -> Context {
         Context { ptr }
     }

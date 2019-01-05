@@ -92,3 +92,4 @@ pub mod types;
 pub use self::types::Type;
 pub mod pass_manager;
 pub use self::pass_manager::{PassManager, FunctionPassManager};
+pub mod target;
