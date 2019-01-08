@@ -3,7 +3,9 @@
 /// couple of local variables and if their IDs overlap we may catch it in
 /// type checking.
 
-fn foo(x: float) -> bool
-    let y: bool = true
-    let z: float = 0
-    y
+fn foo(x: float, y: float) -> bool
+    let z: bool = true
+    let a: float = 0
+    do
+        let b: float = 0
+    z
