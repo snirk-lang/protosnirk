@@ -30,7 +30,7 @@ impl<'err, 'builder> UnitVisitor for ItemTypeIdentifier<'err, 'builder> {
 
 impl<'err, 'builder> ItemVisitor for ItemTypeIdentifier<'err, 'builder> {
     fn visit_block_fn_decl(&mut self, fn_decl: &BlockFnDeclaration) {
-        trace!("Visiting block fn declaration");
+        trace!("Visiting block fn {}", fn_decl.name());
         if fn_decl.id().is_default() {
             debug!("Skipping fn {} with default ID", fn_decl.name());
             return
@@ -41,6 +41,8 @@ impl<'err, 'builder> ItemVisitor for ItemTypeIdentifier<'err, 'builder> {
         let mut arg_types = Vec::with_capacity(fn_decl.params().len());
 
         for &(ref param_ident, ref param_ty_expr) in fn_decl.params() {
+            trace!("Calling TypeIdentifier for {} param {}",
+                fn_decl.name(), param_ident.name());
             TypeIdentifier::new(self.errors, self.builder)
                            .visit_type_expr(param_ty_expr);
             // Stop if we can't idenify a parameter type.
@@ -51,10 +53,14 @@ impl<'err, 'builder> ItemVisitor for ItemTypeIdentifier<'err, 'builder> {
             }
             let param_ty = self.builder.get_type(&param_ty_expr.id())
                 .expect("TypeIdentifier did not update param's type ID");
+            trace!("{} param {} has type id {:?}",
+                fn_decl.name(), param_ident.name(), param_ty);
             arg_types.push((param_ident.name().to_string(),
                             param_ty.clone()));
         }
         let return_ty = fn_decl.return_type();
+        trace!("Calling TypeIdentifier for {} return type {:?}",
+            fn_decl.name(), return_ty);
         TypeIdentifier::new(self.errors, self.builder)
                        .visit_type_expr(return_ty);
 
@@ -68,6 +74,7 @@ impl<'err, 'builder> ItemVisitor for ItemTypeIdentifier<'err, 'builder> {
 
         let fn_concrete = ConcreteType::Function(
             FnType::new(arg_types, ret_ty));
+        trace!("fn {} has concrete type {:?}", fn_decl.name(), fn_concrete);
         self.builder.add_type(fn_decl.id().clone(), fn_concrete);
     }
 
