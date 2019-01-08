@@ -98,8 +98,6 @@ fn create_tests(path: &Path, mut path_name: Ident) -> quote::__rt::TokenStream {
 
 #[proc_macro_derive(IntegrationTests)]
 pub fn create_integration_tests(input: TokenStream) -> TokenStream {
-    let _ast: DeriveInput = syn::parse(input).unwrap();
-
     let full_path = env::current_dir()
         .expect("Can't `pwd`")
         .join("tests");
