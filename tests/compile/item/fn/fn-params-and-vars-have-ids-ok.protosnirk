@@ -1,0 +1,9 @@
+/// A test which attempts to confirm that variables all have unique IDs.
+/// We create a function with a different return type from its arguments and a
+/// couple of local variables and if their IDs overlap we may catch it in
+/// type checking.
+
+fn foo(x: float) -> bool
+    let y: bool = true
+    let z: float = 0
+    y
