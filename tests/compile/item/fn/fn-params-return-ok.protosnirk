@@ -1,0 +1,4 @@
+// Functions with parameters differing from return type
+
+fn foo(x: float) -> bool
+    true

@@ -63,7 +63,12 @@ impl<'err, 'builder> ItemVisitor for ItemVarIdentifier<'err, 'builder> {
         block_fn.set_id(fn_id);
 
         // Also name the params, in a new scope.
+        // Consider a function with ID [..., n]:
+        // - its top level scope will be [..., n, 0]
+        // - its p params will be [..., n, 1] through [..., n, p]
+        // - its v local vars will be [..., n, 0, 0] through [..., n, 0, v]
         self.current_id.push();
+        self.current_id.increment();
         self.builder.new_scope();
 
         // One of the consequences of setting params here is that we know the

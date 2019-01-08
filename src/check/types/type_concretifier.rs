@@ -1,4 +1,4 @@
-//! Run type inference to produce a mapping of the actual conrete types of
+//! Run type inference to produce a mapping of the actual concrete types of
 //! things.
 
 use lex::Token;
@@ -105,7 +105,7 @@ impl<'err, 'builder, 'graph> ItemVisitor
     fn visit_block_fn_decl(&mut self, block_fn: &BlockFnDeclaration) {
         trace!("Visiting declaration of fn {}", block_fn.name());
         self.infer_var(&block_fn.id(), block_fn.token(),
-            format!("fn declaration {}", block_fn.name()));
+            format!("fn {}", block_fn.name()));
 
         for &(ref param, ref _param_ty) in block_fn.params() {
             trace!("Inferring the type of {} param {}",
@@ -203,6 +203,7 @@ impl<'err, 'builder, 'graph> ExpressionVisitor
     }
 
     fn visit_assignment(&mut self, assign: &Assignment) {
+        trace!("Visiting assignment to {}", assign.lvalue().name());
         self.visit_expression(assign.rvalue());
         self.infer_var(&assign.lvalue().id(),
             assign.lvalue().token(),
@@ -211,6 +212,7 @@ impl<'err, 'builder, 'graph> ExpressionVisitor
     }
 
     fn visit_declaration(&mut self, decl: &Declaration) {
+        trace!("Visiting declaration of {}", decl.name());
         self.visit_expression(decl.value());
         self.infer_var(&decl.id(), decl.token(),
             format!("definition of variable {}", decl.token()));

@@ -18,11 +18,13 @@ use std::io::{self, Read};
 #[derive(Debug)]
 pub enum CompilationError {
     IdentificationError {
+        unit: Unit,
         name_builder: NameScopeBuilder,
         type_builder: TypeScopeBuilder,
         errors: ErrorCollector
     },
     CheckingError {
+        unit: Unit,
         type_builder: TypeScopeBuilder,
         graph: TypeGraph,
         errors: ErrorCollector
@@ -86,6 +88,7 @@ impl IdentifyRunner {
         if !self.errors.errors().is_empty() {
             error!("IdentifyRunner: failed ASTIdentifer");
             return Err(CompilationError::IdentificationError {
+                unit: self.unit,
                 name_builder: self.name_builder,
                 type_builder: self.type_builder,
                 errors: self.errors
@@ -98,6 +101,7 @@ impl IdentifyRunner {
         if !self.errors.errors().is_empty() {
             error!("IdentifyRunner: failed ASTTypeChecker");
             Err(CompilationError::CheckingError {
+                unit: self.unit,
                 type_builder: self.type_builder,
                 graph: self.graph,
                 errors: self.errors
@@ -142,6 +146,7 @@ impl CheckRunner {
         if !self.errors.errors().is_empty() {
             error!("CheckRunner: failed to type concretify");
             Err(CompilationError::CheckingError {
+                unit: self.unit,
                 type_builder: self.type_builder,
                 graph: self.graph,
                 errors: self.errors

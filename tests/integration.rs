@@ -140,7 +140,7 @@ type TestResult = Result<(), String>;
 fn compile_runner(test: Test) -> TestResult {
     init_logs();
 
-    println!("\n{}", test.content());
+    info!("Test {} source:\n\n{}", test.name(), test.content());
 
     let graph_file_path = write_graph_files();
 
@@ -163,7 +163,7 @@ fn compile_runner(test: Test) -> TestResult {
         return Err(format!("Test {} parsed unexpectedly", test.path()))
     }
 
-    println!("\nTest parsed sucessfully.\n");
+    info!("Test parsed sucessfully.\n");
 
     let compile_result = parse_result.expect("Checked for bad parse result")
         .identify()
@@ -171,13 +171,25 @@ fn compile_runner(test: Test) -> TestResult {
 
     if let Err(errors) =  compile_result {
         if test.mode() != TestMode::CompileFail {
+            if let Ok(print_ast) = env::var("SNIRK_PRINT_AST") {
+                let unit = match errors {
+                    CompilationError::IdentificationError { ref unit, .. } => unit,
+                    CompilationError::CheckingError { ref unit, .. } => unit
+                };
+                if print_ast.to_lowercase() == "full" {
+                    info!("AST:\n{:#?}\n", unit);
+                }
+                else {
+                    info!("AST:\n{:?}\n", unit);
+                }
+            }
             if let Some(file_path) = graph_file_path {
                 if let CompilationError::CheckingError { ref graph, .. } = errors {
                     use std::path::{Path};
                     let mut path = Path::new(&file_path)
                         .join(test.path());
-                    path.set_extension(".svg");
-                    println!("Writing graph to {}",
+                    path.set_extension("svg");
+                    info!("Writing graph to {}\n",
                         path.to_str().unwrap_or("????"));
                     graph.write_svg(path);
                 }
@@ -198,7 +210,7 @@ fn compile_runner(test: Test) -> TestResult {
 
     let checked = compile_result.expect("Checked for bad compile result");
 
-    println!("\nCode checked sucessfully.\n");
+    info!("Code checked sucessfully.\n");
 
     {
         let context = Context::new();
