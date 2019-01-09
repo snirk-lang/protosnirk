@@ -30,11 +30,13 @@ cache:
 addons:
   apt:
     packages:
+    - libllvm7
     - llvm-7
     - llvm-7-dev
     - llvm-7-runtime
-    - libllvm7
+    - libstdc++6
     sources:
+    - sourceline: 'ppa:ubuntu-toolchain-r/test'
     - llvm-toolchain-trusty-7
 
 before_script:
