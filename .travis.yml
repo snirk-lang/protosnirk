@@ -11,7 +11,7 @@
 # Zig is an MIT-licensed open-source programming language,
 # available at https://github.com/zig-lang/zig
 
-dist: trusty
+dist: xenial
 sudo: false
 
 notifications:
