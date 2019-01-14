@@ -16,8 +16,8 @@ use parse::symbol::{PrefixParser, Precedence};
 /// ```
 #[derive(Debug)]
 pub struct DeclarationParser { }
-impl<T: Tokenizer> PrefixParser<Expression, T> for DeclarationParser {
-    fn parse(&self, parser: &mut Parser<T>, token: Token) -> ParseResult<Expression> {
+impl<T: Tokenizer> PrefixParser<Statement, T> for DeclarationParser {
+    fn parse(&self, parser: &mut Parser<T>, token: Token) -> ParseResult<Statement> {
         debug_assert!(token.get_type() == TokenType::Let,
                       "Let parser called with non-let token {:?}", token);
         trace!("Parsing declaration for {}", token);
@@ -42,7 +42,7 @@ impl<T: Tokenizer> PrefixParser<Expression, T> for DeclarationParser {
         let value_expr = try!(parser.expression(Precedence::Min));
         let value = try!(value_expr.expect_value());
         trace!("Got rvalue {:?}", value);
-        Ok(Expression::Declaration(Declaration::new(
+        Ok(Statement::Declaration(Declaration::new(
             name, is_mutable, decl_type, Box::new(value)
         )))
     }
