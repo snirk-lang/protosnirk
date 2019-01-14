@@ -57,6 +57,9 @@ pub trait StatementVisitor : ExpressionVisitor {
             Statement::Expression(ref expr) => {
                 self.visit_expression(expr);
             },
+            Statement::Declaratoin(ref decl) =>{
+                self.visit_declaration(decl);
+            }
             Statement::Return(ref return_) => {
                 self.visit_return_stmt(return_);
             },
@@ -69,6 +72,7 @@ pub trait StatementVisitor : ExpressionVisitor {
         }
     }
     fn visit_return_stmt(&mut self, return_: &Return);
+    fn visit_declaration(&mut self, decl: &Declaration);
     fn visit_if_block(&mut self, if_block: &IfBlock);
     fn visit_do_block(&mut self, do_block: &DoBlock);
 }
@@ -98,9 +102,6 @@ pub trait ExpressionVisitor {
             Expression::Assignment(ref assign) => {
                 self.visit_assignment(assign);
             },
-            Expression::Declaration(ref declare) => {
-                self.visit_declaration(declare);
-            }
         }
     }
     fn visit_literal_expr(&mut self, literal: &Literal);
@@ -110,5 +111,4 @@ pub trait ExpressionVisitor {
     fn visit_binary_op(&mut self, bin_op: &BinaryOperation);
     fn visit_fn_call(&mut self, fn_call: &FnCall);
     fn visit_assignment(&mut self, assign: &Assignment);
-    fn visit_declaration(&mut self, declare: &Declaration);
 }
