@@ -5,7 +5,7 @@
 /// `Expression`s are because of their ability to use indentation.
 
 use lex::Token;
-use ast::{Expression, Block, ScopedId};
+use ast::{Expression, Identifier, TypeExpression, Block, ScopedId};
 
 use std::cell::{RefCell, Ref};
 
@@ -14,6 +14,7 @@ use std::cell::{RefCell, Ref};
 pub enum Statement {
     Expression(Expression),
     Return(Return),
+    Declaration(Declaration),
     DoBlock(DoBlock),
     IfBlock(IfBlock)
     // match, loop, while, for
@@ -25,6 +26,7 @@ impl Statement {
             Statement::Return(ref return_) => return_.has_value(),
             Statement::DoBlock(ref do_block) => do_block.has_source(),
             Statement::IfBlock(ref if_block) => if_block.has_source(),
+            Statement::Declaration(_) => false
         }
     }
 }
@@ -54,6 +56,50 @@ impl Return {
     }
     pub fn token(&self) -> &Token {
         &self.token
+    }
+}
+
+/// Variable declaration
+#[derive(Debug, PartialEq, Clone)]
+pub struct Declaration {
+    mutable: bool,
+    ident: Identifier,
+    value: Box<Expression>,
+    type_decl: Option<TypeExpression>
+}
+impl Declaration {
+    pub fn new(ident: Identifier,
+               mutable: bool,
+               type_decl: Option<TypeExpression>,
+               value: Box<Expression>) -> Declaration {
+        Declaration { ident, mutable, type_decl, value }
+    }
+    pub fn name(&self) -> &str {
+        &self.ident.name()
+    }
+    pub fn value(&self) -> &Expression {
+        &self.value
+    }
+    pub fn is_mut(&self) -> bool {
+        self.mutable
+    }
+    pub fn ident(&self) -> &Identifier {
+        &self.ident
+    }
+    pub fn token(&self) -> &Token {
+        self.ident.token()
+    }
+    pub fn id<'a>(&'a self) -> Ref<'a, ScopedId> {
+        self.ident().id()
+    }
+    pub fn set_id(&self, id: ScopedId) {
+        self.ident().set_id(id);
+    }
+    pub fn type_decl(&self) -> Option<&TypeExpression> {
+        self.type_decl.as_ref()
+    }
+    pub fn has_declared_type(&self) -> bool {
+        self.type_decl.is_some()
     }
 }
 
