@@ -230,29 +230,42 @@ impl<T: Tokenizer> Parser<T> {
         let (_indented, mut token) = self.consume_indented(IndentationRule::NegateDeindent);
         trace!("Parsing expression(precedence={:?}) with {}", precedence, token);
         if _indented { trace!("Parsing indented expression"); }
-        let prefix: Rc<PrefixParser<Expression, T> + 'static>;
         let token_type = token.get_type();
-        match token_type {
+        let mut left = try!(match token_type {
             TokenType::EOF => {
                 trace!("Unexpected EOF parsing expression");
-                return Err(ParseError::EOF);
+                Err(ParseError::EOF)
             },
             TokenType::EndBlock => {
                 trace!("Unexpected EndBlock parsing expression");
-                return Err(ParseError::EOF);
+                Err(ParseError::EOF)
             },
-            _ => { /* We don't need to return early. */ }
-        }
-        if let Some(found_parser) = self.expr_prefix_parsers.get(&token_type) {
-            trace!("Found a parser to parse ({:?}, {:?})",
-                token.get_type(), token.text());
-            prefix = found_parser.clone();
-        }
-        else {
-            trace!("Could not find a parser!");
-            return Err(ParseError::LazyString(format!("Unexpected token {:?}", token)))
-        }
-        let mut left = try!(prefix.parse(self, token));
+            TokenType::If => {
+                trace!("Parsing an if expression");
+                IfExpressionParser { }.parse(self, token)
+            },
+            TokenType::Minus =>{
+                trace!("Parsing a subtraction expression");
+                UnaryOpExprSymbol::with_precedence(Precedence::NumericPrefix)
+                    .parse(self, token)
+            },
+            TokenType::LeftParen => {
+                trace!("Parsing a paren expression");
+                ParensParser { }.parse(self, token)
+            },
+            TokenType::Ident => {
+                trace!("Parsing an identifier reference");
+                IdentifierParser { }.parse(self, token)
+            },
+            TokenType::Literal => {
+                trace!("Parsing a literal expression");
+                LiteralParser { }.parse(self, token)
+            },
+            _ => {
+                trace!("Could not find parser");
+                return Err(ParseError::LazyString(format!("Unexpected token {:?}", token)))
+            }
+        });
         trace!("Parsed left expression: {:?}", left);
         while precedence < self.current_precedence() {
             trace!("Consuming a token to determine if there's an infix");
@@ -261,16 +274,86 @@ impl<T: Tokenizer> Parser<T> {
             trace!("Consumed {:?}, indentation: {}", new_token, _infix_indented);
             token = new_token;
             let token_type = token.get_type();
-            if let Some(infix) = self.expr_infix_parsers.get(&token_type).map(Rc::clone) {
-                trace!("Parsing via infix parser!");
-                left = try!(infix.parse(self, left, token));
-            }
-            else {
-                trace!("Unable to find an infix parser for {:?}", token_type);
-                // At this point, we've probably hit the border of the expression.
-                break // Will probably also be hit by the while loop conditional.
-            }
+            left = try!(match token_type {
+                TokenType::Equals => {
+                    trace!("Parsing an assignment");
+                    AssignmentParser { }.parse(self, left, token)
+                },
+                TokenType::Plus => {
+                    trace!("Parsing infix addition");
+                    BinOpExprSymbol::with_precedence(Precedence::AddSub)
+                        .parse(self, left, token)
+                },
+                TokenType::Minus => {
+                    trace!("Parsing infix subtraction");
+                    BinOpExprSymbol::with_precedence(Precedence::AddSub)
+                        .parse(self, left, token)
+                },
+                TokenType::Star => {
+                    trace!("Parsing with multiplication");
+                    BinOpExprSymbol::with_precedence(Precedence::MulDiv)
+                        .parse(self, left, token)
+                },
+                TokenType::Slash => {
+                    trace!("Parsing with division");
+                    BinOpExprSymbol::with_precedence(Precedence::MulDiv)
+                        .parse(self, left, token)
+                },
+                TokenType::Percent => {
+                    trace!("Parsing with modulo");
+                    BinOpExprSymbol::with_precedence(Precedence::Modulo)
+                        .parse(self, left, token)
+                },
+                TokenType::LeftParen => {
+                    trace!("Parsing function call");
+                    FnCallParser { }.parse(self, left, token)
+                },
+                TokenType::LeftAngle => {
+                    trace!("Parsing less than expression");
+                    BinOpExprSymbol::with_precedence(Precedence::EqualityCompare)
+                        .parse(self, left, token)
+                },
+                TokenType::RightAngle => {
+                    trace!("Parsing greater than expression");
+                    BinOpExprSymbol::with_precedence(Precedence::EqualityCompare)
+                        .parse(self, left, token)
+                },
+                TokenType::LessThanEquals => {
+                    trace!("Parsing lte expression");
+                    BinOpExprSymbol::with_precedence(Precedence::EqualityCompare)
+                        .parse(self, left, token)
+                },
+                TokenType::GreaterThanEquals => {
+                    trace!("Parsing gte expression");
+                    BinOpExprSymbol::with_precedence(Precedence::EqualityCompare)
+                        .parse(self, left, token)
+                },
+                TokenType::DoubleEquals => {
+                    trace!("Parsing equality expression");
+                    BinOpExprSymbol::with_precedence(Precedence::Equality)
+                        .parse(self, left, token)
+                },
+                TokenType::NotEquals => {
+                    trace!("Parsing not equals expression");
+                    BinOpExprSymbol::with_precedence(Precedence::Equality)
+                        .parse(self, left, token)
+                },
+                TokenType::PlusEquals
+                | TokenType::MinusEquals
+                | TokenType::StarEquals
+                | TokenType::PercentEquals
+                | TokenType::SlashEquals=> {
+                    trace!("Parsing assign op");
+                    AssignOpParser { }.parse(self, left, token)
+                },
+                _ => {
+                    // If we can't match an infix then we need to parse the next
+                    // expression.
+                    break
+                }
+            });
             trace!("Checking that {:?} < {:?}", precedence, self.current_precedence());
+            // ^ at the beginning of the loop
         }
         trace!("Done parsing expression");
         Ok(left)
@@ -278,16 +361,33 @@ impl<T: Tokenizer> Parser<T> {
 
     /// Parse a single statement.
     pub fn statement(&mut self) -> Result<Statement, ParseError> {
-        let peek_type = self.next_type();
-        if let Some(stmt_parser) = self.stmt_prefix_parsers.get(&peek_type).cloned() {
-            trace!("Found statement parser for {:?}", &peek_type);
-            let token = self.consume();
-            stmt_parser.parse(self, token)
-        }
-        else {
-            trace!("Using expr parser for statement");
-            self.expression(Precedence::Min)
-                .map(Expression::to_statement)
+        match self.next_type() {
+            // This may be refactorable with NLL
+            TokenType::Let => {
+                trace!("Parsing let statement");
+                let token = self.consume();
+                DeclarationParser { }.parse(self, token)
+            },
+            TokenType::Return => {
+                trace!("Parsing return statement");
+                let token = self.consume();
+                ReturnParser { }.parse(self, token)
+            },
+            TokenType::Do => {
+                trace!("Parsing do block");
+                let token = self.consume();
+                DoBlockParser { }.parse(self, token)
+            },
+            TokenType::If => {
+                trace!("Parsing an if block");
+                let token = self.consume();
+                IfBlockParser { }.parse(self, token)
+            },
+            _ => {
+                trace!("Using expr parser for statement");
+                self.expression(Precedence::Min)
+                    .map(Expression::to_statement)
+            }
         }
     }
 
@@ -313,15 +413,20 @@ impl<T: Tokenizer> Parser<T> {
 
     /// Parse an item from a program (a function definition)
     pub fn item(&mut self) -> Result<Item, ParseError> {
-        let peek_type = self.next_type();
-        if let Some(item_parser) = self.item_parsers.get(&peek_type).cloned() {
-            trace!("Found item parser for {:?}", &peek_type);
-            let token = self.consume();
-            item_parser.parse(self, token)
-        }
-        else {
-            Err(ParseError::LazyString(format!("Unexpected item token `{:?}`",
-                &peek_type)))
+        let token_type = self.next_type();
+        let token = self.consume();
+        match token_type {
+            TokenType::Fn => {
+                trace!("Parsing a fn");
+                FnDeclarationParser { }.parse(self, token)
+            },
+            TokenType::Typedef => {
+                trace!("Parsing a typedef");
+                TypedefParser { }.parse(self, token)
+            },
+            _ => {
+                Err(ParseError::LazyString(format!("Unexpected item token {:?}", token_type)))
+            }
         }
     }
 
@@ -458,7 +563,7 @@ impl<T: Tokenizer> Parser<T> {
     /// Get the current precedence
     fn current_precedence(&mut self) -> Precedence {
         let looked_ahead = self.look_ahead(1).get_type();
-        if let Some(infix_parser) = self.expr_infix_parsers.get(&looked_ahead).cloned() {
+ if let Some(infix_parser) = self.expr_infix_parsers.get(&looked_ahead).cloned() {
             infix_parser.precedence()
         } else {
             Precedence::Min
