@@ -24,7 +24,4 @@ impl<T: Tokenizer> InfixParser<Expression, T> for AssignmentParser {
         let right = try!(right_expr.expect_value());
         Ok(Expression::Assignment(Assignment::new(ident, Box::new(right))))
     }
-    fn precedence(&self) -> Precedence {
-        Precedence::Assign
-    }
 }

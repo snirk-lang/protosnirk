@@ -1,0 +1,10 @@
+// Numeric operations happen
+
+fn main()
+    let x = 1
+    let y = +x
+    let z = x - 2
+    let a = z + 1
+    let b = -z
+    let c = -b + -z
+    let d = a + b / c

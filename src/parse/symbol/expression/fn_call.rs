@@ -66,8 +66,4 @@ impl<T: Tokenizer> InfixParser<Expression, T> for FnCallParser {
         let call = FnCall::new(lvalue, token, call_args);
         Ok(Expression::FnCall(call))
     }
-
-    fn precedence(&self) -> Precedence {
-        Precedence::Paren
-    }
 }
