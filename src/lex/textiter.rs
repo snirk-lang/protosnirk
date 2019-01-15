@@ -2,19 +2,14 @@
 
 use std::iter::{Iterator, Peekable};
 
-/// Structure representing the location of some character or string in a text.
-#[derive(Debug, PartialEq, Eq, Copy, Clone, Hash, Default)]
-pub struct TextLocation {
-    pub index: usize,
-    pub line: usize,
-    pub column: usize
-}
+use lex::Location;
 
 /// A specialized iterator (for tokenizing) which also implements `peek()`
 /// and keeps track of its location.
 pub trait TextIter : Iterator {
     fn peek(&mut self) -> Option<char>;
-    fn location(&self) -> TextLocation;
+    /// Current location of the iterator.
+    fn location(&self) -> Location;
 }
 
 /// A `TextIter` which uses an internal `Peekable<T>`.
@@ -23,11 +18,11 @@ pub struct PeekTextIter<T> where T: Iterator<Item=char> {
     /// Iterator which does most of the work
     iter: Peekable<T>,
     /// Current line in the source
-    current_line: usize,
+    current_line: u32,
     /// Current column in the source
-    current_column: usize,
+    current_column: u32,
     /// Current byte in the source
-    current_char: usize
+    current_char: u32
 }
 impl<T: Iterator<Item=char>> PeekTextIter<T> {
     pub fn new(iter: Peekable<T>) -> PeekTextIter<T> {
@@ -44,12 +39,13 @@ impl<T: Iterator<Item=char>> TextIter for PeekTextIter<T> {
     fn peek(&mut self) -> Option<char> {
         self.iter.peek().cloned()
     }
-    fn location(&self) -> TextLocation {
-        TextLocation {
-            index: self.current_char,
-            line: self.current_line,
-            column: self.current_column
-        }
+
+    fn location(&self) -> Location {
+        Location::of()
+            .index(self.current_char)
+            .line(self.current_line)
+            .column(self.current_column)
+            .build()
     }
 }
 
