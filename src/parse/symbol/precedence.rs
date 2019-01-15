@@ -43,7 +43,7 @@ impl Precedence {
             | SlashEquals
             | PercentEquals => Precedence::Assign,
             DoubleEquals | NotEquals => Precedence::Equality,
-            LessThanEquals | GreaterThanEquals => Precedence::EqualityCompare,
+            LeftAngle | RightAngle | LessThanEquals | GreaterThanEquals => Precedence::EqualityCompare,
             Plus | Minus => {
                 if prefix {Precedence::NumericPrefix }
                 else {Precedence::AddSub }

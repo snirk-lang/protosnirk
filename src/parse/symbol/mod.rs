@@ -28,7 +28,6 @@ pub trait PrefixParser<E, T: Tokenizer> {
 /// Generic parser trait used to parse AST nodes of type E in the infix position.
 pub trait InfixParser<E, T: Tokenizer> {
     fn parse(&self, parser: &mut Parser<T>, left: E, token: Token) -> ParseResult<E>;
-    fn precedence(&self) -> Precedence;
 }
 
 // TODO This can't be implemented until we have a way of knowing when to stop calling
