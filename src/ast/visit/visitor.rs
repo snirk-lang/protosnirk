@@ -57,7 +57,7 @@ pub trait StatementVisitor : ExpressionVisitor {
             Statement::Expression(ref expr) => {
                 self.visit_expression(expr);
             },
-            Statement::Declaratoin(ref decl) =>{
+            Statement::Declaration(ref decl) =>{
                 self.visit_declaration(decl);
             }
             Statement::Return(ref return_) => {
