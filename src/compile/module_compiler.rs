@@ -332,6 +332,17 @@ impl<'ctx, 'b, M> StatementVisitor for ModuleCompiler<'ctx, 'b, M>
         }
     }
 
+    fn visit_declaration(&mut self, decl: &Declaration) {
+        trace!("Checking declaration for {}", decl.name());
+        self.visit_expression(decl.value());
+        let decl_value = self.ir_code.pop()
+            .expect("Did not have rvalue of declaration");
+        let builder = self.builder;
+        let alloca = builder.build_alloca(&self.current_type, decl.name());
+        builder.build_store(&decl_value, &alloca);
+        self.scope_manager.insert(decl.id().clone(), alloca);
+    }
+
     fn visit_return_stmt(&mut self, return_: &Return) {
         trace!("Checking return statement");
         if let Some(ref return_expr) = return_.value() {
@@ -386,18 +397,6 @@ impl<'ctx, 'b, M> ExpressionVisitor for ModuleCompiler<'ctx, 'b, M>
         let var_load = builder.build_load(&var_alloca, &load_name);
         self.current_type = self.llvm_type_of(&ident_ref.id());
         self.ir_code.push(var_load);
-    }
-
-
-    fn visit_declaration(&mut self, decl: &Declaration) {
-        trace!("Checking declaration for {}", decl.name());
-        self.visit_expression(decl.value());
-        let decl_value = self.ir_code.pop()
-            .expect("Did not have rvalue of declaration");
-        let builder = self.builder;
-        let alloca = builder.build_alloca(&self.current_type, decl.name());
-        builder.build_store(&decl_value, &alloca);
-        self.scope_manager.insert(decl.id().clone(), alloca);
     }
 
     fn visit_assignment(&mut self, assign: &Assignment) {
@@ -584,5 +583,4 @@ impl<'ctx, 'b, M> ExpressionVisitor for ModuleCompiler<'ctx, 'b, M>
         self.ir_code.push(phi);
         // self.current_type stays the same.
     }
-
 }

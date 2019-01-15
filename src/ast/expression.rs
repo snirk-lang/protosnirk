@@ -3,8 +3,8 @@
 //! Expression values are used in the `Expression` and `Statement` contexts.
 //! They are usually emitted as asm instructions operating on variables.
 
-use ast::*;
 use lex::{Token, TokenType, TokenData};
+use ast::{ScopedId, Statement, Identifier, UnaryOperator, BinaryOperator};
 use parse::{ParseResult, ParseError, ExpectedNextType};
 
 use std::cell::Ref;
@@ -30,9 +30,8 @@ pub enum Expression {
 
     /// Assignment - not considered value expression
     Assignment(Assignment),
-    /// Declaration - not considered value expression
-    Declaration(Declaration),
 }
+
 impl Expression {
     /// Convert this expression to a `Statement::Expression`
     pub fn to_statement(self) -> Statement {
@@ -46,7 +45,7 @@ impl Expression {
     /// from being used to represent `()`.
     pub fn has_value(&self) -> bool {
         match *self {
-            Expression::Assignment(_) | Expression::Declaration(_) => false,
+            Expression::Assignment(_) => false,
             _ => true
         }
     }
@@ -195,50 +194,6 @@ impl UnaryOperation {
     }
     pub fn inner(&self) -> &Expression {
         &self.expression
-    }
-}
-
-/// Variable declaration
-#[derive(Debug, PartialEq, Clone)]
-pub struct Declaration {
-    mutable: bool,
-    ident: Identifier,
-    value: Box<Expression>,
-    type_decl: Option<TypeExpression>
-}
-impl Declaration {
-    pub fn new(ident: Identifier,
-               mutable: bool,
-               type_decl: Option<TypeExpression>,
-               value: Box<Expression>) -> Declaration {
-        Declaration { ident, mutable, type_decl, value }
-    }
-    pub fn name(&self) -> &str {
-        &self.ident.name()
-    }
-    pub fn value(&self) -> &Expression {
-        &self.value
-    }
-    pub fn is_mut(&self) -> bool {
-        self.mutable
-    }
-    pub fn ident(&self) -> &Identifier {
-        &self.ident
-    }
-    pub fn token(&self) -> &Token {
-        self.ident.token()
-    }
-    pub fn id<'a>(&'a self) -> Ref<'a, ScopedId> {
-        self.ident().id()
-    }
-    pub fn set_id(&self, id: ScopedId) {
-        self.ident().set_id(id);
-    }
-    pub fn type_decl(&self) -> Option<&TypeExpression> {
-        self.type_decl.as_ref()
-    }
-    pub fn has_declared_type(&self) -> bool {
-        self.type_decl.is_some()
     }
 }
 

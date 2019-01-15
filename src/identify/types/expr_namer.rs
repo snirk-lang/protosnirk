@@ -66,6 +66,14 @@ impl<'err, 'builder> StatementVisitor for ExprTypeIdentifier<'err, 'builder> {
         visit::walk_if_block(self, if_block);
     }
 
+    fn visit_declaration(&mut self, declaration: &Declaration) {
+        if let Some(ref decl_ty) = declaration.type_decl() {
+            // visit the declaration
+            TypeIdentifier::new(self.errors, self.builder)
+                .visit_type_expr(decl_ty);
+        }
+    }
+
     fn visit_do_block(&mut self, do_block: &DoBlock) {
         trace!("Visiting a do block");
         visit::walk_do_block(self, do_block);
@@ -100,13 +108,5 @@ impl<'err, 'builder> ExpressionVisitor
 
     fn visit_assignment(&mut self, assign: &Assignment) {
         self.visit_expression(assign.rvalue());
-    }
-
-    fn visit_declaration(&mut self, declaration: &Declaration) {
-        if let Some(ref decl_ty) = declaration.type_decl() {
-            // visit the declaration
-            TypeIdentifier::new(self.errors, self.builder)
-                          .visit_type_expr(decl_ty);
-        }
     }
 }

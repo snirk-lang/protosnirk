@@ -410,7 +410,6 @@ impl<T: Tokenizer> Parser<T> {
         ];
         let expr_prefix_map: HashMap<TokenType, Rc<PrefixParser<Expression, T> + 'static>> =
         hashmap![
-            Let => Rc::new(DeclarationParser { }) as Rc<PrefixParser<Expression, T>>,
             If => Rc::new(IfExpressionParser { }) as Rc<PrefixParser<Expression, T>>,
 
             Minus => UnaryOpExprSymbol::with_precedence(Precedence::NumericPrefix),
@@ -421,6 +420,7 @@ impl<T: Tokenizer> Parser<T> {
         ];
         let stmt_prefix_map: HashMap<TokenType, Rc<PrefixParser<Statement, T> + 'static>> =
         hashmap![
+            Let => Rc::new(DeclarationParser { }) as Rc<PrefixParser<Statement, T>>,
             Return => Rc::new(ReturnParser { }) as Rc<PrefixParser<Statement, T>>,
             Do => Rc::new(DoBlockParser { }) as Rc<PrefixParser<Statement, T>>,
             If => Rc::new(IfBlockParser { }) as Rc<PrefixParser<Statement, T>>,
