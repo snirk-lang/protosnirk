@@ -222,6 +222,30 @@ impl<'err, 'builder> StatementVisitor
         self.current_id.increment();
     }
 
+    fn visit_declaration(&mut self, declaration: &Declaration) {
+        trace!("Visiting declaration of {}", declaration.name());
+        let lvalue = declaration.ident();
+        if let Some(_var_id) = self.builder.get(lvalue.name()) {
+            debug!("Found an already defined variable");
+            // Variable already declared. Shadowing is an error.
+            // `builder.local` = Rust level shadowing, more or less
+            // `builder.get` = no shadowing at all (even over globals).
+            let err_text = format!("Variable {} is already declared",
+                lvalue.name());
+            self.errors.add_error(CheckerError::new(
+                lvalue.token().clone(), vec![], err_text
+            ));
+            return
+        }
+        trace!("Checking rvalue");
+        self.visit_expression(declaration.value());
+        let decl_id = self.current_id.clone();
+        self.builder.define_local(declaration.name().into(), decl_id.clone());
+        trace!("Created id {:?} for var {}", decl_id, lvalue.name());
+        lvalue.set_id(decl_id);
+        self.current_id.increment();
+    }
+
     fn visit_return_stmt(&mut self, return_stmt: &Return) {
         trace!("Visiting return statement");
         if let Some(ret_expr) = return_stmt.value() {
@@ -291,30 +315,6 @@ impl<'err, 'builder> ExpressionVisitor
                 ident.token().clone(), vec![], err_text
             ));
         }
-    }
-
-    fn visit_declaration(&mut self, declaration: &Declaration) {
-        trace!("Visiting declaration of {}", declaration.name());
-        let lvalue = declaration.ident();
-        if let Some(_var_id) = self.builder.get(lvalue.name()) {
-            debug!("Found an already defined variable");
-            // Variable already declared. Shadowing is an error.
-            // `builder.local` = Rust level shadowing, more or less
-            // `builder.get` = no shadowing at all (even over globals).
-            let err_text = format!("Variable {} is already declared",
-                lvalue.name());
-            self.errors.add_error(CheckerError::new(
-                lvalue.token().clone(), vec![], err_text
-            ));
-            return
-        }
-        trace!("Checking rvalue");
-        self.visit_expression(declaration.value());
-        let decl_id = self.current_id.clone();
-        self.builder.define_local(declaration.name().into(), decl_id.clone());
-        trace!("Created id {:?} for var {}", decl_id, lvalue.name());
-        lvalue.set_id(decl_id);
-        self.current_id.increment();
     }
 
     fn visit_fn_call(&mut self, fn_call: &FnCall) {

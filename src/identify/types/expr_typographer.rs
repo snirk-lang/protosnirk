@@ -224,6 +224,29 @@ impl<'err, 'builder, 'graph> StatementVisitor
         }
     }
 
+    fn visit_declaration(&mut self, decl: &Declaration) {
+        trace!("Visiting declaration of {}", decl.ident().name());
+
+        self.visit_expression(decl.value());
+
+        // var matches declaration and declared type.
+        let var_ix = self.graph.add_variable(decl.id().clone());
+
+        if let Some(ty_expr) = decl.type_decl() {
+            let ty_ix = self.graph.get_type(&ty_expr.id())
+                .expect("Did not have type for existing type");
+
+            // t_var: ty_expr
+            self.graph.add_inference(var_ix, ty_ix,
+                                     InferenceSource::ExplicitDecl(decl.ident().clone()));
+        }
+        // tvar = texpr
+        self.graph.add_inference(var_ix, self.current_type,
+                                 InferenceSource::Declaration(decl.ident().clone()));
+
+        self.current_type = self.primitive_type_ix("()");
+    }
+
     fn visit_return_stmt(&mut self, return_: &Return) {
         trace!("Visiting return type");
         // Expr matches block's return.
@@ -414,29 +437,6 @@ impl<'err, 'builder, 'graph> ExpressionVisitor
         // tleft = tright
         self.graph.add_inference(self.current_type, lvalue_type,
             InferenceSource::Assignment);
-
-        self.current_type = self.primitive_type_ix("()");
-    }
-
-    fn visit_declaration(&mut self, decl: &Declaration) {
-        trace!("Visiting declaration of {}", decl.ident().name());
-
-        self.visit_expression(decl.value());
-
-        // var matches declaration and declared type.
-        let var_ix = self.graph.add_variable(decl.id().clone());
-
-        if let Some(ty_expr) = decl.type_decl() {
-            let ty_ix = self.graph.get_type(&ty_expr.id())
-                .expect("Did not have type for existing type");
-
-            // t_var: ty_expr
-            self.graph.add_inference(var_ix, ty_ix,
-                InferenceSource::ExplicitDecl(decl.ident().clone()));
-        }
-        // tvar = texpr
-        self.graph.add_inference(var_ix, self.current_type,
-            InferenceSource::Declaration(decl.ident().clone()));
 
         self.current_type = self.primitive_type_ix("()");
     }

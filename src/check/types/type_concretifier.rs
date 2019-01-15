@@ -168,6 +168,13 @@ impl<'err, 'builder, 'graph> StatementVisitor
         trace!("Visiting do block");
         visit::walk_do_block(self, do_block);
     }
+
+    fn visit_declaration(&mut self, decl: &Declaration) {
+        trace!("Visiting declaration of {}", decl.name());
+        self.visit_expression(decl.value());
+        self.infer_var(&decl.id(), decl.token(),
+                       format!("definition of variable {}", decl.token()));
+    }
 }
 
 impl<'err, 'builder, 'graph> ExpressionVisitor
@@ -209,12 +216,5 @@ impl<'err, 'builder, 'graph> ExpressionVisitor
             assign.lvalue().token(),
             format!("assignment to {}",
                     assign.lvalue().name()));
-    }
-
-    fn visit_declaration(&mut self, decl: &Declaration) {
-        trace!("Visiting declaration of {}", decl.name());
-        self.visit_expression(decl.value());
-        self.infer_var(&decl.id(), decl.token(),
-            format!("definition of variable {}", decl.token()));
     }
 }

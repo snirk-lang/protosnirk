@@ -4,7 +4,7 @@
 //! They are usually emitted as asm instructions operating on variables.
 
 use lex::{Token, TokenType, TokenData};
-use ast::{ScopedId, Statement, Identifier, TypeExpression, UnaryOperator, BinaryOperator};
+use ast::{ScopedId, Statement, Identifier, UnaryOperator, BinaryOperator};
 use parse::{ParseResult, ParseError, ExpectedNextType};
 
 use std::cell::Ref;
