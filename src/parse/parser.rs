@@ -398,6 +398,7 @@ impl<T: Tokenizer> Parser<T> {
         use lex::TokenType::*;
         match token_type {
             Minus => Ok(UnaryOperator::Negation),
+            Plus => Ok(UnaryOperator::Addition),
             _ => Err(ParseError::UnknownOperator {
                     text: Cow::from(format!("{:?}", token_type)),
                     token_type
