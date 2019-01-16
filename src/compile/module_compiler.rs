@@ -295,7 +295,7 @@ impl<'ctx, 'b, M> StatementVisitor for ModuleCompiler<'ctx, 'b, M>
 
         trace!("Finished checking conditions");
         // If there's an else, check that too
-        if let Some(&(_, ref else_block)) = if_block.else_block() {
+        if let Some(ref else_block) = if_block.else_block() {
             trace!("Checking else block");
             self.visit_block(else_block);
             if valued_if {
@@ -363,7 +363,7 @@ impl<'ctx, 'b, M> ExpressionVisitor for ModuleCompiler<'ctx, 'b, M>
 
     fn visit_literal_expr(&mut self, literal: &Literal) {
         use ast::LiteralValue;
-        trace!("Checking literal {}", literal.token().text());
+        trace!("Checking literal {}", literal.text());
         let (literal_value, literal_type) = match literal.value() {
             &LiteralValue::Bool(b) => {
                 let bool_value = if b { 1u64 } else { 0u64 };
