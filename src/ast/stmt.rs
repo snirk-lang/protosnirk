@@ -4,7 +4,7 @@
 /// such as loop constructs. They are usually not accepted in as many places as
 /// `Expression`s are because of their ability to use indentation.
 
-use lex::Token;
+use lex::{Span, Location};
 use ast::{Expression, Identifier, TypeExpression, Block, ScopedId};
 
 use std::cell::{RefCell, Ref};
@@ -29,20 +29,37 @@ impl Statement {
             Statement::Declaration(_) => false
         }
     }
+
+    pub fn span(&self) -> Span {
+        match *self {
+            thing => thing.span()
+        }
+    }
 }
 
 /// Explicit return statement
 #[derive(Debug, PartialEq, Clone)]
 pub struct Return {
-    token: Token,
-    value: Option<Box<Expression>>
+    value: Option<Box<Expression>>,
+    span: Span
 }
 
 impl Return {
-    pub fn new<V: Into<Option<Box<Expression>>>>(token: Token,
+    pub fn new<V: Into<Option<Box<Expression>>>>(start: Location,
                                                  value: V) -> Return {
-        Return { token: token, value: value.into() }
+        let value = value.into();
+        let end = if let &Some(ref exp) = &value {
+            exp.span().end()
+        }
+        else {
+            start.offset(5)
+        };
+        Return {
+            value: value.into(),
+            span: Span::from(start ..= end)
+        }
     }
+
     pub fn has_value(&self) -> bool {
         if let Some(ref val) = self.value {
             val.has_value()
@@ -51,11 +68,13 @@ impl Return {
             false
         }
     }
+
     pub fn value(&self) -> Option<&Expression> {
         self.value.as_ref().map(|expr| expr.as_ref())
     }
-    pub fn token(&self) -> &Token {
-        &self.token
+
+    pub fn span(&self) -> Span {
+        self.span
     }
 }
 
@@ -65,15 +84,24 @@ pub struct Declaration {
     mutable: bool,
     ident: Identifier,
     value: Box<Expression>,
-    type_decl: Option<TypeExpression>
+    type_decl: Option<TypeExpression>,
+    span: Span
 }
 impl Declaration {
-    pub fn new(ident: Identifier,
+    pub fn new(start: Location,
+               ident: Identifier,
                mutable: bool,
                type_decl: Option<TypeExpression>,
                value: Box<Expression>) -> Declaration {
-        Declaration { ident, mutable, type_decl, value }
+        Declaration {
+            ident,
+            mutable,
+            type_decl,
+            value,
+            span: Span::from(start ..= value.span().end())
+        }
     }
+
     pub fn name(&self) -> &str {
         &self.ident.name()
     }
@@ -85,9 +113,6 @@ impl Declaration {
     }
     pub fn ident(&self) -> &Identifier {
         &self.ident
-    }
-    pub fn token(&self) -> &Token {
-        self.ident.token()
     }
     pub fn id<'a>(&'a self) -> Ref<'a, ScopedId> {
         self.ident().id()
@@ -101,17 +126,21 @@ impl Declaration {
     pub fn has_declared_type(&self) -> bool {
         self.type_decl.is_some()
     }
+
+    pub fn span(&self) -> Span {
+        self.span
+    }
 }
 
 /// Do <block> statement.
 #[derive(Debug, PartialEq, Clone)]
 pub struct DoBlock {
-    do_token: Token,
-    block: Box<Block>
+    block: Box<Block>,
+    span: Span
 }
 impl DoBlock {
-    pub fn new(token: Token, block: Box<Block>) -> DoBlock {
-        DoBlock { do_token: token, block: block }
+    pub fn new(start: Location, block: Box<Block>) -> DoBlock {
+        DoBlock { block, span: Span::from(start ..= (*block).span().end()) }
     }
 
     pub fn block(&self) -> &Block {
@@ -137,6 +166,10 @@ impl DoBlock {
     pub fn has_source(&self) -> bool {
         self.block.has_source()
     }
+
+    pub fn span(&self) -> Span {
+        self.span
+    }
 }
 
 /// if <condition> <block>
@@ -156,29 +189,41 @@ impl DoBlock {
 #[derive(Debug, PartialEq, Clone)]
 pub struct IfBlock {
     conditionals: Vec<Conditional>,
-    else_block: Option<(Token, Block)>,
+    else_block: Option<Block>,
     scoped_id: RefCell<ScopedId>,
-    source: RefCell<Option<ScopedId>>
+    source: RefCell<Option<ScopedId>>,
+    span: Span
 }
 
 /// A basic conditional
 #[derive(Debug, PartialEq, Clone)]
 pub struct Conditional {
-    if_token: Token,
     condition: Expression,
     block: Block,
+    span: Span
 }
 
 impl IfBlock {
-    pub fn new(conditionals: Vec<Conditional>,
-               else_block: Option<(Token, Block)>) -> IfBlock {
-        debug_assert!(conditionals.len() >= 1,
-            "Attempted to create an `If` with 0 conditionals");
+    pub fn new(start: Location,
+               conditionals: Vec<Conditional>,
+               else_block: Option<Block>) -> IfBlock {
+        debug_assert!(!conditionals.is_empty(),
+                      "Attempted to create an `If` with 0 conditionals");
+        let end = if let Some(else_block) = else_block {
+            else_block.span().end()
+        }
+        else if let Some(last_cond) = conditionals.last() {
+            last_cond.span().end()
+        }
+        else {
+            unreachable!("Attempted to create an if with no conditionals")
+        };
         IfBlock {
             conditionals: conditionals,
             else_block: else_block,
             scoped_id: RefCell::default(),
-            source: RefCell::new(None)
+            source: RefCell::new(None),
+            span: Span::from(start ..= end)
         }
     }
     pub fn has_else_if(&self) -> bool {
@@ -193,7 +238,7 @@ impl IfBlock {
     pub fn condition(&self) -> &Expression {
         &self.conditionals[0].condition
     }
-    pub fn else_block(&self) -> Option<&(Token, Block)> {
+    pub fn else_block(&self) -> Option<&Block> {
         self.else_block.as_ref()
     }
     pub fn id<'a>(&'a self) -> Ref<'a, ScopedId> {
@@ -212,16 +257,20 @@ impl IfBlock {
     pub fn has_source(&self) -> bool {
         self.source.borrow().is_some()
     }
+
+    pub fn span(&self) -> Span {
+        self.span
+    }
 }
 
 impl Conditional {
-    pub fn new(if_token: Token,
+    pub fn new(start: Location,
                condition: Expression,
                block: Block) -> Conditional {
         Conditional {
-            if_token: if_token,
-            condition: condition,
-            block: block
+            condition,
+            block,
+            span: Span::from(start ..= block.span().end())
         }
     }
     pub fn condition(&self) -> &Expression {
@@ -229,9 +278,6 @@ impl Conditional {
     }
     pub fn block(&self) -> &Block {
         &self.block
-    }
-    pub fn token(&self) -> &Token {
-        &self.if_token
     }
 
     pub fn source<'a>(&'a self) -> Ref<'a, Option<ScopedId>> {
@@ -244,5 +290,9 @@ impl Conditional {
 
     pub fn has_source(&self) -> bool {
         self.block.has_source()
+    }
+
+    pub fn span(&self) -> Span {
+        self.span
     }
 }

@@ -4,23 +4,28 @@
 //! -- namely declarations such as `class`, `enum`, `struct`.
 use std::cell::Ref;
 
-use lex::Token;
+use lex::{Location, Span};
 use ast::{Identifier, Block, TypeExpression, ScopedId};
 
 /// A single "unit" of parsed code.
 #[derive(Debug, PartialEq, Clone)]
 pub struct Unit {
-    items: Vec<Item>
+    items: Vec<Item>,
+    span: Span
 }
 
 impl Unit {
     /// Create a new unit with the given block
-    pub fn new(items: Vec<Item>) -> Unit {
-        Unit { items: items }
+    pub fn new(span: Span, items: Vec<Item>) -> Unit {
+        Unit { span, items }
     }
     /// Gets the collection of exported items
     pub fn items(&self) -> &[Item] {
         &self.items
+    }
+
+    pub fn span(&self) -> Span {
+        self.span
     }
 }
 
@@ -36,7 +41,6 @@ pub enum Item {
 /// Declaration of a function
 #[derive(Debug, Clone, PartialEq)]
 pub struct BlockFnDeclaration {
-    fn_token: Token,
     ident: Identifier,
     params: Vec<(Identifier, TypeExpression)>,
     ret_ty: TypeExpression,
@@ -46,21 +50,17 @@ pub struct BlockFnDeclaration {
 
 impl BlockFnDeclaration {
     /// Create a new FnDeclaration
-    pub fn new(fn_token: Token,
-               ident: Identifier,
+    pub fn new(ident: Identifier,
                params: Vec<(Identifier, TypeExpression)>,
                ret_ty: TypeExpression,
                explicit_ret_ty: bool,
                block: Block)
                -> BlockFnDeclaration {
         BlockFnDeclaration {
-            fn_token, ident, params, ret_ty, explicit_ret_ty, block
+            ident, params, ret_ty, explicit_ret_ty, block
         }
     }
-    /// Get the `fn` token
-    pub fn token(&self) -> &Token {
-        &self.fn_token
-    }
+
     /// Get the identifier of the function
     pub fn ident(&self) -> &Identifier {
         &self.ident
@@ -88,26 +88,30 @@ impl BlockFnDeclaration {
     pub fn block(&self) -> &Block {
         &self.block
     }
+
+    pub fn span(&self) -> Span {
+        Span::from(self.ident.span() ..= self.block.span())
+    }
 }
 
 /// Declaration of a type alias
 #[derive(Debug, Clone, PartialEq)]
 pub struct Typedef {
-    typedef_token: Token,
     alias_ident: Identifier,
-    type_expr: TypeExpression
+    type_expr: TypeExpression,
+    span: Span
 }
 
 impl Typedef {
-    pub fn new(typedef_token: Token,
+    pub fn new(start: Location,
                alias_ident: Identifier,
                type_expr: TypeExpression)
                -> Typedef {
-        Typedef { typedef_token, alias_ident, type_expr }
-    }
-
-    pub fn token(&self) -> &Token {
-        &self.typedef_token
+        Typedef {
+            alias_ident,
+            type_expr,
+            span: Span::from(start ..= type_expr.span().end())
+        }
     }
 
     pub fn ident(&self) -> &Identifier {
@@ -128,5 +132,9 @@ impl Typedef {
 
     pub fn type_expr(&self) -> &TypeExpression {
         &self.type_expr
+    }
+
+    pub fn span(&self) -> Span {
+        self.span
     }
 }
