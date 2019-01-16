@@ -27,7 +27,6 @@ impl<T: Tokenizer> InfixParser<Expression, T> for AssignOpParser {
         // We parse it here into an expanded expression.
         let right_expr = Expression::BinaryOp(BinaryOperation::new(
             operator,
-            token,
             Box::new(Expression::VariableRef(lvalue.clone())),
             Box::new(right_value)));
         Ok(Expression::Assignment(Assignment::new(lvalue, Box::new(right_expr))))

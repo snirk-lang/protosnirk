@@ -11,7 +11,8 @@ pub type ParseResult<T> = Result<T, ParseError>;
 pub enum ParseError {
     ExpectedToken {
         expected: TokenType,
-        got: Token
+        got: TokenType,
+        token: Token
     },
     ExpectedExpression {
         expected: ExpectedNextType,

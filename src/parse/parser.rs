@@ -6,7 +6,7 @@
 use std::borrow::Cow;
 use std::collections::VecDeque;
 
-use lex::{CowStr, Token, TokenType, Tokenizer};
+use lex::{CowStr, Token, TokenType, Span, Tokenizer};
 use parse::ParseError;
 use ast::*;
 use parse::symbol::*;
@@ -46,7 +46,7 @@ impl<T: Tokenizer> Parser<T> {
     // line
     pub fn peek_is_newline(&mut self, current: &Token) -> bool {
         let (indent, peeked) = self.peek_indented();
-        indent || peeked.location().line > current.location().line
+        indent || peeked.location().line() > current.location().line()
     }
 
     /// Consumes the next token from the tokenizer.
@@ -132,7 +132,8 @@ impl<T: Tokenizer> Parser<T> {
         if token.get_type() != expected_type {
             Err(ParseError::ExpectedToken {
                 expected: expected_type,
-                got: token.into()
+                got: token.get_type(),
+                token: token.into()
             })
         }
         else {
@@ -156,7 +157,8 @@ impl<T: Tokenizer> Parser<T> {
         if token.text() != expected_name {
             Err(ParseError::ExpectedToken {
                 expected: expected_type,
-                got: token.into()
+                got: token.get_type(),
+                token: token.into()
             })
         }
         else {
@@ -318,6 +320,7 @@ impl<T: Tokenizer> Parser<T> {
     ///
     /// Block parsing assumes the `BeginBlock` token has already been consumed.
     pub fn block(&mut self) -> Result<Block, ParseError> {
+        let start = self.peek().location();
         let mut found = Vec::new();
         loop {
             let next_type = self.next_type();
@@ -331,7 +334,7 @@ impl<T: Tokenizer> Parser<T> {
             let next_stmt = try!(self.statement());
             found.push(next_stmt);
         }
-        return Ok(Block::new(found))
+        return Ok(Block::new(start, found))
     }
 
     /// Parse an item from a program (a function definition)
@@ -363,7 +366,8 @@ impl<T: Tokenizer> Parser<T> {
         } else {
             Err(ParseError::ExpectedToken {
                 expected: TokenType::Ident,
-                got: token
+                got: token.get_type(),
+                token: token
             })
         }
     }
@@ -417,14 +421,16 @@ impl<T: Tokenizer> Parser<T> {
 
     /// Parse a program and verify it for errors
     pub fn parse_unit(&mut self) -> Result<Unit, ParseError> {
+        let start = self.peek().location();
         let mut items = Vec::with_capacity(10);
         while self.next_type() != TokenType::EOF {
             let item = try!(self.item());
             trace!("Parsed an item");
             items.push(item);
         }
+        let end = self.peek().location();
         trace!("Parsed {} items", items.len());
-        let unit = Unit::new(items);
+        let unit = Unit::new(Span::from(start ..= end), items);
         Ok(unit)
     }
 

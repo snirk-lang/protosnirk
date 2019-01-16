@@ -22,6 +22,7 @@ impl<T: Tokenizer> PrefixParser<Item, T> for FnDeclarationParser {
     fn parse(&self, parser: &mut Parser<T>, token: Token) -> ParseResult<Item> {
         debug_assert!(token.get_type() == TokenType::Fn,
             "Unexpected token {:?} to fn parser", token);
+        let start = token.location();
         let name = try!(parser.lvalue());
 
         // Args
@@ -74,7 +75,7 @@ impl<T: Tokenizer> PrefixParser<Item, T> for FnDeclarationParser {
         try!(parser.consume_type(TokenType::BeginBlock));
         let block = try!(parser.block());
         Ok(Item::BlockFnDeclaration(BlockFnDeclaration::new(
-            token, name, params, return_ty, explicit, block
+            start, name, params, return_ty, explicit, block
         )))
     }
 }

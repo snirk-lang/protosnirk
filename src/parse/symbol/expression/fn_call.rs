@@ -1,6 +1,6 @@
 //! Function call - inline `(`
 
-use lex::{Token, Tokenizer, TokenType};
+use lex::{Token, Tokenizer, TokenType, Span};
 use ast::*;
 use parse::{Parser, ParseResult, ParseError, IndentationRule};
 use parse::symbol::{InfixParser, Precedence};
@@ -20,7 +20,7 @@ impl<T: Tokenizer> InfixParser<Expression, T> for FnCallParser {
         trace!("Parsing a function call of {:?}", left);
         debug_assert!(token.get_type() == TokenType::LeftParen,
             "FnCallParser: called on token {:?}", token);
-
+        let start = token.location();
         let lvalue = try!(left.expect_identifier());
 
         let mut call_args = Vec::new();
@@ -63,7 +63,8 @@ impl<T: Tokenizer> InfixParser<Expression, T> for FnCallParser {
                 arg_name = true;
             }
         }
-        let call = FnCall::new(lvalue, token, call_args);
+        let end = parser.peek().location();
+        let call = FnCall::new(Span::from(start ..= end), lvalue, call_args);
         Ok(Expression::FnCall(call))
     }
 }
