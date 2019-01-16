@@ -1,7 +1,7 @@
 //! Run type inference to produce a mapping of the actual concrete types of
 //! things.
 
-use lex::Token;
+use lex::Span;
 use ast::{*, visit::*};
 use check::{CheckerError, ErrorCollector};
 use identify::{ConcreteType, TypeGraph, TypeScopeBuilder};
@@ -35,10 +35,7 @@ impl<'err, 'builder, 'graph> TypeConcretifier<'err, 'builder, 'graph> {
         self.results
     }
 
-    fn infer_var(&mut self,
-                 id: &ScopedId,
-                 source: &Token,
-                 context: String) -> bool {
+    fn infer_var(&mut self, id: &ScopedId, span: Span, context: String) -> bool {
         trace!("Inferring {:?} in context {:?}", id, context);
         if let Some(_known) = self.results.get(id) {
             trace!("Known type of {:?}", id);
@@ -48,13 +45,12 @@ impl<'err, 'builder, 'graph> TypeConcretifier<'err, 'builder, 'graph> {
         match inferred {
             Ok((_ix, ty)) => {
                 if let Some(concrete) = self.builder.get_type(&ty) {
-                    trace!("Type of {} {:?} => {:?}",
-                        source.text(), id, ty);
+                    trace!("Type at {} {:?} => {:?}", span, id, ty);
                     self.results.insert(id.clone(), concrete.clone());
                     true
                 }
                 else {
-                    debug!("Error: unknown type");
+                    debug!("Error: unknown concrete type");
                     // Shouldn't happen?
                     false
                 }
@@ -64,8 +60,7 @@ impl<'err, 'builder, 'graph> TypeConcretifier<'err, 'builder, 'graph> {
                 if !possibles.is_empty() {
                     debug!("Conflicts in determining a type");
                     self.errors.add_error(CheckerError::new(
-                        source.clone(),
-                        vec![],
+                        vec![span],
                         format!("Could not determine type of {} - got {:?}",
                                 context, possibles)
                     ));
@@ -73,8 +68,7 @@ impl<'err, 'builder, 'graph> TypeConcretifier<'err, 'builder, 'graph> {
                 else {
                     debug!("No sources for determining a type");
                     self.errors.add_error(CheckerError::new(
-                        source.clone(),
-                        vec![],
+                        vec![span],
                         format!("Could not determine type of {} - no info",
                             context)
                     ));
@@ -104,13 +98,13 @@ impl<'err, 'builder, 'graph> ItemVisitor
 
     fn visit_block_fn_decl(&mut self, block_fn: &BlockFnDeclaration) {
         trace!("Visiting declaration of fn {}", block_fn.name());
-        self.infer_var(&block_fn.id(), block_fn.token(),
+        self.infer_var(&block_fn.id(), block_fn.span(),
             format!("fn {}", block_fn.name()));
 
         for &(ref param, ref _param_ty) in block_fn.params() {
             trace!("Inferring the type of {} param {}",
                 block_fn.name(), param.name());
-            self.infer_var(&param.id(), param.token(),
+            self.infer_var(&param.id(), param.span(),
                 format!("fn {} param {}",
                     block_fn.name(), param.name()));
         }
@@ -122,7 +116,7 @@ impl<'err, 'builder, 'graph> ItemVisitor
 
     fn visit_typedef(&mut self, typedef: &Typedef) {
         trace!("Visiting typedef {}", typedef.name());
-        self.infer_var(&typedef.id(), typedef.token(),
+        self.infer_var(&typedef.id(), typedef.span(),
             format!("typedef {}", typedef.name()));
     }
 }
@@ -136,11 +130,10 @@ impl<'err, 'builder, 'graph> BlockVisitor
             trace!("Block {:?} has source {:?}, checking.",
                 block.id(), block.source());
 
-            let context = Token::default();
             self.infer_var(block.source().as_ref().expect("Checked expect"),
-                &context,
+                block.span(),
                 format!("block {:?} source", block.id()));
-            self.infer_var(&block.id(), &context,
+            self.infer_var(&block.id(), block.span(),
                 format!("block {:?}", block.id()));
         }
         else {
@@ -172,8 +165,8 @@ impl<'err, 'builder, 'graph> StatementVisitor
     fn visit_declaration(&mut self, decl: &Declaration) {
         trace!("Visiting declaration of {}", decl.name());
         self.visit_expression(decl.value());
-        self.infer_var(&decl.id(), decl.token(),
-                       format!("definition of variable {}", decl.token()));
+        self.infer_var(&decl.id(), decl.span(),
+                       format!("definition of variable {}", decl.name()));
     }
 }
 
@@ -185,7 +178,7 @@ impl<'err, 'builder, 'graph> ExpressionVisitor
     }
 
     fn visit_var_ref(&mut self, ident: &Identifier) {
-        self.infer_var(&ident.id(), ident.token(),
+        self.infer_var(&ident.id(), ident.span(),
             format!("Variable {}", ident.name()));
     }
 
@@ -202,7 +195,7 @@ impl<'err, 'builder, 'graph> ExpressionVisitor
     }
 
     fn visit_fn_call(&mut self, fn_call: &FnCall) {
-        self.infer_var(&fn_call.id(), fn_call.token(),
+        self.infer_var(&fn_call.id(), fn_call.span(),
             format!("Call to {}", fn_call.text()));
         for arg in fn_call.args() {
             self.visit_expression(arg.expression());
@@ -213,7 +206,7 @@ impl<'err, 'builder, 'graph> ExpressionVisitor
         trace!("Visiting assignment to {}", assign.lvalue().name());
         self.visit_expression(assign.rvalue());
         self.infer_var(&assign.lvalue().id(),
-            assign.lvalue().token(),
+            assign.span(),
             format!("assignment to {}",
                     assign.lvalue().name()));
     }

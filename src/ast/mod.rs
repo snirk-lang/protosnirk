@@ -27,7 +27,7 @@ pub use self::types::*;
 
 use std::cell::{RefCell, Ref};
 
-use lex::Token;
+use lex::{Token, Span, Location};
 
 /// Basic identifier type
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -55,6 +55,10 @@ impl Identifier {
             "Attempted to reset the ID of {:?}", self);
         *self.id.borrow_mut() = index;
     }
+
+    pub fn span(&self) -> Span {
+        self.token.span()
+    }
 }
 
 impl Into<Token> for Identifier {
@@ -67,19 +71,27 @@ impl Into<Token> for Identifier {
 #[derive(Debug, PartialEq, Clone)]
 pub struct Block {
     /// Statements in the block
-    pub statements: Vec<Statement>,
-    /// Identifier used for typechecking.
+    statements: Vec<Statement>,
+    /// Identifier used for type checking.
     scope_id: RefCell<ScopedId>,
     /// What uses the value of this block as an expression?
     source: RefCell<Option<ScopedId>>,
+    span: Span
 }
 impl Block {
     /// Create a new block from the given statements and scope id.
-    pub fn new(statements: Vec<Statement>) -> Block {
+    pub fn new(start: Location, statements: Vec<Statement>) -> Block {
+        let end = if let Some(ref last) = statements.last() {
+            last.span().end()
+        }
+        else {
+            start
+        };
         Block {
             statements,
+            span: Span::from(start ..= end),
             scope_id: RefCell::default(),
-            source: RefCell::new(None)
+            source: RefCell::new(None),
         }
     }
 
@@ -100,5 +112,9 @@ impl Block {
     }
     pub fn has_source(&self) -> bool {
         self.source.borrow().is_some()
+    }
+
+    pub fn span(&self) -> Span {
+        self.span
     }
 }

@@ -77,7 +77,7 @@ macro_rules! declare_tokens {
                             $(
                                 $kw_val => TokenType::$kw_name,
                             )*
-                            _ => unreachable!("Invalid token text for kw")
+                           _ => unreachable!("Invalid token text for kw")
                         }
                     },
                     TokenData::Symbol => {

@@ -1,13 +1,15 @@
 //! Contains the lexer which reads protosnirk syntax.
 
+mod span;
 mod token;
 pub mod tokens;
 mod textiter;
 pub mod tokenizer;
 
+pub use self::span::{Location, Span};
 pub use self::token::{Token, TokenData};
 pub use self::tokens::TokenType;
-pub use self::textiter::{TextLocation, TextIter, PeekTextIter};
+pub use self::textiter::{TextIter, PeekTextIter};
 pub use self::tokenizer::{Tokenizer, IterTokenizer};
 
 /// Type representing a borrowed or owned string

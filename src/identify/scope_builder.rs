@@ -1,13 +1,14 @@
 use std::borrow::Borrow;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::hash::Hash;
 
+use lex::Span;
 use ast::ScopedId;
 
 /// A `ScopeBuilder` which handles named things defined in different
 /// scopes, suitable for most `ScopeBuilder` uses.
-pub type NameScopeBuilder = ScopeBuilder<String>;
+pub type NameScopeBuilder = ScopeBuilder<String, Span>;
 
 /// Generic structure to build a scope mapping.
 ///
@@ -33,15 +34,15 @@ pub type NameScopeBuilder = ScopeBuilder<String>;
 /// This analysis is also done for types and there it should mostly be based
 /// on module scoping.
 #[derive(Debug, PartialEq, Clone, Default)]
-pub struct ScopeBuilder<T: Debug + Hash + Eq> {
+pub struct ScopeBuilder<T: Debug + Hash + Eq, I> {
     scopes: Vec<HashMap<T, ScopedId>>,
-    defined: HashSet<ScopedId>
+    defined: HashMap<ScopedId, I>
 }
 
-impl<T: Debug + Hash + Eq> ScopeBuilder<T> {
+impl<T: Debug + Hash + Eq, I: Debug> ScopeBuilder<T, I> {
     /// Create a new empty lexical scope manager
-    pub fn new() -> ScopeBuilder<T> {
-        ScopeBuilder { scopes: vec![], defined: hashset![] }
+    pub fn new() -> ScopeBuilder<T, I> {
+        ScopeBuilder { scopes: vec![], defined: hashmap![] }
     }
 
     /// Create a new scope
@@ -55,20 +56,20 @@ impl<T: Debug + Hash + Eq> ScopeBuilder<T> {
     }
 
     /// Define a new variable in the local scope
-    pub fn define_local(&mut self, key: T, value: ScopedId) {
+    pub fn define_local(&mut self, key: T, value: ScopedId, info: I) {
         debug_assert!(!self.scopes.is_empty(),
             "Attempted to define {:?} with no scopes", key);
         let last_ix = self.scopes.len() - 1usize;
         trace!("Defining {:?} in scope {}", &key, last_ix);
-        self.defined.insert(value.clone());
+        self.defined.insert(value.clone(), info);
         &mut self.scopes[last_ix].insert(key, value);
     }
 
     /// Define a variable in the global scope
-    pub fn define_global(&mut self, key: T, value: ScopedId) {
+    pub fn define_global(&mut self, key: T, value: ScopedId, info: I) {
         debug_assert!(!self.scopes.is_empty(),
             "Attempted to define a global {:?} with no scopes", key);
-        self.defined.insert(value.clone());
+        self.defined.insert(value.clone(), info);
         &mut self.scopes[0].insert(key, value);
     }
 
@@ -90,7 +91,11 @@ impl<T: Debug + Hash + Eq> ScopeBuilder<T> {
     /// Check if the `ScopedId` has been defined.
     pub fn contains_id(&self, id: &ScopedId) -> bool {
         trace!("Checking if {:?} is defined", id);
-        self.defined.contains(id)
+        self.defined.get(id).is_some()
+    }
+
+    pub fn info_for(&self, id: &ScopedId) -> Option<&I> {
+        self.defined.get(id)
     }
 
     /// Get a variable defined in local scopeh

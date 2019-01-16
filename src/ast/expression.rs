@@ -3,8 +3,8 @@
 //! Expression values are used in the `Expression` and `Statement` contexts.
 //! They are usually emitted as asm instructions operating on variables.
 
-use lex::{Token, TokenType, TokenData};
-use ast::{ScopedId, Statement, Identifier, UnaryOperator, BinaryOperator};
+use lex::{Token, TokenType, TokenData, Span, Location};
+use ast::{ScopedId, Identifier, UnaryOperator, BinaryOperator};
 use parse::{ParseResult, ParseError, ExpectedNextType};
 
 use std::cell::Ref;
@@ -33,10 +33,6 @@ pub enum Expression {
 }
 
 impl Expression {
-    /// Convert this expression to a `Statement::Expression`
-    pub fn to_statement(self) -> Statement {
-        Statement::Expression(self)
-    }
     /// Whether this expression has value.
     ///
     /// In typeless protosnirk, this revolves around
@@ -63,6 +59,19 @@ impl Expression {
         match self {
             Expression::VariableRef(ident) => Ok(ident),
             other => Err(ParseError::ExpectedLValue(other))
+        }
+    }
+
+    pub fn span(&self) -> Span {
+        use self::Expression::*;
+        match self {
+            Literal(ref l) => l.span(),
+            VariableRef(ref v) => v.span(),
+            Assignment(ref a) => a.span(),
+            BinaryOp(ref b) => b.span(),
+            FnCall(ref f) => f.span(),
+            IfExpression(ref i) => i.span(),
+            UnaryOp(ref u) => u.span()
         }
     }
 }
@@ -132,13 +141,18 @@ impl Literal {
         }
     }
 
+    pub fn text(&self) -> &str {
+        self.token.text()
+    }
+
     /// Gets the `LiteralValue` of this literal expression.
     pub fn value(&self) -> &LiteralValue {
         &self.value
     }
-    /// Gets the token of this literal.
-    pub fn token(&self) -> &Token {
-        &self.token
+
+    /// Gets the span of the literal [token]
+    pub fn span(&self) -> Span {
+        self.token.span()
     }
 }
 
@@ -146,16 +160,17 @@ impl Literal {
 #[derive(Debug, PartialEq, Clone)]
 pub struct BinaryOperation {
     operator: BinaryOperator,
-    op_token: Token,
     left: Box<Expression>,
-    right: Box<Expression>
+    right: Box<Expression>,
+    span: Span
 }
 impl BinaryOperation {
-    pub fn new(operator: BinaryOperator, op_token: Token,
-        left: Box<Expression>, right: Box<Expression>) -> BinaryOperation {
+    pub fn new(operator: BinaryOperator,
+               left: Box<Expression>,
+               right: Box<Expression>) -> BinaryOperation {
         BinaryOperation {
+            span: Span::from(left.span() ..= right.span()),
             operator: operator,
-            op_token: op_token,
             left: left,
             right: right
         }
@@ -169,31 +184,41 @@ impl BinaryOperation {
     pub fn right(&self) -> &Expression {
         &self.right
     }
+
+    pub fn span(&self) -> Span {
+        self.span
+    }
 }
 
 /// Unary operation
 #[derive(Debug, PartialEq, Clone)]
 pub struct UnaryOperation {
     operator: UnaryOperator,
-    op_token: Token,
-    expression: Box<Expression>
+    expression: Box<Expression>,
+    span: Span
 }
 impl UnaryOperation {
     /// Creates a new unary operation
-    pub fn new(operator: UnaryOperator,
-               op_token: Token,
+    pub fn new(start: Location,
+               operator: UnaryOperator,
                expression: Box<Expression>) -> UnaryOperation {
         UnaryOperation {
+            span: Span::from(start ..= expression.span().end()),
             operator: operator,
-            op_token: op_token,
             expression: expression
         }
     }
+
     pub fn operator(&self) -> UnaryOperator {
         self.operator
     }
+
     pub fn inner(&self) -> &Expression {
         &self.expression
+    }
+
+    pub fn span(&self) -> Span {
+        self.span
     }
 }
 
@@ -201,11 +226,14 @@ impl UnaryOperation {
 #[derive(Debug, PartialEq, Clone)]
 pub struct Assignment {
     lvalue: Identifier,
-    rvalue: Box<Expression>
+    rvalue: Box<Expression>,
 }
 impl Assignment {
     pub fn new(name: Identifier, value: Box<Expression>) -> Assignment {
-        Assignment { lvalue: name, rvalue: value }
+        Assignment {
+            lvalue: name,
+            rvalue: value,
+        }
     }
     pub fn lvalue(&self) -> &Identifier {
         &self.lvalue
@@ -213,30 +241,31 @@ impl Assignment {
     pub fn rvalue(&self) -> &Expression {
         &self.rvalue
     }
+
+    pub fn span(&self) -> Span {
+        Span::from(self.lvalue.span() ..= self.rvalue.span())
+    }
 }
 
 /// Inline if expression using `=>`
 #[derive(Debug, PartialEq, Clone)]
 pub struct IfExpression {
-    if_token: Token,
     condition: Box<Expression>,
     true_expr: Box<Expression>,
-    else_expr: Box<Expression>
+    else_expr: Box<Expression>,
+    span: Span
 }
 impl IfExpression {
-    pub fn new(if_token: Token,
+    pub fn new(start: Location,
                condition: Box<Expression>,
                true_expr: Box<Expression>,
                else_expr: Box<Expression>) -> IfExpression {
         IfExpression {
-            if_token: if_token,
+            span: Span::from(start ..= else_expr.span().end()),
             condition: condition,
             true_expr: true_expr,
             else_expr: else_expr
         }
-    }
-    pub fn token(&self) -> &Token {
-        &self.if_token
     }
     pub fn condition(&self) -> &Expression {
         &self.condition
@@ -247,30 +276,31 @@ impl IfExpression {
     pub fn else_expr(&self) -> &Expression {
         &self.else_expr
     }
+
+    pub fn span(&self) -> Span {
+        self.span
+    }
 }
 
 /// Represents invocation of a function
 #[derive(Debug, PartialEq, Clone)]
 pub struct FnCall {
     lvalue: Identifier,
-    paren_token: Token,
-    args: Vec<CallArgument>
+    args: Vec<CallArgument>,
+    span: Span
 }
 
 impl FnCall {
-    pub fn new(lvalue: Identifier,
-               token: Token,
+    pub fn new(span: Span,
+               lvalue: Identifier,
                args: Vec<CallArgument>) -> FnCall {
-        FnCall { lvalue, paren_token: token, args }
+        FnCall { lvalue, args, span }
     }
     pub fn ident(&self) -> &Identifier {
         &self.lvalue
     }
     pub fn text(&self) -> &str {
         self.ident().name()
-    }
-    pub fn token(&self) -> &Token {
-        &self.paren_token
     }
     pub fn args(&self) -> &[CallArgument] {
         &self.args
@@ -282,13 +312,17 @@ impl FnCall {
     pub fn set_id(&self, id: ScopedId) {
         self.ident().set_id(id);
     }
+
+    pub fn span(&self) -> Span {
+        self.span
+    }
 }
 
 /// Represents arguments given to call a function with
 #[derive(Debug, PartialEq, Clone)]
 pub struct CallArgument {
     param: Identifier,
-    value: Expression
+    value: Expression,
 }
 impl CallArgument {
     pub fn named(param: Identifier, value: Expression) -> CallArgument {
@@ -304,4 +338,7 @@ impl CallArgument {
         &self.param
     }
 
+    pub fn span(&self) -> Span {
+        Span::from(self.param.span() ..= self.value.span())
+    }
 }

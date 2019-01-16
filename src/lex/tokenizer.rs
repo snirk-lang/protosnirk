@@ -7,7 +7,7 @@ use std::collections::{HashMap, HashSet};
 
 use unicode_categories::UnicodeCategories;
 
-use lex::{tokens, TextLocation,
+use lex::{tokens, Location,
           TokenizerSymbolRule, CowStr,
           Token, TokenData,
           TextIter, PeekTextIter};
@@ -56,7 +56,7 @@ pub struct IterTokenizer<I> where I: Iterator<Item=char> {
     ///
     /// Derived from first indent used, can emit warnings for
     /// inconsistent indenting if spaces do not match.
-    expected_indent_length: usize,
+    expected_indent_length: u32,
     /// Whether the file is being indented with spaces or tabs.
     ///
     /// An error is emitted if tab and space indenting is mixed.
@@ -64,13 +64,12 @@ pub struct IterTokenizer<I> where I: Iterator<Item=char> {
     /// Whether whitespace is tokenized as indentation
     tokenizer_state: TokenizerState,
     /// Stack of indents being made.
-    indent_size_stack: Vec<usize>,
+    indent_size_stack: Vec<u32>,
     /// Peekable iterator over the characters
     iter: PeekTextIter<I>
 }
 
 impl<I: Iterator<Item=char>> Tokenizer for IterTokenizer<I> {
-    #[inline]
     fn next(&mut self) -> Token {
         let next = self.next();
         trace!("> Next token {:?}", next);
@@ -87,11 +86,11 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
 
             // Will be overridden later when reading file
             // If first line beins with a space, error
-            expected_indent_length: 0usize,
+            expected_indent_length: 0u32,
             expected_indent_spaces: true,
             // This will discard spacing at the beginning of a file
             tokenizer_state: TokenizerState::LookingForNewline,
-            indent_size_stack: vec![0usize],
+            indent_size_stack: vec![0u32],
 
             iter: PeekTextIter::new(input.peekable())
         }
@@ -116,9 +115,12 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
     /// Emit remaining `BlockEnd` and `EOF` tokens
     fn next_eof(&mut self) -> Token {
         trace!("Calling next_eof, have {} indents left", self.indent_size_stack.len());
-        if self.indent_size_stack.len() > 1 {
+        if self.indent_size_stack.len() > 1 { // more than one indent size
             self.indent_size_stack.pop();
             trace!("Returning an outdent");
+            // Indentation tokens should have text associated with them
+            // so we can give them spans.
+            // Need https://github.com/snirk-lang/protosnirk/issues/46 first
             return Token::new_outdent(self.iter.location())
         }
         return Token::new_eof(self.iter.location())
@@ -131,7 +133,7 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
             self.tokenizer_state = TokenizerState::ReachedEOF;
             return self.next_eof()
         }
-        let mut space_count = 0usize;
+        let mut space_count = 0;
         let mut peeked = peek_attempt.expect("Checked expect");
         // Take all consecutive spaces
         trace!("Taking consecutive spaces starting with {:?}", peeked);
@@ -180,29 +182,29 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
         let location = self.iter.location();
         trace!("Current pos: {:?}", location);
         trace!("Indent stack: {:?}", self.indent_size_stack);
-        if self.indent_size_stack.len() > 1usize {
+        if self.indent_size_stack.len() > 1 { // more than one indent size
             let last_indent = *self.indent_size_stack.last()
                 .expect("Checked expect");
-            trace!("Checking indent {} vs {}", last_indent, location.column);
-            if last_indent > location.column {
+            trace!("Checking indent {} vs {}", last_indent, location.column());
+            if last_indent > location.column() {
                 trace!("Popping the indent");
                 self.indent_size_stack.pop();
-                let position = TextLocation {
-                    column: last_indent,
-                    index: location.index + (last_indent - location.column),
-                    line: location.line
-                };
-                return Token::new_outdent(position)
+                let pos = Location::of()
+                    .index(location.index() + (last_indent - location.column()))
+                    .column(last_indent)
+                    .line(location.line())
+                    .build();
+                return Token::new_outdent(pos)
             }
-            else if last_indent < location.column {
+            else if last_indent < location.column() {
                 trace!("last_indent < location.column");
             }
         }
         // Edge case: there shouldn't be any indentation but we are indented
-        else if location.column > 0 {
+        else if location.column() > 0 {
             // not getting hit usually
             trace!("There shouldn't be any indentation but we are indented");
-            self.indent_size_stack.push(location.column);
+            self.indent_size_stack.push(location.column());
             self.tokenizer_state = TokenizerState::LookingForNewline;
             return Token::new_indent(self.iter.location())
         }
@@ -282,6 +284,7 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
         } else if char_is_symbol(peek) {
             self.parse_symbol()
         } else {
+            // See https://github.com/snirk-lang/protosnirk/issues/70
             panic!("Unknown character `{:?}` in next_line", peek);
         }
     }
@@ -360,7 +363,14 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
         let is_kw = self.take_while_ident(&mut token_string);
         if is_kw && self.keywords.get(&Cow::Borrowed(&*token_string)).is_some() {
             Token::new(token_string, location, TokenData::Keyword)
-        } else {
+        }
+        else if token_string == "true" {
+            Token::new(token_string, location, TokenData::BoolLiteral(true))
+        }
+        else if token_string == "false" {
+            Token::new(token_string, location, TokenData::BoolLiteral(false))
+        }
+        else {
             Token::new_ident(token_string, location)
         }
     }

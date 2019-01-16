@@ -71,7 +71,7 @@ pub fn walk_if_block<V>(visitor: &mut V, if_block: &IfBlock)
         visitor.visit_expression(cond.condition());
         visitor.visit_block(cond.block());
     }
-    if let Some(&(_, ref block)) = if_block.else_block() {
+    if let Some(ref block) = if_block.else_block() {
         visitor.visit_block(block);
     }
 }
