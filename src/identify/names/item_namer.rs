@@ -42,12 +42,13 @@ impl<'err, 'builder> UnitVisitor for ItemVarIdentifier<'err, 'builder> {
 impl<'err, 'builder> ItemVisitor for ItemVarIdentifier<'err, 'builder> {
     fn visit_block_fn_decl(&mut self, block_fn: &BlockFnDeclaration) {
         trace!("Visiting fn definition {}", block_fn.name());
-        if let Some(_previous_def_id) = self.builder.get(block_fn.name()) {
+        if let Some(previous_def_id) = self.builder.get(block_fn.name()) {
+            let previous_span = self.builder.info_for(previous_def_id)
+                .expect("checked expect");
             // fn has been previously defined
             debug!("Emitting error: {} already declared", block_fn.name());
             self.errors.add_error(CheckerError::new(
-                block_fn.token().clone(),
-                vec![],
+                vec![block_fn.span(), *previous_span],
                 format!("Function {} is already declared", block_fn.name())
             ));
             return
@@ -59,7 +60,8 @@ impl<'err, 'builder> ItemVisitor for ItemVarIdentifier<'err, 'builder> {
         let fn_id = self.current_id.clone();
         trace!("Created id {:?} for block fn {}", fn_id, block_fn.name());
         self.builder.define_local(block_fn.name().to_string(),
-                                  fn_id.clone());
+                                  fn_id.clone(),
+                                  block_fn.span());
         block_fn.set_id(fn_id);
 
         // Also name the params, in a new scope.
@@ -86,7 +88,7 @@ impl<'err, 'builder> ItemVisitor for ItemVarIdentifier<'err, 'builder> {
                     "Parameter {} of function {} is already declared",
                     param.name(), block_fn.name());
                 self.errors.add_error(CheckerError::new(
-                    block_fn.token().clone(), vec![], error_text
+                    vec![block_fn.span()], error_text
                 ));
                 return // Stop checking params if there's a dupe.
             }
@@ -94,12 +96,14 @@ impl<'err, 'builder> ItemVisitor for ItemVarIdentifier<'err, 'builder> {
             trace!("Created id {:?} for {} param {}",
                 self.current_id, block_fn.name(), param.name());
             self.builder.define_local(param_name.to_string(),
-                                      self.current_id.clone());
+                                      self.current_id.clone(),
+                                      param.span());
             // We also put the param in the global scope as this is the only
             // scope visible outside the visitor.
             self.builder.define_global(
-                    format!("{}::{}", block_fn.name(), param_name),
-                    self.current_id.clone());
+                format!("{}::{}", block_fn.name(), param_name),
+                self.current_id.clone(),
+                block_fn.span());
             param.set_id(self.current_id.clone());
 
             self.current_id.increment();
@@ -121,8 +125,7 @@ impl<'err, 'builder> ItemVisitor for ItemVarIdentifier<'err, 'builder> {
             debug!("Emitting error: typedef {} already declared",
                 typedef.name());
             self.errors.add_error(CheckerError::new(
-                typedef.token().clone(),
-                vec![],
+                vec![typedef.span()],
                 format!("Type alias {} is already declared", typedef.name())
             ));
             return
@@ -131,7 +134,9 @@ impl<'err, 'builder> ItemVisitor for ItemVarIdentifier<'err, 'builder> {
             self.current_id, typedef.name());
         typedef.set_id(self.current_id.clone());
         self.builder.define_global(
-            typedef.name().to_string(), self.current_id.clone());
+            typedef.name().to_string(),
+            self.current_id.clone(),
+            typedef.span());
 
         self.current_id.increment();
     }

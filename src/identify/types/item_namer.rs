@@ -101,8 +101,7 @@ impl<'err, 'builder> ItemVisitor for ItemTypeIdentifier<'err, 'builder> {
             // But we can do this in the type graph.
             // I'd rather catch this one faster, it's also way less likely.
             self.errors.add_error(CheckerError::new(
-                typedef.token().clone(),
-                vec![],
+                vec![typedef.span()],
                 format!("Circular definiton of typedef {}", typedef.name())
             ));
         }

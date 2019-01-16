@@ -204,7 +204,7 @@ impl<'err, 'builder, 'graph> StatementVisitor
             }
         }
 
-        if let Some(&(_, ref block)) = if_block.else_block() {
+        if let Some(ref block) = if_block.else_block() {
             trace!("Checking block else");
             self.visit_block(block);
             if valued_if {
@@ -477,8 +477,7 @@ impl<'err, 'builder, 'graph> ExpressionVisitor
         if fn_ix.is_none() {
             debug!("Could not find type of function {}", fn_call.text());
             self.errors.add_error(CheckerError::new(
-                fn_call.token().clone(),
-                vec![],
+                vec![fn_call.span()],
                 format!("Unknown function {}", fn_call.text())
             ));
             return

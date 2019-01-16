@@ -1,6 +1,6 @@
 //! Set the `ScopedId`s of expressions in the AST.
 
-use lex::{Token, TextLocation};
+use lex::Span;
 use ast::{*, visit::*};
 use identify::{NameScopeBuilder, OriginManager};
 use check::{CheckerError, ErrorCollector};
@@ -73,7 +73,8 @@ impl<'err, 'builder> ItemVisitor for ExpressionVarIdentifier<'err, 'builder> {
             // after visiting.
 
             self.builder.define_local(param_name.to_string(),
-                                      param.id().clone());
+                                      param.id().clone(),
+                                      param.span());
         }
 
         if block_fn.has_explicit_return_type() {
@@ -127,8 +128,7 @@ impl<'err, 'builder> BlockVisitor for ExpressionVarIdentifier<'err, 'builder> {
                     "Code includes an empty block expression"
                 );
                 self.errors.add_error(CheckerError::new(
-                    Token::new_eof(TextLocation::default()),
-                    vec![],
+                    vec![Span::default()],
                     error_message
                 ));
                 self.lvalues.pop_source();
@@ -183,8 +183,7 @@ impl<'err, 'builder> StatementVisitor
             if !if_block.has_else() {
                 debug!("Expression if block did not have else");
                 self.errors.add_error(CheckerError::new(
-                    if_block.conditionals()[0].token().clone(),
-                    vec![],
+                    vec![if_block.span()],
                     format!("If block needed to return a value but did not")
                 ));
                 return
@@ -208,7 +207,7 @@ impl<'err, 'builder> StatementVisitor
             // source.
         }
 
-        if let Some(&(ref _token, ref else_block)) = if_block.else_block() {
+        if let Some(ref else_block) = if_block.else_block() {
             trace!("Visting else");
             if has_lvalue {
                 trace!("Adding source to else");
@@ -225,7 +224,9 @@ impl<'err, 'builder> StatementVisitor
     fn visit_declaration(&mut self, declaration: &Declaration) {
         trace!("Visiting declaration of {}", declaration.name());
         let lvalue = declaration.ident();
-        if let Some(_var_id) = self.builder.get(lvalue.name()) {
+        if let Some(var_id) = self.builder.get(lvalue.name()) {
+            let orgin_span = self.builder.info_for(var_id)
+                .expect("checked expect");
             debug!("Found an already defined variable");
             // Variable already declared. Shadowing is an error.
             // `builder.local` = Rust level shadowing, more or less
@@ -233,14 +234,16 @@ impl<'err, 'builder> StatementVisitor
             let err_text = format!("Variable {} is already declared",
                 lvalue.name());
             self.errors.add_error(CheckerError::new(
-                lvalue.token().clone(), vec![], err_text
+                vec![declaration.span(), *orgin_span], err_text
             ));
             return
         }
         trace!("Checking rvalue");
         self.visit_expression(declaration.value());
         let decl_id = self.current_id.clone();
-        self.builder.define_local(declaration.name().into(), decl_id.clone());
+        self.builder.define_local(declaration.name().into(),
+                                  decl_id.clone(),
+                                  declaration.span());
         trace!("Created id {:?} for var {}", decl_id, lvalue.name());
         lvalue.set_id(decl_id);
         self.current_id.increment();
@@ -288,8 +291,7 @@ impl<'err, 'builder> ExpressionVisitor
                 assign.lvalue().name()
             );
             self.errors.add_error(CheckerError::new(
-                assign.lvalue().token().clone(),
-                vec![],
+                vec![assign.span()],
                 error_message
             ));
         }
@@ -312,7 +314,7 @@ impl<'err, 'builder> ExpressionVisitor
             let err_text = format!("Unknown reference to {}",
                 ident.name());
             self.errors.add_error(CheckerError::new(
-                ident.token().clone(), vec![], err_text
+                vec![ident.span()], err_text
             ));
         }
     }
@@ -330,7 +332,7 @@ impl<'err, 'builder> ExpressionVisitor
             // Args are not checked if name is not known
             let err_text = format!("Unknown function {}", fn_call.text());
             self.errors.add_error(CheckerError::new(
-                fn_call.token().clone(), vec![], err_text
+                vec![fn_call.span()], err_text
             ));
         }
     }

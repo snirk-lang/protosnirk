@@ -35,8 +35,7 @@ impl<'err, 'builder> TypeVisitor for TypeIdentifier<'err, 'builder> {
         else {
             debug!("Did not have type_id for named type {}", named_ty.name());
             self.errors.add_error(CheckerError::new(
-                named_ty.ident().token().clone(),
-                vec![],
+                vec![named_ty.span()],
                 format!("Unknown type {}", named_ty.name())
             ));
         }
