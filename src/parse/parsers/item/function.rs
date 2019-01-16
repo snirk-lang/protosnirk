@@ -3,7 +3,7 @@
 use lex::{Token, Tokenizer, TokenType};
 use ast::*;
 use parse::{Parser, ParseResult, IndentationRule};
-use parse::symbol::PrefixParser;
+use parse::parsers::PrefixParser;
 
 /// Parses a function declaration.
 ///

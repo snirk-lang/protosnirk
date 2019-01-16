@@ -3,7 +3,7 @@
 use lex::{Token, Tokenizer, TokenType};
 use ast::*;
 use parse::{Parser, ParseResult};
-use parse::symbol::{PrefixParser, Precedence};
+use parse::parsers::{PrefixParser, Precedence};
 
 /// Parses block and inline forms of prefix expr/block `if`.
 ///

@@ -3,7 +3,7 @@
 use lex::{Token, Tokenizer};
 use ast::*;
 use parse::{Parser, ParseResult};
-use parse::symbol::{InfixParser, Precedence};
+use parse::parsers::{InfixParser, Precedence};
 
 /// Parses expresisons using the expr/assign style operators.
 ///

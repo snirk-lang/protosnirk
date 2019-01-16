@@ -8,7 +8,7 @@
 mod errors;
 mod parser;
 
-pub mod symbol;
+pub mod parsers;
 
 pub use self::errors::{ParseError, ParseResult, ExpectedNextType};
 pub use self::parser::{Parser, IndentationRule};

@@ -3,7 +3,7 @@
 use lex::{Token, TokenType};
 use parse::ast::*;
 use parse::{Parser, ParseError, ParseResult};
-use parse::symbol::PrefixParser;
+use parse::parsers::PrefixParser;
 
 /// Parses array type declarations, such as `[int: 5]` or `[int]`
 #[derive(Debug)]
