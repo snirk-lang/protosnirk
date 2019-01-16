@@ -46,18 +46,25 @@ pub struct BlockFnDeclaration {
     ret_ty: TypeExpression,
     explicit_ret_ty: bool,
     block: Block,
+    span: Span
 }
 
 impl BlockFnDeclaration {
     /// Create a new FnDeclaration
-    pub fn new(ident: Identifier,
+    pub fn new(start: Location,
+               ident: Identifier,
                params: Vec<(Identifier, TypeExpression)>,
                ret_ty: TypeExpression,
                explicit_ret_ty: bool,
                block: Block)
                -> BlockFnDeclaration {
         BlockFnDeclaration {
-            ident, params, ret_ty, explicit_ret_ty, block
+            span: Span::from(start ..= block.span().end()),
+            ident,
+            params,
+            ret_ty,
+            explicit_ret_ty,
+            block
         }
     }
 
@@ -90,7 +97,7 @@ impl BlockFnDeclaration {
     }
 
     pub fn span(&self) -> Span {
-        Span::from(self.ident.span() ..= self.block.span())
+        self.span
     }
 }
 
@@ -108,9 +115,9 @@ impl Typedef {
                type_expr: TypeExpression)
                -> Typedef {
         Typedef {
+            span: Span::from(start ..= type_expr.span().end()),
             alias_ident,
-            type_expr,
-            span: Span::from(start ..= type_expr.span().end())
+            type_expr
         }
     }
 

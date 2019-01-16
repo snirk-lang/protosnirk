@@ -21,18 +21,24 @@ pub enum Statement {
 }
 impl Statement {
     pub fn has_value(&self) -> bool {
-        match *self {
-            Statement::Expression(ref inner) => inner.has_value(),
-            Statement::Return(ref return_) => return_.has_value(),
-            Statement::DoBlock(ref do_block) => do_block.has_source(),
-            Statement::IfBlock(ref if_block) => if_block.has_source(),
-            Statement::Declaration(_) => false
+        use self::Statement::*;
+        match self {
+            Expression(ref inner) => inner.has_value(),
+            Return(ref return_) => return_.has_value(),
+            DoBlock(ref do_block) => do_block.has_source(),
+            IfBlock(ref if_block) => if_block.has_source(),
+            Declaration(_) => false
         }
     }
 
     pub fn span(&self) -> Span {
-        match *self {
-            thing => thing.span()
+        use self::Statement::*;
+        match self {
+            Expression(ref e) => e.span(),
+            Return(ref r) => r.span(),
+            DoBlock(ref d) => d.span(),
+            IfBlock(ref i) => i.span(),
+            Declaration(ref d) => d.span()
         }
     }
 }
@@ -94,11 +100,11 @@ impl Declaration {
                type_decl: Option<TypeExpression>,
                value: Box<Expression>) -> Declaration {
         Declaration {
+            span: Span::from(start ..= value.span().end()),
             ident,
             mutable,
             type_decl,
-            value,
-            span: Span::from(start ..= value.span().end())
+            value
         }
     }
 
@@ -140,7 +146,7 @@ pub struct DoBlock {
 }
 impl DoBlock {
     pub fn new(start: Location, block: Box<Block>) -> DoBlock {
-        DoBlock { block, span: Span::from(start ..= (*block).span().end()) }
+        DoBlock { span: Span::from(start ..= (*block).span().end()), block }
     }
 
     pub fn block(&self) -> &Block {
@@ -209,7 +215,7 @@ impl IfBlock {
                else_block: Option<Block>) -> IfBlock {
         debug_assert!(!conditionals.is_empty(),
                       "Attempted to create an `If` with 0 conditionals");
-        let end = if let Some(else_block) = else_block {
+        let end = if let Some(ref else_block) = else_block {
             else_block.span().end()
         }
         else if let Some(last_cond) = conditionals.last() {
@@ -268,9 +274,9 @@ impl Conditional {
                condition: Expression,
                block: Block) -> Conditional {
         Conditional {
+            span: Span::from(start ..= block.span().end()),
             condition,
-            block,
-            span: Span::from(start ..= block.span().end())
+            block
         }
     }
     pub fn condition(&self) -> &Expression {

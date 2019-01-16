@@ -3,7 +3,7 @@
 //! Expression values are used in the `Expression` and `Statement` contexts.
 //! They are usually emitted as asm instructions operating on variables.
 
-use lex::{Token, TokenData, Span, Location};
+use lex::{Token, TokenType, TokenData, Span, Location};
 use ast::{ScopedId, Identifier, UnaryOperator, BinaryOperator};
 use parse::{ParseResult, ParseError, ExpectedNextType};
 
@@ -63,8 +63,15 @@ impl Expression {
     }
 
     pub fn span(&self) -> Span {
+        use self::Expression::*;
         match self {
-            thing => thing.span()
+            Literal(ref l) => l.span(),
+            VariableRef(ref v) => v.span(),
+            Assignment(ref a) => a.span(),
+            BinaryOp(ref b) => b.span(),
+            FnCall(ref f) => f.span(),
+            IfExpression(ref i) => i.span(),
+            UnaryOp(ref u) => u.span()
         }
     }
 }
@@ -134,6 +141,10 @@ impl Literal {
         }
     }
 
+    pub fn text(&self) -> &str {
+        self.token.text()
+    }
+
     /// Gets the `LiteralValue` of this literal expression.
     pub fn value(&self) -> &LiteralValue {
         &self.value
@@ -154,15 +165,14 @@ pub struct BinaryOperation {
     span: Span
 }
 impl BinaryOperation {
-    pub fn new(start: Location,
-               operator: BinaryOperator,
+    pub fn new(operator: BinaryOperator,
                left: Box<Expression>,
                right: Box<Expression>) -> BinaryOperation {
         BinaryOperation {
+            span: Span::from(left.span() ..= right.span()),
             operator: operator,
             left: left,
-            right: right,
-            span: Span::from(start ..= right.span().end())
+            right: right
         }
     }
     pub fn operator(&self) -> BinaryOperator {
@@ -193,9 +203,9 @@ impl UnaryOperation {
                operator: UnaryOperator,
                expression: Box<Expression>) -> UnaryOperation {
         UnaryOperation {
+            span: Span::from(start ..= expression.span().end()),
             operator: operator,
-            expression: expression,
-            span: Span::from(start ..= expression.span().end())
+            expression: expression
         }
     }
 
@@ -251,10 +261,10 @@ impl IfExpression {
                true_expr: Box<Expression>,
                else_expr: Box<Expression>) -> IfExpression {
         IfExpression {
+            span: Span::from(start ..= else_expr.span().end()),
             condition: condition,
             true_expr: true_expr,
-            else_expr: else_expr,
-            span: Span::from(start ..= else_expr.span().end())
+            else_expr: else_expr
         }
     }
     pub fn condition(&self) -> &Expression {
@@ -284,7 +294,7 @@ impl FnCall {
     pub fn new(span: Span,
                lvalue: Identifier,
                args: Vec<CallArgument>) -> FnCall {
-        FnCall { lvalue, args }
+        FnCall { lvalue, args, span }
     }
     pub fn ident(&self) -> &Identifier {
         &self.lvalue

@@ -8,7 +8,7 @@
 
 use std::cell::Ref;
 
-use ast::{ScopedId, Identifier};
+use ast::{ScopedId, Identifier, Span};
 
 /// Represents type expressions in protosnirk.
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -21,6 +21,13 @@ impl TypeExpression {
     pub fn id(&self) -> Ref<ScopedId> {
         match self {
             &TypeExpression::Named(ref named) => named.id()
+        }
+    }
+
+    pub fn span(&self) -> Span {
+        use self::TypeExpression::*;
+        match self {
+            Named(ref n) => n.span()
         }
     }
 }
@@ -56,5 +63,9 @@ impl NamedTypeExpression {
 
     pub fn set_id<'a>(&'a self, id: ScopedId) {
         self.ident.set_id(id);
+    }
+
+    pub fn span(&self) -> Span {
+        self.ident.span()
     }
 }
