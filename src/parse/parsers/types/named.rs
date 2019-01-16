@@ -2,7 +2,7 @@
 use lex::{Token, TokenType, Tokenizer};
 use parse::ast::*;
 use parse::{Parser, ParseError, ParseResult};
-use parse::symbol::{PrefixParser, IdentifierParser};
+use parse::parsers::{PrefixParser, IdentifierParser};
 
 /// Parses "named" type expressions, including generics.
 /// # Examples

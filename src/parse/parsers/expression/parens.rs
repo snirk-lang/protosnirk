@@ -6,7 +6,7 @@
 use lex::{Token, Tokenizer, TokenType};
 use parse::{Parser, ParseResult};
 use ast::*;
-use parse::symbol::{PrefixParser, Precedence};
+use parse::parsers::{PrefixParser, Precedence};
 
 /// Parses expressions wrapped in parentheses
 ///

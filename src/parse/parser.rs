@@ -9,7 +9,7 @@ use std::collections::VecDeque;
 use lex::{CowStr, Token, TokenType, Span, Tokenizer};
 use parse::ParseError;
 use ast::*;
-use parse::symbol::*;
+use parse::parsers::*;
 
 /// Parser object which parses things
 pub struct Parser<T: Tokenizer> {
@@ -193,7 +193,7 @@ impl<T: Tokenizer> Parser<T> {
 
     /// Parses a type expression from the token stream.
     pub fn type_expr(&mut self) -> Result<TypeExpression, ParseError> {
-        use parse::symbol::types::*;
+        use parse::parsers::types::*;
         let next_type = self.next_type();
         trace!("Parsing type expression with {:?}", next_type);
 

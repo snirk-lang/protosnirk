@@ -3,7 +3,7 @@
 use lex::{Token, Tokenizer, TokenType};
 use ast::*;
 use parse::{Parser, ParseResult};
-use parse::symbol::{PrefixParser};
+use parse::parsers::{PrefixParser};
 
 /// Parses type alias declarations.
 ///

@@ -3,7 +3,7 @@
 use lex::{Token, Tokenizer, TokenType, Span};
 use ast::*;
 use parse::{Parser, ParseResult, ParseError, IndentationRule};
-use parse::symbol::{InfixParser, Precedence};
+use parse::parsers::{InfixParser, Precedence};
 
 /// Parses function calls by handling `(` as in infix operator.
 ///

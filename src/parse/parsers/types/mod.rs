@@ -9,7 +9,7 @@ use lex::{Token, TokenType, Tokenizer};
 use ast::Identifier;
 use ast::types::{TypeExpression, NamedTypeExpression};
 use parse::{Parser, ParseResult};
-use parse::symbol::PrefixParser;
+use parse::parsers::PrefixParser;
 
 /// `Identifier` parser for type expressions.
 ///

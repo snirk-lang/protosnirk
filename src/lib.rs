@@ -20,7 +20,7 @@
 //! basic AST. Also includes identifier types that are used by later passes.
 //!
 //! See `parse::ast`, `parse::ast::Unit`, `parse::ScopedId`, `parse::errors`,
-//! `parse::symbol`.
+//! `parse::parsers`.
 //!
 //! ## `Visit`
 //!

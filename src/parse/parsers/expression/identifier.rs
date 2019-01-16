@@ -5,7 +5,7 @@
 use lex::{Token, Tokenizer};
 use parse::{Parser, ParseResult};
 use ast::*;
-use parse::symbol::PrefixParser;
+use parse::parsers::PrefixParser;
 
 /// Returns an identifier
 ///

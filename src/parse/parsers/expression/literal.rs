@@ -2,7 +2,7 @@
 
 use lex::{Token, Tokenizer, TokenData, TokenType};
 use parse::{Parser, ParseError, ParseResult};
-use parse::symbol::PrefixParser;
+use parse::parsers::PrefixParser;
 use ast::*;
 
 /// Returns a literal expression

@@ -17,7 +17,7 @@ pub use self::fn_call::FnCallParser;
 use lex::{Token, Tokenizer};
 use parse::{Parser, ParseResult};
 use ast::*;
-use parse::symbol::{Precedence, InfixParser, PrefixParser};
+use parse::parsers::{Precedence, InfixParser, PrefixParser};
 
 /// A parser which parses symbols used for binary operators.
 ///
