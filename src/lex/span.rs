@@ -1,7 +1,9 @@
 //! Position information for the AST
 
-use std::fmt::{Display, Debug, Formatter, Result as FmtResult};
+use std::convert::From;
 use std::cmp::{PartialOrd, Ord, Ordering};
+use std::fmt::{Display, Debug, Formatter, Result as FmtResult};
+use std::ops::{RangeInclusive};
 
 /// Represents the location of a single `Token`.
 #[derive(PartialEq, Eq, Clone, Copy, Hash, Default)]
@@ -18,6 +20,14 @@ impl Location {
     /// Creates a new `Location` with the given index, line, column, and length.
     pub fn of() -> LocationBuilder {
         LocationBuilder { index: 0, line: 0, column: 0 }
+    }
+
+    pub fn offset(self, offset: u32) -> Location {
+        Location {
+            index: self.index + offset,
+            line: self.line,
+            column: self.column + offset
+        }
     }
 
     /// The starting index of the token within the source string.
@@ -92,7 +102,7 @@ impl Ord for Location {
 /// Represents an area of text which is taken up by a node in the AST.
 ///
 /// Spans may be multiline or represent an expression which uses part of a line.
-#[derive(Debug, PartialEq, Eq, Clone, Hash, Default)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, Default)]
 pub struct Span {
     /// Location of the first token in the span
     start: Location,
@@ -101,16 +111,8 @@ pub struct Span {
 }
 
 impl Span {
-    /// Creates a new span between the two given points.
-    pub fn between(start: Location, end: Location) -> Span {
-        debug_assert!(end > start,
-                      "Attempted to create invalid span ({}, {})",
-                      start, end);
-        Span { start, end }
-    }
-
     /// Creates a new span starting from a point across a number of characters in a line
-    pub fn in_line(start: Location, offset: u32) -> Span {
+    pub fn from_location(start: Location, offset: u32) -> Span {
         Span {
             start,
             end: Location {
@@ -152,6 +154,18 @@ impl Span {
 
     pub fn is_multichar(&self) -> bool {
         self.chars() > 0
+    }
+}
+
+impl From<RangeInclusive<Location>> for Span {
+    fn from(r: RangeInclusive<Location>) -> Span {
+        Span { start: *r.start(), end: *r.end() }
+    }
+}
+
+impl From<RangeInclusive<Span>> for Span {
+    fn from(r: RangeInclusive<Span>) -> Span {
+        Span { start: r.start().start, end: r.end().end }
     }
 }
 

@@ -40,7 +40,7 @@ impl Token {
 
     /// Get the span of this token including its source text
     pub fn span(&self) -> Span {
-        Span::in_line(self.location, self.text.len() as u32)
+        Span::from(self.location ..= self.location.offset(self.text.len() as u32))
     }
 
     /// Creates a new token with the given information.
