@@ -22,7 +22,7 @@ impl<T: Tokenizer> PrefixParser<Item, T> for FnDeclarationParser {
     fn parse(&self, parser: &mut Parser<T>, token: Token) -> ParseResult<Item> {
         debug_assert!(token.get_type() == TokenType::Fn,
             "Unexpected token {:?} to fn parser", token);
-        let start = token.location();
+        let start = token.start();
         let name = try!(parser.lvalue());
 
         // Args
@@ -68,7 +68,7 @@ impl<T: Tokenizer> PrefixParser<Item, T> for FnDeclarationParser {
         else {
             (TypeExpression::Named(NamedTypeExpression::new(Identifier::new(
                 Token::new_ident("()",
-                        name.token().location().clone())))), false)
+                        name.token().start().clone())))), false)
         };
 
         // This is gonna require a comment in the place of Python's `pass`.

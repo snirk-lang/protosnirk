@@ -46,7 +46,7 @@ pub struct UnaryOpExprSymbol { }
 impl<T: Tokenizer> PrefixParser<Expression, T> for UnaryOpExprSymbol {
     fn parse(&self,
              parser: &mut Parser<T>, token: Token) -> ParseResult<Expression> {
-        let start = token.location();
+        let start = token.start();
         let precedence = Precedence::for_token(token.get_type(), true);
         let right_expr = try!(parser.expression(precedence));
         let right_value = try!(right_expr.expect_value());

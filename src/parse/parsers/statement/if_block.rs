@@ -25,7 +25,7 @@ impl<T: Tokenizer> PrefixParser<Statement, T> for IfBlockParser {
         debug_assert!(token.get_type() == TokenType::If,
             "Invalid token {:?} in IfBlockParser", token);
         trace!("Parsing conditional of if statement");
-        let block_start = token.location();
+        let block_start = token.start();
         let condition = try!(parser.expression(Precedence::Min));
         trace!("Parsed conditional");
         if parser.peek().get_type() == TokenType::InlineArrow {
@@ -58,7 +58,7 @@ impl<T: Tokenizer> PrefixParser<Statement, T> for IfBlockParser {
                 return Ok(Statement::IfBlock(IfBlock::new(block_start, conditionals, None)))
             }
             let else_token = parser.consume(); // else token
-            let cond_start = else_token.location();
+            let cond_start = else_token.start();
             trace!("Got an else token {:?}", else_token);
             // we have else \+ ... so we have an else block
             if parser.next_type() == TokenType::BeginBlock {

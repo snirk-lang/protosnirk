@@ -21,7 +21,7 @@ impl<T: Tokenizer> PrefixParser<Statement, T> for DeclarationParser {
         debug_assert!(token.get_type() == TokenType::Let,
                       "Let parser called with non-let token {:?}", token);
         trace!("Parsing declaration for {}", token);
-        let start = token.location();
+        let start = token.start();
         let is_mutable = parser.next_type() == TokenType::Mut;
         if is_mutable {
             parser.consume();
