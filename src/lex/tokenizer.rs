@@ -1,6 +1,4 @@
-//! Token table: make tokenizing easier and expandable
-
-//! We need a dumb tokenizer in case users want to register operators.
+//! Tokenizer
 
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
@@ -38,12 +36,20 @@ enum TokenizerState {
     /// Tokenizing at beginning of line, spacing is `BlockBegin`
     LookingForIndent,
     /// Tokenized all indents, getting keywords, symbols, and idents until
+    /// a newline is found
     LookingForNewline,
     /// Tokenizer has been tabbed in, may need to emit 1 or more outdents
     EmittingOutdents,
     /// Tokenizer reached EOF, only EOF tokens from here
     ReachedEOF
 }
+
+pub enum TokenizationError {
+    InvalidSpacing(Span),
+    UnknownUnicode(Span)
+}
+
+pub type TokenizationResult = Result<char, TokenizationError>;
 
 /// Hacky implementation of a tokenizer.
 #[derive(Debug)]
@@ -52,19 +58,15 @@ pub struct IterTokenizer<I> where I: Iterator<Item=char> {
     keywords: HashSet<CowStr>,
     /// Symbols registered with the tokenizer
     symbols: HashMap<CowStr, TokenizerSymbolRule>,
-    /// Ezpexted number of spaces to indent per indentation level.
-    ///
-    /// Derived from first indent used, can emit warnings for
-    /// inconsistent indenting if spaces do not match.
-    expected_indent_length: u32,
-    /// Whether the file is being indented with spaces or tabs.
-    ///
-    /// An error is emitted if tab and space indenting is mixed.
-    expected_indent_spaces: bool,
+    /// How indented the current code is
+    indent_count: u32,
+    /// Whether the tokenizer should be emitting indentation tokens
+    check_indent: bool,
+    /// Whether the tokenizer needs to emit a newline token - if something
+    /// has been emitted for this line.
+    emit_newline: bool,
     /// Whether whitespace is tokenized as indentation
     tokenizer_state: TokenizerState,
-    /// Stack of indents being made.
-    indent_size_stack: Vec<u32>,
     /// Peekable iterator over the characters
     iter: PeekTextIter<I>
 }
@@ -72,7 +74,7 @@ pub struct IterTokenizer<I> where I: Iterator<Item=char> {
 impl<I: Iterator<Item=char>> Tokenizer for IterTokenizer<I> {
     fn next(&mut self) -> Token {
         let next = self.next();
-        trace!("> Next token {:?}", next);
+        trace!("Next token {:?}", next);
         next
     }
 }
@@ -83,23 +85,43 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
         IterTokenizer {
             keywords: tokens::default_keywords(),
             symbols: tokens::default_symbols(),
-
-            // Will be overridden later when reading file
-            // If first line beins with a space, error
-            expected_indent_length: 0u32,
-            expected_indent_spaces: true,
+            indent_count: 0,
+            check_indent: true,
+            // Discard leading newlines in a file
+            emit_newline:  false,
             // This will discard spacing at the beginning of a file
             tokenizer_state: TokenizerState::LookingForNewline,
-            indent_size_stack: vec![0u32],
-
             iter: PeekTextIter::new(input.peekable())
         }
     }
 
+    /// Toggle whether the tokenizer should update its indentation
+    /// and emit `BeginBlock`, `EndBlock`, and `EndLine` tokens.
+    ///
+    /// Starts as `true`.
+    pub fn check_for_indentation(&mut self, check: bool) {
+        self.check_indent = check;
+    }
+
+    pub fn next2(&mut self) -> Token {
+        use self::TokenizerState::*;
+        trace!("next(): peeked {:?}", self.iter.peek());
+        match self.tokenizer_state {
+            ReadyForLine => self.next_in_line(),
+            ReadyForIndent => self.next_indent(),
+            EmittingOutdents => self.next_outdent(),
+            ReachedEOF => self.next_eof()
+        }
+    }
+
+    pub fn next_in_line(&mut self) -> Token {
+
+    }
+
     /// Gets the next token from the tokenizer
     pub fn next(&mut self) -> Token {
-        trace!(">Calling next on {:?}, peeked {:?}",
-            self.tokenizer_state, self.iter.peek());
+        trace!("next(): indent={}, {:?}, peeked {:?}",
+               self.check_indent, self.tokenizer_state, self.iter.peek());
         match self.tokenizer_state {
             TokenizerState::LookingForIndent =>
                 self.next_indent(),
@@ -114,10 +136,13 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
 
     /// Emit remaining `BlockEnd` and `EOF` tokens
     fn next_eof(&mut self) -> Token {
-        trace!("Calling next_eof, have {} indents left", self.indent_size_stack.len());
-        if self.indent_size_stack.len() > 1 { // more than one indent size
-            self.indent_size_stack.pop();
-            trace!("Returning an outdent");
+        trace!("Calling next_eof, have {} indents left", self.indent_count);
+        debug_assert!(self.check_indent,
+                      "Called next_eof() while not checking for indentation! In state {:?}",
+                      self.tokenizer_state);
+        if self.indent_count > 0 { // more than one indent size
+            self.indent_count -= 1;
+            trace!("Returning an outdent, {} more", self.indent_count);
             // Indentation tokens should have text associated with them
             // so we can give them spans.
             // Need https://github.com/snirk-lang/protosnirk/issues/46 first
@@ -128,6 +153,9 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
 
     /// Get the next `BlockBegin` token(s)
     fn next_indent(&mut self) -> Token {
+        debug_assert!(self.check_indent,
+                      "next_indent() called while not checking for indents! In {:?}",
+                      self.tokenizer_state);
         let peek_attempt = self.iter.peek();
         if peek_attempt.is_none() {
             self.tokenizer_state = TokenizerState::ReachedEOF;

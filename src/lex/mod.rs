@@ -12,6 +12,9 @@ pub use self::tokens::TokenType;
 pub use self::textiter::{TextIter, PeekTextIter};
 pub use self::tokenizer::{Tokenizer, IterTokenizer};
 
+/// Fixed number of spaces to go before an indentation is emitted
+pub const SPACES_PER_INDENT: u32 = 4;
+
 /// Type representing a borrowed or owned string
 pub type CowStr = ::std::borrow::Cow<'static, str>;
 

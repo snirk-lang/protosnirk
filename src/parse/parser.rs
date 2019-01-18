@@ -197,10 +197,7 @@ impl<T: Tokenizer> Parser<T> {
         let next_type = self.next_type();
         trace!("Parsing type expression with {:?}", next_type);
 
-        // Type expressions don't really have infixes so we just parse them -
-        // the specifics of the array brackets/generic angles are handled by those
-        // prefix parsers anyway.
-        // Generic bounds (like `T: Managed + Cloneable`) will also have infix parsing.
+        // Type expressions are just named, so
         match next_type {
             TokenType::Ident => {
                 trace!("Parsing named type expr");
@@ -422,7 +419,7 @@ impl<T: Tokenizer> Parser<T> {
     /// Parse a program and verify it for errors
     pub fn parse_unit(&mut self) -> Result<Unit, ParseError> {
         let start = self.peek().location();
-        let mut items = Vec::with_capacity(10);
+        let mut items = Vec::new();
         while self.next_type() != TokenType::EOF {
             let item = try!(self.item());
             trace!("Parsed an item");

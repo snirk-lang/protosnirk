@@ -57,8 +57,13 @@ macro_rules! declare_tokens {
             $(
                 $ty_name,
             )*
+            /// Token is begin indentation (four extra spaces) (if requested)
             BeginBlock,
+            /// Token is the end of a block (indented four fewer spaces) (if requested)
             EndBlock,
+            /// Token is the end of a line (if requested)
+            EndLine,
+            /// End of file has been reached.
             EOF,
         }
 
@@ -71,6 +76,7 @@ macro_rules! declare_tokens {
                     TokenData::Ident => TokenType::Ident,
                     TokenData::BeginBlock => TokenType::BeginBlock,
                     TokenData::EndBlock => TokenType::EndBlock,
+                    TokenData::EndLine => TokenType::EndLine,
                     TokenData::EOF => TokenType::EOF,
                     TokenData::Keyword => {
                         match self.text() {

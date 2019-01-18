@@ -12,7 +12,7 @@ use lex::{Location, Span, CowStr};
 /// Each token has a definite beginning position in the file,
 /// a string, and its `TokenData` value - an enum of literals,
 /// identifier name, or various keywords.
-#[derive(Debug, PartialEq, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct Token {
     /// Location of the token in a file
     location: Location,
@@ -62,7 +62,7 @@ impl Token {
     /// Creates a new token representing an indentation
     pub fn new_indent(location: Location) -> Token {
         Token {
-            text: Cow::Borrowed(""),
+            text: Cow::Borrowed("    "),
             data: TokenData::BeginBlock,
             location: location
         }
@@ -93,6 +93,12 @@ impl Display for Token {
     }
 }
 
+impl PartialEq for Token {
+    fn eq(&self, other: &Token) -> bool {
+        self.text == other.text && self.location == other.location
+    }
+}
+
 impl Eq for Token { }
 
 /// Token enum - tokens are pretty simple, mostly dependent on string matching.
@@ -104,18 +110,22 @@ pub enum TokenData {
     UnitLiteral,
     /// Token is boolean literal `true` or `false`
     BoolLiteral(bool),
+
     /// Token is some name
     Ident,
+    /// Token is some symbol
+    Symbol,
     /// Token is a keyword
     Keyword,
     /// Token is a shortcut for the name of a type.
     TypeName,
-    /// Token is some symbol
-    Symbol,
+
     /// Indendation of block
     BeginBlock,
     /// Outdendation of block
     EndBlock,
+    /// Token represents the end of a line
+    EndLine,
     /// Token is an EOF
     EOF
 }
