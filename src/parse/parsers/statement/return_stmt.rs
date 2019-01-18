@@ -18,7 +18,7 @@ impl<T: Tokenizer> PrefixParser<Statement, T> for ReturnParser {
     fn parse(&self, parser: &mut Parser<T>, token: Token) -> ParseResult<Statement> {
         debug_assert!(token.text() == tokens::Return,
                       "Return parser called with non-return {:?}", token);
-        let start = token.location();
+        let start = token.start();
         // If the next statement is on a newline then empty return.
         // Also empty return if next token is deindent
         // Should also check for an indent block to ensure sprious indentation is an error.

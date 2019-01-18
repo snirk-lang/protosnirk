@@ -20,7 +20,7 @@ impl<T: Tokenizer> InfixParser<Expression, T> for FnCallParser {
         trace!("Parsing a function call of {:?}", left);
         debug_assert!(token.get_type() == TokenType::LeftParen,
             "FnCallParser: called on token {:?}", token);
-        let start = token.location();
+        let start = token.start();
         let lvalue = try!(left.expect_identifier());
 
         let mut call_args = Vec::new();
@@ -63,7 +63,7 @@ impl<T: Tokenizer> InfixParser<Expression, T> for FnCallParser {
                 arg_name = true;
             }
         }
-        let end = parser.peek().location();
+        let end = parser.peek().end();
         let call = FnCall::new(Span::from(start ..= end), lvalue, call_args);
         Ok(Expression::FnCall(call))
     }

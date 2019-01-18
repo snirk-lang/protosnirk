@@ -18,7 +18,7 @@ impl<T: Tokenizer> PrefixParser<Item, T> for TypedefParser {
     fn parse(&self, parser: &mut Parser<T>, token: Token) -> ParseResult<Item> {
         debug_assert!(token.get_type() == TokenType::Typedef,
             "Unexpected token {:?} to type alias parser", token);
-        let start = token.location();
+        let start = token.start();
         let name = try!(parser.lvalue());
 
         try!(parser.consume_type(TokenType::Equals));

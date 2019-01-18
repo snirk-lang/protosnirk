@@ -15,7 +15,7 @@ use lex::{Location, Span, CowStr};
 #[derive(Debug, Clone, Default)]
 pub struct Token {
     /// Location of the token in a file
-    location: Location,
+    start: Location,
     /// Text of the token at that location
     text: CowStr,
     /// Additional data (type/literal) provided by the lexer
@@ -34,55 +34,59 @@ impl Token {
     }
 
     /// The location of this token where it starts in its source text
-    pub fn location(&self) -> Location {
-        self.location
+    pub fn start(&self) -> Location {
+        self.start
+    }
+
+    pub fn end(&self) -> Location {
+        self.start.offset(self.text.len() as u32)
     }
 
     /// Get the span of this token including its source text
     pub fn span(&self) -> Span {
-        Span::from(self.location ..= self.location.offset(self.text.len() as u32))
+        Span::from(self.start ..= self.start.offset(self.text.len() as u32))
     }
 
     /// Creates a new token with the given information.
     pub fn new<T: Into<CowStr>>(text: T,
-                                location: Location,
+                                start: Location,
                                 data: TokenData) -> Token {
-        Token { text: text.into(), location, data }
+        Token { text: text.into(), start, data }
     }
 
     /// Creates a new token representing an identifier
-    pub fn new_ident<T: Into<CowStr>>(text: T, location: Location) -> Token {
+    pub fn new_ident<T: Into<CowStr>>(text: T, start: Location) -> Token {
         Token {
             text: text.into(),
             data: TokenData::Ident,
-            location: location
+            start
         }
     }
 
     /// Creates a new token representing an indentation
-    pub fn new_indent(location: Location) -> Token {
+    pub fn new_indent(start: Location) -> Token {
         Token {
             text: Cow::Borrowed("    "),
             data: TokenData::BeginBlock,
-            location: location
+            start
         }
     }
 
     /// Creates a new token representing an outdentation
-    pub fn new_outdent(location: Location) -> Token {
+    pub fn new_outdent(start: Location) -> Token {
         Token {
             text: Cow::Borrowed(""),
             data: TokenData::EndBlock,
-            location: location
+            start
         }
     }
 
     /// Creates a new token representing an EOF
-    pub fn new_eof(location: Location) -> Token {
+    pub fn new_eof(start: Location) -> Token {
         Token {
             text: Cow::Borrowed(""),
             data: TokenData::EOF,
-            location: location
+            start
         }
     }
 }

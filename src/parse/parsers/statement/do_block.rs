@@ -22,7 +22,7 @@ impl<T: Tokenizer> PrefixParser<Statement, T> for DoBlockParser {
     fn parse(&self, parser: &mut Parser<T>, token: Token) -> ParseResult<Statement> {
         debug_assert!(token.text() == "do",
                       "Invalid token {:?} in DoBlockParser", token);
-        let start = token.location();
+        let start = token.start();
         if parser.next_type() == TokenType::BeginBlock {
             parser.consume();
             let block = try!(parser.block());

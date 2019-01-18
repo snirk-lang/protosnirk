@@ -24,7 +24,7 @@ impl<T: Tokenizer> PrefixParser<Expression, T> for IfExpressionParser {
         debug_assert!(token.text() == "if",
             "Invlaid token {:?} in IfExpressionParser", token);
         trace!("Parsing conditional of if expression");
-        let start = token.location();
+        let start = token.start();
         let condition = try!(parser.expression(Precedence::Min));
         trace!("Parsed if conditional");
         try!(parser.consume_type(TokenType::InlineArrow));

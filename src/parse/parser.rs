@@ -46,7 +46,7 @@ impl<T: Tokenizer> Parser<T> {
     // line
     pub fn peek_is_newline(&mut self, current: &Token) -> bool {
         let (indent, peeked) = self.peek_indented();
-        indent || peeked.location().line() > current.location().line()
+        indent || peeked.start().line() > current.start().line()
     }
 
     /// Consumes the next token from the tokenizer.
@@ -317,7 +317,7 @@ impl<T: Tokenizer> Parser<T> {
     ///
     /// Block parsing assumes the `BeginBlock` token has already been consumed.
     pub fn block(&mut self) -> Result<Block, ParseError> {
-        let start = self.peek().location();
+        let start = self.peek().start();
         let mut found = Vec::new();
         loop {
             let next_type = self.next_type();
@@ -418,14 +418,14 @@ impl<T: Tokenizer> Parser<T> {
 
     /// Parse a program and verify it for errors
     pub fn parse_unit(&mut self) -> Result<Unit, ParseError> {
-        let start = self.peek().location();
-        let mut items = Vec::new();
+        let start = self.peek().start();
+        let mut items = Vec::with_capacity(10);
         while self.next_type() != TokenType::EOF {
             let item = try!(self.item());
             trace!("Parsed an item");
             items.push(item);
         }
-        let end = self.peek().location();
+        let end = self.peek().end();
         trace!("Parsed {} items", items.len());
         let unit = Unit::new(Span::from(start ..= end), items);
         Ok(unit)
