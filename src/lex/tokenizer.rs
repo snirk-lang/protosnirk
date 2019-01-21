@@ -44,13 +44,6 @@ enum TokenizerState {
     ReachedEOF
 }
 
-pub enum TokenizationError {
-    InvalidSpacing(Span),
-    UnknownUnicode(Span)
-}
-
-pub type TokenizationResult = Result<char, TokenizationError>;
-
 /// Hacky implementation of a tokenizer.
 #[derive(Debug)]
 pub struct IterTokenizer<I> where I: Iterator<Item=char> {

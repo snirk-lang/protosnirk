@@ -99,7 +99,7 @@ impl Display for Token {
 
 impl PartialEq for Token {
     fn eq(&self, other: &Token) -> bool {
-        self.text == other.text && self.location == other.location
+        self.text == other.text && self.start == other.start
     }
 }
 

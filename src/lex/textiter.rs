@@ -24,6 +24,7 @@ pub struct PeekTextIter<T> where T: Iterator<Item=char> {
     /// Current byte in the source
     current_char: u32
 }
+
 impl<T: Iterator<Item=char>> PeekTextIter<T> {
     pub fn new(iter: Peekable<T>) -> PeekTextIter<T> {
         PeekTextIter {
@@ -65,7 +66,6 @@ impl<T: Iterator<Item=char>> Iterator for PeekTextIter<T> {
             },
             None => {}
         }
-        trace!("> Next char {:?}", result);
         result
     }
 
