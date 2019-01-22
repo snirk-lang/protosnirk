@@ -11,7 +11,7 @@ license = "MIT"
 [dependencies]
 maplit = "^1"
 unicode_categories = "^0.1"
-llvm-sys = "^70"
+llvm-sys = "70.1"
 log = "^0.4"
 libc = "^0.2"
 smallvec = "^0.6"
