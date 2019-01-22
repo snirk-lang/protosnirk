@@ -106,6 +106,7 @@ impl<'ctx, 'b, M> ItemVisitor for ModuleCompiler<'ctx, 'b, M>
     where M: ModuleProvider<'ctx>, 'ctx: 'b {
 
     fn visit_block_fn_decl(&mut self, block_fn: &BlockFnDeclaration) {
+        use llvm_sys::LLVMLinkage;
         trace!("Checking declaration of {}", block_fn.name());
 
         let fn_type = self.llvm_type_of(&block_fn.id());
@@ -116,6 +117,7 @@ impl<'ctx, 'b, M> ItemVisitor for ModuleCompiler<'ctx, 'b, M>
             fn_ret_type_kind == LLVMTypeKind::LLVMVoidTypeKind;
         let fn_ref = self.current_module().add_function(
             block_fn.name(), &fn_type);
+        fn_ref.set_linkage(LLVMLinkage::LLVMExternalLinkage);
 
         // Gotta insert the fn ref first so it can be called recursively
         self.scope_manager.insert(block_fn.id().clone(), fn_ref.clone());

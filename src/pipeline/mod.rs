@@ -7,7 +7,7 @@ use identify::{
     NameScopeBuilder, TypeScopeBuilder, ASTIdentifier, ASTTypeChecker, TypeGraph};
 use check::{ErrorCollector, TypeConcretifier, TypeMapping};
 use compile::{ModuleCompiler, SimpleModuleProvider};
-use llvm::{Context, Builder};
+use llvm::{Context, Builder, JitStack, TargetMachine};
 
 use std::collections::HashMap;
 use std::fs::File;
@@ -209,5 +209,64 @@ impl<'ctx> CompileRunner<'ctx> {
                 provider
             }
         }
+    }
+
+    pub fn decompose(self) -> &'ctx Context {
+        self.context
+    }
+}
+
+pub struct Jitter<'ctx> {
+    context: &'ctx Context,
+    provider: SimpleModuleProvider<'ctx>,
+    jit: JitStack
+}
+
+impl<'ctx> Jitter<'ctx> {
+    pub fn new(context: &'ctx Context,
+               provider: SimpleModuleProvider<'ctx>) -> Jitter<'ctx> {
+        let tm = TargetMachine::native_default().unwrap();
+        Jitter { context, provider, jit: JitStack::new(tm) }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use llvm::*;
+    use llvm_sys::orc::*;
+    use compile::ModuleProvider;
+
+    const code_to_jit: &str = include_str!("../../tests/compile/examples/fibonacci-ok.protosnirk");
+
+    #[test]
+    fn the_jitter_does_a_thing() {
+        let unit = Runner::from_string(code_to_jit, "Fibonacci".into())
+            .parse().unwrap()
+            .identify().unwrap()
+            .check().unwrap();
+        {
+            let ctx = Context::new();
+            let mut compiler = CompileRunner::new(&ctx);
+            let provider = compiler.compile(unit, false);
+            let jitter = Jitter::new(&ctx, provider);
+            println!("jitter: {:p}", jitter.jit.ptr());
+            println!("module: {:p}", jitter.provider.module());
+            println!("module dump:\n{}", jitter.provider.module().print_to_string());
+            println!("fib: {:p}", jitter.provider.module().get_function("fib").unwrap());
+
+            unsafe {
+                let shared_module = llvm_sys::orc::LLVMOrcMakeSharedModule(jitter.provider.module().ptr());
+                println!("shared module: {:p}", shared_module);
+                //let fib_mod = jitter.jit.add_object_file(obj as *mut _).unwrap();
+                let _fib_mod = jitter.jit.add_eagerly_compiled_ir(shared_module).unwrap();
+                //println!("Added fib mod: {}", fib_mod);
+                panic!("Done");
+                //let fib: *const extern "C" fn(f64) -> f64 = jitter.jit.get_symbol_as("fib").unwrap();
+                //eprintln!("{:p}", fib);
+                // println!("{}", unsafe { *fib }(2.0));
+            }
+        }
+        panic!("Done");
     }
 }

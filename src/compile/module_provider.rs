@@ -16,6 +16,7 @@ impl<'ctx> SimpleModuleProvider<'ctx> {
     pub fn new(module: Module<'ctx>, optimizations: bool) -> SimpleModuleProvider<'ctx> {
 
         llvm::initialize_native_target();
+        llvm::initialize_
         let layout = TargetData::native(LLVMCodeGenOptLevel::LLVMCodeGenLevelDefault,
                                         LLVMRelocMode::LLVMRelocDefault,
                                         LLVMCodeModel::LLVMCodeModelDefault);
