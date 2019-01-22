@@ -53,6 +53,12 @@ impl<'ctx> Module<'ctx> {
         }
     }
 
+    pub fn write_to_memory_buffer(&self) -> LLVMMemoryBufferRef {
+        unsafe {
+            llvm_sys::bit_writer::LLVMWriteBitcodeToMemoryBuffer(self.ptr())
+        }
+    }
+
     pub fn add_function(&self, name: &str, ty: &Type<'ctx>) -> Value<'ctx> {
         let c_name = CString::new(name).unwrap();
         unsafe {

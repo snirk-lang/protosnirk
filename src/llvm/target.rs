@@ -16,6 +16,13 @@ pub fn initialize_native_target() -> bool {
     }
 }
 
+pub fn initialize_native_target_asm() {
+    unsafe {
+        LLVM_InitializeNativeAsmPrinter();
+        LLVM_InitializeNativeAsmParser();
+    }
+}
+
 pub fn initialize_all_targets() {
     unsafe {
         LLVM_InitializeAllTargets()
@@ -177,6 +184,7 @@ impl TargetData {
         let machine = try!(TargetMachine::native(opt_level, reloc_mode, code_model));
         Ok(TargetData::from_machine(&machine))
     }
+
 }
 
 pub struct TargetMachine {
@@ -235,5 +243,11 @@ impl TargetMachine {
                               opt_level,
                               reloc_mode,
                               code_model))
+    }
+
+    pub fn native_default() -> Result<TargetMachine, String> {
+        TargetMachine::native(LLVMCodeGenOptLevel::LLVMCodeGenLevelDefault,
+                              LLVMRelocMode::LLVMRelocDefault,
+                              LLVMCodeModel::LLVMCodeModelJITDefault)
     }
 }

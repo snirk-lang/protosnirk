@@ -96,3 +96,7 @@ pub mod target;
 pub use self::target::{initialize_all_targets,
                        initialize_native_target,
                        Target, TargetData, TargetMachine};
+pub mod orc;
+pub use self::orc::{JitStack,
+                    OrcErrorCode, OrcResult,
+                    SymbolResolver, LazyCompileCallback};

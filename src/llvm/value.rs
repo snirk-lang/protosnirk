@@ -5,6 +5,7 @@ use std::mem;
 
 use libc::{size_t, c_uint};
 
+use llvm_sys::LLVMLinkage;
 use llvm_sys::core::*;
 use llvm_sys::prelude::*;
 use llvm_sys::analysis::{LLVMVerifierFailureAction, LLVMVerifyFunction};
@@ -61,6 +62,12 @@ impl<'ctx> Value<'ctx> {
         let c_name = CString::new(name).unwrap();
         unsafe {
             LLVMSetValueName2(self.ptr(), c_name.as_ptr(), name.len() as size_t);
+        }
+    }
+
+    pub fn set_linkage(&self, linkage: LLVMLinkage) {
+        unsafe {
+            LLVMSetLinkage(self.ptr(), linkage)
         }
     }
 
