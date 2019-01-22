@@ -7,15 +7,26 @@ The beginnings of a programming language.
 This repository contains the protosnirk compiler, which is written in Rust.
 If you're interested in compilers (or Rust?) maybe check it out.
 The language itself, as the name suggests, is rather sparse right now, but
-you can check out the [tests][protosnirk-tests] folder to see what 
+you can check out the [tests][protosnirk-tests] folder to see what
 it can do.
 
 ## What is the status? What is proto?
 
-Protosnirk will be "proto" until it's a "real" language. 
-We'll keep adding and tweaking the basics, and once it
-seems there's a good vision behind the language we'll roll over to Snirk 0.1.
-Then we can really get to business and figure out how things should work.
+Languages change a lot during development. However, it can be hard to take a smaller
+language seriously if it has a lot of churn or instability in its APIs,
+or if it goes through large syntax changes.
+Rust, in particular, went through enough change in its infancy that at the time they
+were stabilizing for 1.0, there were still StackOverflow questions that would reach
+the top of searches about old and disused features (such as `@mut`).
+
+I'd like to develop protosnirk to the point of it being a serious "proof of concept" for
+some of its novel features and systems. Once the basic experience of writing code and the
+shape of most programs seems to be stable and useful enough, we'll roll over from
+`protosnirk x.y` to `snirk 0.x.y`.
+
+Because of this, there are parts of protosnirk that I'm not giving attention to.
+For example, it's still just a [library][protosnirk-cargotoml] and the main "frontend" I
+use are the [integration-tests][protosnirk-tests].
 
 ## Why is this special? Why make another programming language?
 
@@ -46,10 +57,7 @@ five-character strings.
 
 ## Why is this special?
 
-It's not really special right now. 
-I think it will be special in the future, but until then, 
-there are a few other serious embedded Rust languages right now 
-that are worth checking out.
+It's not really special right now.
 
 ## What are some of the current features?
 
@@ -74,4 +82,5 @@ that are worth checking out.
 [wiki-hungarian-notation]: https://en.wikipedia.org/wiki/Hungarian_notation
 [wiki-earlang]: https://en.wikipedia.org/wiki/Erlang_(programming_language)#History
 [xkcd-about]: https://xkcd.com/about/
-[protosnirk-tests]: https://github.com/immington-industries/protosnirk/tree/master/tests
+[protosnirk-tests]: https://github.com/snirk-lang/protosnirk/tree/master/tests
+[protosnirk-cargotoml]: https://github.com/snirk-lang/protosnirk/tree/master/Cargo.toml
