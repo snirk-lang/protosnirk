@@ -12,7 +12,7 @@ use lex::{Location, Span, CowStr};
 /// Each token has a definite beginning position in the file,
 /// a string, and its `TokenData` value - an enum of literals,
 /// identifier name, or various keywords.
-#[derive(Debug, PartialEq, Clone, Default)]
+#[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct Token {
     /// Location of the token in a file
     start: Location,
@@ -29,8 +29,8 @@ impl Token {
     }
 
     /// The data associated with this token
-    pub fn data(&self) -> &TokenData {
-        &self.data
+    pub fn data(&self) -> TokenData {
+        self.data
     }
 
     /// The location of this token where it starts in its source text
@@ -38,6 +38,7 @@ impl Token {
         self.start
     }
 
+    /// The end of this token's span
     pub fn end(&self) -> Location {
         self.start.offset(self.text.len() as u32)
     }
@@ -97,17 +98,15 @@ impl Display for Token {
     }
 }
 
-impl Eq for Token { }
-
 /// Token enum - tokens are pretty simple, mostly dependent on string matching.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TokenData {
     /// Token is a numeric literal
-    NumberLiteral(f64),
+    NumberLiteral,
     /// Token is unit type literal `()`
     UnitLiteral,
     /// Token is boolean literal `true` or `false`
-    BoolLiteral(bool),
+    BoolLiteral,
     /// Token is some name
     Ident,
     /// Token is a keyword

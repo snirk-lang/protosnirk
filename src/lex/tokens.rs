@@ -64,10 +64,10 @@ macro_rules! declare_tokens {
 
         impl Token {
             pub fn get_type(&self) -> TokenType {
-                match *self.data() {
-                    TokenData::NumberLiteral(_)
+                match self.data() {
+                    TokenData::NumberLiteral
                     | TokenData::UnitLiteral
-                    | TokenData::BoolLiteral(_) => TokenType::Literal,
+                    | TokenData::BoolLiteral => TokenType::Literal,
                     TokenData::Ident => TokenType::Ident,
                     TokenData::BeginBlock => TokenType::BeginBlock,
                     TokenData::EndBlock => TokenType::EndBlock,
