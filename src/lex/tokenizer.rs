@@ -364,11 +364,8 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
         if is_kw && self.keywords.get(&Cow::Borrowed(&*token_string)).is_some() {
             Token::new(token_string, location, TokenData::Keyword)
         }
-        else if token_string == "true" {
-            Token::new(token_string, location, TokenData::BoolLiteral(true))
-        }
-        else if token_string == "false" {
-            Token::new(token_string, location, TokenData::BoolLiteral(false))
+        else if token_string == "true" || token_string == "false" {
+            Token::new(token_string, location, TokenData::BoolLiteral)
         }
         else {
             Token::new_ident(token_string, location)
@@ -382,48 +379,34 @@ impl<I: Iterator<Item=char>> IterTokenizer<I> {
         self.take_while(char::is_number, &mut token_string);
         // First part of number done. Is it a decimal?
         if self.iter.peek().unwrap_or(' ') == '.' {
-            // Push the decmial point
-            token_string.push(self.iter.next().expect("Checked expect"));
+            // This is a case where tokenization cannot continue.
+            // The tokenizer is being rewritten for #46 and will accommodate this.
+            // https://github.com/snirk-lang/protosnirk/issues/46
+            token_string.push(self.iter.next().expect("Checked expect: '.' after peek()"));
             if !self.iter.peek().unwrap_or(' ').is_number() {
-                // Actually, let's not
-                token_string.pop();
-                let parsed: f64 = token_string.parse()
-                    .expect("Couldn't parse float");
-                return Token::new(
-                    Cow::Owned(token_string),
-                    location,
-                    TokenData::NumberLiteral(parsed)
-                )
+                panic!("Invalid numeric literal with decimal; this panic will be fixed in #46");
             }
+            // numbers after decimal
             self.take_while(char::is_number, &mut token_string);
         }
-        if self.iter.peek().unwrap_or(' ').to_lowercase().collect::<String>() != "e" {
-            let parsed: f64 = token_string.parse()
-                .expect("Couldn't parse float");
+        let after_numbers = self.iter.peek().unwrap_or(' ');
+        if after_numbers != 'e' && after_numbers != 'E' {
             return Token::new(
                 Cow::Owned(token_string),
                 location,
-                TokenData::NumberLiteral(parsed)
+                TokenData::NumberLiteral
             )
         }
-        token_string.push(self.iter.next().expect("Checked expect"));
+        token_string.push(self.iter.next().expect("Checked expect: 'e' after peek()"));
         // Need numbers after the E
         if !self.iter.peek().unwrap_or(' ').is_number() {
-            let parsed: f64 = token_string.parse()
-                .expect("Couldn't parse float");
-            return Token::new(
-                Cow::Owned(token_string),
-                location,
-                TokenData::NumberLiteral(parsed)
-            )
+            panic!("Invalid numeric literal with e; this panic will be fixed in #46");
         }
         self.take_while(char::is_number, &mut token_string);
-        let parsed: f64 = token_string.parse()
-            .expect("Couldn't parse float");
         return Token::new(
             Cow::Owned(token_string),
             location,
-            TokenData::NumberLiteral(parsed)
+            TokenData::NumberLiteral
         )
     }
 
