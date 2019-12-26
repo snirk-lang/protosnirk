@@ -105,8 +105,8 @@ impl Literal {
     /// Creates a new boolean literal from the given token and boolean value.
     pub fn new_bool(token: Token, value: bool) -> Literal {
         debug_assert!(
-            match *token.data() {
-                TokenData::BoolLiteral(_) => true, _ => false
+            match token.data() {
+                TokenData::BoolLiteral => true, _ => false
             },
             "Literal bool created with bad token {:?}", token);
         Literal {
@@ -118,7 +118,7 @@ impl Literal {
     /// Creates a new unit type literal `()` from the given token.
     pub fn new_unit(token: Token) -> Literal {
         debug_assert!(
-            match *token.data() {
+            match token.data() {
                 TokenData::UnitLiteral => true, _ => false
             },
             "Literal unit created with bad token {:?}", token);
@@ -129,10 +129,10 @@ impl Literal {
     }
 
     /// Creates a new floating point literal from the given token and value.
-    pub fn new_f64(token: Token, value: f64) -> Literal {
+    pub fn new_float(token: Token, value: f64) -> Literal {
         debug_assert!(
-            match *token.data() {
-                TokenData::NumberLiteral(_) => true, _ => false
+            match token.data() {
+                TokenData::NumberLiteral => true, _ => false
             },
             "Literal f64 called with bad token {:?}", token);
         Literal {
